@@ -30,10 +30,35 @@ document.addEventListener("DOMContentLoaded", function () {
       const targetSection = document.querySelector(targetId);
 
       if (targetSection) {
-        targetSection.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+        // Calculate offset based on navbar height and section
+        const navbarHeight = 70;
+        
+        // For home section, scroll to the very top
+        if (targetId === '#home') {
+          window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+          });
+          // Update the fullpage scroll system
+          currentSectionIndex = 0;
+          updateIndicators();
+        } else {
+          // For other sections, account for navbar height
+          const elementPosition = targetSection.offsetTop;
+          const offsetPosition = elementPosition - navbarHeight;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          });
+          
+          // Update the fullpage scroll system
+          const sectionIndex = Array.from(sections).indexOf(targetSection);
+          if (sectionIndex !== -1) {
+            currentSectionIndex = sectionIndex;
+            updateIndicators();
+          }
+        }
       }
     });
   });
@@ -143,39 +168,67 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Typewriter effect for hero title
-  function typeWriter(element, text, speed = 100) {
-    element.innerHTML = "";
-    let i = 0;
-
-    function type() {
-      if (i < text.length) {
-        if (text.charAt(i) === "<") {
-          let tag = "";
-          while (text.charAt(i) !== ">" && i < text.length) {
-            tag += text.charAt(i);
-            i++;
-          }
-          tag += text.charAt(i);
-          element.innerHTML += tag;
-        } else {
-          element.innerHTML += text.charAt(i);
-        }
-        i++;
-        setTimeout(type, speed);
-      }
+  // Character-by-character text reveal animation
+  function initCharacterRevealAnimation() {
+    const textElements = document.querySelectorAll(".text-reveal");
+    
+    if (textElements.length > 0) {
+      let totalDelay = 0;
+      
+      textElements.forEach((element, wordIndex) => {
+        const text = element.textContent;
+        element.innerHTML = ""; // Clear the text
+        
+        // Add animate class to show the element
+        element.classList.add("animate");
+        
+        // Split text into characters and wrap each in a span
+        const chars = text.split("").map((char, charIndex) => {
+          const span = document.createElement("span");
+          span.className = "char";
+          span.textContent = char === " " ? "\u00A0" : char; // Use non-breaking space
+          span.style.animationDelay = `${totalDelay + (charIndex * 80)}ms`; // 80ms delay between chars
+          return span;
+        });
+        
+        // Add all character spans to the element
+        chars.forEach(char => element.appendChild(char));
+        
+        // Update total delay for next word (add time for all chars + word gap)
+        totalDelay += (text.length * 80) + 400; // 400ms gap between words
+      });
     }
-
-    type();
   }
 
-  // Initialize typewriter effect on hero title
-  const heroTitle = document.querySelector(".hero-title");
-  if (heroTitle) {
-    const originalText = heroTitle.innerHTML;
+  // Initialize character reveal animation on page load
+  setTimeout(() => {
+    initCharacterRevealAnimation();
+  }, 800); // Start after initial page load
+
+  // Enhanced subtitle animation
+  const heroSubtitle = document.querySelector(".hero-subtitle");
+  const heroButtons = document.querySelector(".hero-buttons");
+  
+  if (heroSubtitle) {
+    heroSubtitle.style.opacity = "0";
+    heroSubtitle.style.transform = "translateY(30px)";
+    heroSubtitle.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+    
     setTimeout(() => {
-      typeWriter(heroTitle, originalText, 50);
-    }, 1000);
+      heroSubtitle.style.opacity = "1";
+      heroSubtitle.style.transform = "translateY(0)";
+    }, 3500); // Start after character animation completes
+  }
+
+  if (heroButtons) {
+    heroButtons.style.opacity = "0";
+    heroButtons.style.transform = "translateY(30px)";
+    heroButtons.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+    
+    setTimeout(() => {
+      heroButtons.style.opacity = "1";
+      heroButtons.style.transform = "translateY(0)";
+    }, 3900); // Start after subtitle animation
   }
 
   // Loading screen effect
@@ -188,100 +241,76 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 100);
   });
 
-  // Cursor trail effect
-  const coords = { x: 0, y: 0 };
-  const circles = document.querySelectorAll(".cursor-circle");
+  // Mouse glow effect
+  const cursor = {
+    glow: document.createElement('div')
+  };
+  
+  // Create and style the glow element
+  cursor.glow.className = 'cursor-glow';
+  cursor.glow.style.position = 'fixed';
+  cursor.glow.style.pointerEvents = 'none';
+  cursor.glow.style.width = '30px';
+  cursor.glow.style.height = '30px';
+  cursor.glow.style.borderRadius = '50%';
+  cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0) 70%)';
+  cursor.glow.style.transform = 'translate(-50%, -50%)';
+  cursor.glow.style.zIndex = '9999';
+  cursor.glow.style.transition = 'width 0.2s, height 0.2s, opacity 0.2s, background 0.2s';
+  document.body.appendChild(cursor.glow);
 
-  if (circles.length === 0) {
-    // Create cursor trail circles
-    for (let i = 0; i < 12; i++) {
-      const circle = document.createElement("div");
-      circle.className = "cursor-circle";
-      circle.style.position = "fixed";
-      circle.style.width = "20px";
-      circle.style.height = "20px";
-      circle.style.background = `rgba(139, 92, 246, ${0.8 - i * 0.05})`;
-      circle.style.borderRadius = "50%";
-      circle.style.pointerEvents = "none";
-      circle.style.zIndex = "9999";
-      circle.style.transition = "transform 0.1s ease";
-      document.body.appendChild(circle);
+  let isMoving = false;
+  let moveTimeout;
+  let clickTimeout;
+
+  // Initialize mousemove listener
+  window.addEventListener('mousemove', (e) => {
+    cursor.glow.style.left = e.clientX + 'px';
+    cursor.glow.style.top = e.clientY + 'px';
+    
+    // Enhance glow effect when moving
+    if (!isMoving) {
+      isMoving = true;
+      cursor.glow.style.width = '50px';
+      cursor.glow.style.height = '50px';
+      cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0) 70%)';
     }
-  }
-
-  const cursorCircles = document.querySelectorAll(".cursor-circle");
-
-  window.addEventListener("mousemove", function (e) {
-    coords.x = e.clientX;
-    coords.y = e.clientY;
+    
+    // Reset the timeout on each move
+    clearTimeout(moveTimeout);
+    moveTimeout = setTimeout(() => {
+      isMoving = false;
+      if (!clickTimeout) { // Only shrink if not in click animation
+        cursor.glow.style.width = '30px';
+        cursor.glow.style.height = '30px';
+        cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0) 70%)';
+      }
+    }, 100);
   });
 
-  function animateCircles() {
-    let x = coords.x;
-    let y = coords.y;
+  // Add click animation
+  window.addEventListener('mousedown', () => {
+    cursor.glow.style.width = '70px';
+    cursor.glow.style.height = '70px';
+    cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.5) 0%, rgba(139, 92, 246, 0) 70%)';
+    
+    clearTimeout(clickTimeout);
+    clickTimeout = setTimeout(() => {
+      clickTimeout = null;
+      if (!isMoving) {
+        cursor.glow.style.width = '30px';
+        cursor.glow.style.height = '30px';
+        cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0) 70%)';
+      } else {
+        cursor.glow.style.width = '50px';
+        cursor.glow.style.height = '50px';
+        cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0) 70%)';
+      }
+    }, 300);
+  });
 
-    cursorCircles.forEach((circle, index) => {
-      circle.style.left = x - 10 + "px";
-      circle.style.top = y - 10 + "px";
-      circle.style.transform = `scale(${
-        (cursorCircles.length - index) / cursorCircles.length
-      })`;
-
-      circle.x = x;
-      circle.y = y;
-
-      const nextCircle = cursorCircles[index + 1] || cursorCircles[0];
-      x += (nextCircle.x || 0) * 0.3;
-      y += (nextCircle.y || 0) * 0.3;
-    });
-
-    requestAnimationFrame(animateCircles);
-  }
-
-  animateCircles();
-
-  // Interactive background particles
-  function createParticle() {
-    const particle = document.createElement("div");
-    particle.className = "particle";
-    particle.style.position = "fixed";
-    particle.style.width = "2px";
-    particle.style.height = "2px";
-    particle.style.background = "rgba(139, 92, 246, 0.5)";
-    particle.style.borderRadius = "50%";
-    particle.style.pointerEvents = "none";
-    particle.style.zIndex = "1";
-    particle.style.left = Math.random() * window.innerWidth + "px";
-    particle.style.top = window.innerHeight + "px";
-
-    document.body.appendChild(particle);
-
-    const duration = Math.random() * 3000 + 2000;
-    const drift = (Math.random() - 0.5) * 100;
-
-    particle
-      .animate(
-        [
-          { transform: "translateY(0px) translateX(0px)", opacity: 0 },
-          {
-            transform: `translateY(-${
-              window.innerHeight + 100
-            }px) translateX(${drift}px)`,
-            opacity: 1,
-          },
-        ],
-        {
-          duration: duration,
-          easing: "linear",
-        }
-      )
-      .addEventListener("finish", () => {
-        particle.remove();
-      });
-  }
-
-  // Create particles periodically
-  setInterval(createParticle, 300);
+  // Remove old sparkle-related elements if they exist
+  document.querySelectorAll('.cursor-circle').forEach(circle => circle.remove());
 
   // Console easter egg
   console.log(`
@@ -297,25 +326,175 @@ document.addEventListener("DOMContentLoaded", function () {
     You've found the hidden console. 
     Enter the shadows and discover what others never see...
     `);
-});
 
-// Add CSS for ripple animation
-const style = document.createElement("style");
-style.textContent = `
-    @keyframes ripple {
-        to {
-            transform: scale(4);
-            opacity: 0;
+  // Fullpage scroll functionality
+  const sections = document.querySelectorAll('section');
+  let isScrolling = false;
+  let currentSectionIndex = 0;
+
+  // Create section indicators
+  const indicators = document.createElement('div');
+  indicators.className = 'section-indicators';
+  indicators.style.position = 'fixed';
+  indicators.style.right = '20px';
+  indicators.style.top = '50%';
+  indicators.style.transform = 'translateY(-50%)';
+  indicators.style.zIndex = '1000';
+  indicators.style.display = 'flex';
+  indicators.style.flexDirection = 'column';
+  indicators.style.gap = '10px';
+
+  sections.forEach((_, index) => {
+    const dot = document.createElement('div');
+    dot.className = 'section-indicator';
+    dot.style.width = '10px';
+    dot.style.height = '10px';
+    dot.style.borderRadius = '50%';
+    dot.style.backgroundColor = 'rgba(139, 92, 246, 0.3)';
+    dot.style.cursor = 'pointer';
+    dot.style.transition = 'all 0.3s ease';
+    
+    dot.addEventListener('click', () => {
+      if (!isScrolling) {
+        scrollToSection(index);
+      }
+    });
+    
+    indicators.appendChild(dot);
+  });
+
+  document.body.appendChild(indicators);
+
+  // Update active indicator
+  function updateIndicators() {
+    const dots = document.querySelectorAll('.section-indicator');
+    dots.forEach((dot, index) => {
+      if (index === currentSectionIndex) {
+        dot.style.backgroundColor = 'rgba(139, 92, 246, 1)';
+        dot.style.transform = 'scale(1.2)';
+      } else {
+        dot.style.backgroundColor = 'rgba(139, 92, 246, 0.3)';
+        dot.style.transform = 'scale(1)';
+      }
+    });
+  }
+
+  // Update the scrollToSection function
+  function scrollToSection(index) {
+    if (index >= 0 && index < sections.length) {
+        isScrolling = true;
+        currentSectionIndex = index;
+        updateIndicators();
+        
+        const section = sections[index];
+        const sectionTop = section.offsetTop;
+        
+        // Add extra offset for the first section to show full content
+        const offset = index === 0 ? -20 : 0;
+        
+        window.scrollTo({
+            top: sectionTop + offset,
+            behavior: 'smooth'
+        });
+
+        setTimeout(() => {
+            isScrolling = false;
+        }, 1000);
+    }
+  }
+
+  // Handle wheel events
+  window.addEventListener('wheel', (e) => {
+    if (!isScrolling) {
+      if (e.deltaY > 0) {
+        scrollToSection(currentSectionIndex + 1);
+      } else {
+        scrollToSection(currentSectionIndex - 1);
+      }
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  // Handle keyboard navigation
+  window.addEventListener('keydown', (e) => {
+    if (!isScrolling) {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        scrollToSection(currentSectionIndex + 1);
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        scrollToSection(currentSectionIndex - 1);
+        e.preventDefault();
+      }
+    }
+  });
+
+  // Update current section on scroll
+  let scrollTimeout;
+  window.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      if (!isScrolling) {
+        const currentScroll = window.scrollY;
+        sections.forEach((section, index) => {
+          const rect = section.getBoundingClientRect();
+          if (rect.top >= -100 && rect.top <= 100) {
+            currentSectionIndex = index;
+            updateIndicators();
+          }
+        });
+      }
+    }, 50);
+  });
+
+  // Initialize first section
+  updateIndicators();
+
+  // Simple hover effects for circular icons
+  function initCircularIcons() {
+    const iconItems = document.querySelectorAll('.icon-item');
+    const circularContainer = document.querySelector('.circular-icons');
+    
+    if (iconItems.length === 0 || !circularContainer) return;
+    
+    // No more pause/resume functionality - circle rotates continuously
+    // Icons will only scale on individual hover via CSS
+  }
+  
+  // Initialize circular icons when the about section comes into view
+  const aboutSection = document.querySelector('#about');
+  if (aboutSection) {
+    const aboutObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            initCircularIcons();
+          }, 500);
+          aboutObserver.unobserve(entry.target);
         }
-    }
+      });
+    }, { threshold: 0.3 });
     
-    .particle {
-        animation: twinkle 2s ease-in-out infinite;
-    }
-    
-    @keyframes twinkle {
-        0%, 100% { opacity: 0.3; }
-        50% { opacity: 1; }
-    }
-`;
-document.head.appendChild(style);
+    aboutObserver.observe(aboutSection);
+  }
+
+  // Add CSS for ripple animation
+  const style = document.createElement("style");
+  style.textContent = `
+      @keyframes ripple {
+          to {
+              transform: scale(4);
+              opacity: 0;
+          }
+      }
+      
+      .particle {
+          animation: twinkle 2s ease-in-out infinite;
+      }
+      
+      @keyframes twinkle {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 1; }
+      }
+  `;
+  document.head.appendChild(style);
+});

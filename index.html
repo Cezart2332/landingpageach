@@ -288,6 +288,13 @@
       </div>
     </footer>
 
-    <script src="script.js"></script>
+    <!-- Dynamic script loading with cache busting -->
+    <script>
+      // Generate unique timestamp for cache busting
+      const timestamp = new Date().getTime();
+      const script = document.createElement('script');
+      script.src = `script.js?v=${timestamp}`;
+      document.head.appendChild(script);
+    </script>
   </body>
 </html>

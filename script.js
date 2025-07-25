@@ -10,13 +10,40 @@ document.addEventListener("DOMContentLoaded", function () {
     const navMenu = document.querySelector(".nav-menu");
     const navLinks = document.querySelectorAll(".nav-link");
 
-    // Device detection
+    // Device detection - improved trackpad handling
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const isActualDesktop = !isMobile && window.innerWidth > 1024;
-    const isMacTrackpad = isTouch && !isMobile && navigator.userAgent.includes('Mac');
+    
+    // Better trackpad detection
+    const isLaptop = !isMobile && isTouch && window.innerWidth > 1024;
+    const isMacTrackpad = isLaptop && navigator.userAgent.includes('Mac');
+    const isWindowsTrackpad = isLaptop && navigator.userAgent.includes('Windows');
+    const isLinuxTrackpad = isLaptop && !navigator.userAgent.includes('Mac') && !navigator.userAgent.includes('Windows');
+    const isTrackpad = isLaptop;
+    
     const isDevToolsMobile = isMobile && window.innerWidth > 800;
-    const forceDesktopScroll = isDevToolsMobile || isActualDesktop || isMacTrackpad;
+    
+    // Scroll mode determination - Mac fallback fix
+    const useDesktopScroll = (isActualDesktop && !isTrackpad) || (!isMobile && !isTouch && window.innerWidth > 1024);
+    const useTrackpadScroll = isTrackpad || (navigator.userAgent.includes('Mac') && !isMobile && window.innerWidth > 1024);
+    const useMobileScroll = isMobile && !isDevToolsMobile;
+
+    // Debug logging (remove in production)
+    console.log('Device Detection:', {
+      isMobile,
+      isTouch,
+      isActualDesktop,
+      isLaptop,
+      isMacTrackpad,
+      isTrackpad,
+      useDesktopScroll,
+      useTrackpadScroll,
+      useMobileScroll,
+      userAgent: navigator.userAgent,
+      maxTouchPoints: navigator.maxTouchPoints,
+      windowWidth: window.innerWidth
+    });
 
     // Scroll functionality variables
     const sections = document.querySelectorAll('section, footer');
@@ -136,7 +163,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Mobile behavior (TikTok-style scroll)
-    if (isMobile && !forceDesktopScroll) {
+    if (useMobileScroll) {
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
       
@@ -212,8 +239,64 @@ document.addEventListener("DOMContentLoaded", function () {
       }, { passive: true });
     }
 
-    // Desktop scroll behavior with Windows-specific debouncing
-    if (forceDesktopScroll) {
+    // Trackpad scroll behavior - allows both free scroll and section scroll
+    if (useTrackpadScroll) {
+      let trackpadScrollTimeout;
+      let trackpadDeltaY = 0;
+      let isTrackpadScrolling = false;
+      let lastTrackpadScrollTime = 0;
+      const trackpadCooldown = 800; // Prevent double scrolling
+      
+      // Allow normal scrolling but add section snapping
+      document.body.style.overflow = 'auto';
+      document.documentElement.style.overflow = 'auto';
+      
+      window.addEventListener('wheel', (e) => {
+        const currentTime = Date.now();
+        
+        // Prevent multiple scroll triggers
+        if (isScrolling || isTrackpadScrolling) {
+          e.preventDefault();
+          return;
+        }
+        
+        // Accumulate delta for trackpad gestures
+        trackpadDeltaY += e.deltaY;
+        
+        clearTimeout(trackpadScrollTimeout);
+        
+        // If large scroll movement and enough time has passed, trigger section scroll
+        if (Math.abs(trackpadDeltaY) > 100 && !isScrolling && 
+            (currentTime - lastTrackpadScrollTime) > trackpadCooldown) {
+          
+          isTrackpadScrolling = true;
+          lastTrackpadScrollTime = currentTime;
+          
+          if (trackpadDeltaY > 0) {
+            scrollToSection(currentSectionIndex + 1);
+          } else {
+            scrollToSection(currentSectionIndex - 1);
+          }
+          
+          trackpadDeltaY = 0;
+          e.preventDefault();
+          
+          // Reset scrolling flag after animation
+          setTimeout(() => {
+            isTrackpadScrolling = false;
+          }, 800);
+        } else {
+          // Allow free scrolling for small movements
+          trackpadScrollTimeout = setTimeout(() => {
+            trackpadDeltaY = 0;
+            isTrackpadScrolling = false;
+          }, 150);
+        }
+      }, { passive: false });
+    }
+
+    // Desktop scroll behavior (mouse wheel)
+    if (useDesktopScroll) {
       window.addEventListener('wheel', (e) => {
         const currentTime = Date.now();
         
@@ -246,13 +329,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 scrollToSection(currentSectionIndex - 1);
               }
             }
-          }, 50); // Small delay to group wheel events
+          }, 50);
         }
         
         e.preventDefault();
       }, { passive: false });
 
-      // Keyboard navigation
+      // Keyboard navigation for desktop
       window.addEventListener('keydown', (e) => {
         if (!isScrolling) {
           if (e.key === 'ArrowDown' || e.key === 'PageDown') {

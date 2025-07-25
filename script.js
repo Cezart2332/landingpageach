@@ -23,6 +23,13 @@ document.addEventListener("DOMContentLoaded", function () {
     let isScrolling = false;
     let currentSectionIndex = 0;
     let handlersInitialized = false;
+    
+    // Windows scroll debouncing variables
+    let wheelTimeout;
+    let wheelCount = 0;
+    let lastWheelTime = 0;
+    const wheelDebounceTime = 150; // ms
+    const maxWheelEvents = 3; // max events to consider as single scroll
 
     // Mobile touch variables
     let touchStartY = 0;
@@ -205,24 +212,43 @@ document.addEventListener("DOMContentLoaded", function () {
       }, { passive: true });
     }
 
-    // Desktop scroll behavior
+    // Desktop scroll behavior with Windows-specific debouncing
     if (forceDesktopScroll) {
       window.addEventListener('wheel', (e) => {
-        if (!isScrolling) {
-          const footer = document.querySelector('#footer');
-          const footerRect = footer.getBoundingClientRect();
-          const isInFooter = footerRect.top <= 0 && footerRect.bottom >= window.innerHeight;
-          
-          if (isInFooter && e.deltaY > 0) {
-            return;
-          }
-          
-          if (e.deltaY > 0) {
-            scrollToSection(currentSectionIndex + 1);
-          } else {
-            scrollToSection(currentSectionIndex - 1);
-          }
+        const currentTime = Date.now();
+        
+        // Reset wheel count if enough time has passed
+        if (currentTime - lastWheelTime > wheelDebounceTime) {
+          wheelCount = 0;
         }
+        
+        wheelCount++;
+        lastWheelTime = currentTime;
+        
+        // Clear existing timeout
+        clearTimeout(wheelTimeout);
+        
+        // Only process scroll if we haven't exceeded the max wheel events
+        if (wheelCount <= maxWheelEvents && !isScrolling) {
+          wheelTimeout = setTimeout(() => {
+            if (!isScrolling) {
+              const footer = document.querySelector('#footer');
+              const footerRect = footer.getBoundingClientRect();
+              const isInFooter = footerRect.top <= 0 && footerRect.bottom >= window.innerHeight;
+              
+              if (isInFooter && e.deltaY > 0) {
+                return;
+              }
+              
+              if (e.deltaY > 0) {
+                scrollToSection(currentSectionIndex + 1);
+              } else {
+                scrollToSection(currentSectionIndex - 1);
+              }
+            }
+          }, 50); // Small delay to group wheel events
+        }
+        
         e.preventDefault();
       }, { passive: false });
 

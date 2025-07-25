@@ -626,35 +626,30 @@ section {
 }
 
 .phone-video {
-  /* Aggressive size constraints for hosted environments */
-  width: 95% !important;
-  height: 95% !important;
-  max-width: 95% !important;
-  max-height: 95% !important;
-  /* Positioning with small margins to ensure containment */
-  position: absolute;
-  top: 2.5%;
-  left: 2.5%;
-  /* Force contain to prevent overflow */
-  object-fit: contain !important;
+  /* Dimensiuni relative pentru responsive design */
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  /* Asigură că video-ul se potrivește în container */
+  object-fit: cover;
   object-position: center center;
-  /* Visual styling */
+  /* Poziționare și styling */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   border-radius: 25px;
   z-index: 1;
-  /* Force strict box model */
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-  /* Prevent any transforms that might cause scaling */
-  transform: none !important;
-  /* Enhanced quality rendering */
+  /* Box model corect */
+  box-sizing: border-box;
+  /* Previne overflow */
+  overflow: hidden;
+  /* Quality enhancements */
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
-  /* Quality filters */
   -webkit-filter: contrast(1.1) brightness(1.05) saturate(1.1);
   filter: contrast(1.1) brightness(1.05) saturate(1.1);
-  /* Ensure no external CSS can override these critical properties */
-  min-width: 0 !important;
-  min-height: 0 !important;
 }
 
 .video-fallback {
@@ -2119,5 +2114,32 @@ section {
 
   .footer-bottom a {
     margin: 0 8px !important;
+  }
+}
+
+/* Media queries specifice pentru video în phone mockup */
+@media screen and (max-width: 1200px) {
+  .phone-mockup {
+    max-width: 240px;
+    max-height: 480px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .phone-mockup {
+    width: 200px !important;
+    height: 400px !important;
+    max-width: 200px !important;
+    max-height: 400px !important;
+    margin: 0 auto !important;
+  }
+  
+  .phone-video {
+    /* Forțează dimensiuni relative pe mobile */
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
   }
 }

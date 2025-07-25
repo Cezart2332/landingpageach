@@ -910,63 +910,50 @@ document.addEventListener("DOMContentLoaded", function () {
     aboutObserver.observe(aboutSection);
   }
 
-  // Video playback observer for about section
+  // Video playback observer pentru debugging detaliat
   const phoneVideo = document.getElementById('phone-video');
   
   if (phoneVideo) {
-    // Enhanced video setup for cross-platform compatibility
-    phoneVideo.setAttribute('webkit-playsinline', 'true');
-    phoneVideo.setAttribute('playsinline', 'true');
-    phoneVideo.setAttribute('muted', 'true');
-    phoneVideo.muted = true;
-    phoneVideo.defaultMuted = true;
-    phoneVideo.volume = 0;
+    // Debugging detaliat pentru probleme video
+    console.log('Video element găsit:', phoneVideo);
+    console.log('Video src:', phoneVideo.src);
+    console.log('Video currentSrc:', phoneVideo.currentSrc);
     
-    // Force video to load immediately
-    phoneVideo.load();
+    // Verifică dacă video-ul se încarcă
+    phoneVideo.addEventListener('loadstart', () => {
+      console.log('Video loadstart - începe încărcarea');
+    });
     
-    // Robust video initialization
-    let videoInitialized = false;
-    let playAttempts = 0;
-    const maxPlayAttempts = 10;
+    phoneVideo.addEventListener('loadedmetadata', () => {
+      console.log('Video metadata încărcată');
+      console.log('Video dimensions:', phoneVideo.videoWidth + 'x' + phoneVideo.videoHeight);
+      console.log('Video duration:', phoneVideo.duration);
+    });
     
-    // Function to attempt video play with aggressive retries
-    function attemptVideoPlay() {
-      if (playAttempts >= maxPlayAttempts) {
-        console.log('Max play attempts reached, showing fallback');
-        showVideoFallback();
-        return;
-      }
-      
-      playAttempts++;
-      console.log(`Video play attempt ${playAttempts}`);
-      
-      const playPromise = phoneVideo.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          console.log('Video playing successfully');
-          videoInitialized = true;
-          hideVideoFallback();
-        }).catch(error => {
-          console.log(`Video play attempt ${playAttempts} failed:`, error);
-          
-          // Try again after a short delay
-          setTimeout(() => {
-            if (!videoInitialized && phoneVideo.paused) {
-              attemptVideoPlay();
-            }
-          }, 500);
-        });
-      }
+    phoneVideo.addEventListener('error', (e) => {
+      console.error('Video error:', e);
+      console.error('Error code:', phoneVideo.error?.code);
+      console.error('Error message:', phoneVideo.error?.message);
+      // Afișează fallback dacă video-ul nu se încarcă
+      showVideoFallback();
+    });
+    
+    // Verifică dimensiunile container-ului
+    const phoneScreen = document.querySelector('.phone-screen');
+    if (phoneScreen) {
+      console.log('Phone screen dimensions:', {
+        width: phoneScreen.offsetWidth,
+        height: phoneScreen.offsetHeight,
+        computed: getComputedStyle(phoneScreen)
+      });
     }
     
-    // Show/hide fallback functions
     function showVideoFallback() {
       const fallback = phoneVideo.parentElement.querySelector('.video-fallback');
       if (fallback) {
         fallback.style.display = 'flex';
         fallback.style.opacity = '1';
+        console.log('Fallback afișat pentru video');
       }
     }
     
@@ -978,118 +965,40 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
     
-    // Enhanced video setup for quality and compatibility
-    phoneVideo.addEventListener('loadedmetadata', () => {
-      console.log('Video metadata loaded');
-      attemptVideoPlay();
-    });
+    // Forțează încărcarea video-ului
+    phoneVideo.load();
     
-    phoneVideo.addEventListener('loadeddata', () => {
-      console.log('Video data loaded');
-      if (!videoInitialized && phoneVideo.paused) {
-        attemptVideoPlay();
-      }
-    });
-    
-    phoneVideo.addEventListener('canplay', () => {
-      console.log('Video can play');
-      if (!videoInitialized && phoneVideo.paused) {
-        attemptVideoPlay();
-      }
-    });
-    
-    phoneVideo.addEventListener('canplaythrough', () => {
-      console.log('Video can play through');
-      if (!videoInitialized && phoneVideo.paused) {
-        attemptVideoPlay();
-      }
-    });
-    
-    // User interaction enabler for autoplay restrictions
-    let userInteracted = false;
-    
-    function enableVideoOnInteraction() {
-      if (!userInteracted) {
-        userInteracted = true;
-        console.log('User interaction detected, attempting video play');
-        if (phoneVideo.paused) {
-          attemptVideoPlay();
-        }
-      }
-    }
-    
-    // Multiple interaction listeners for maximum compatibility
-    ['click', 'touchstart', 'scroll', 'keydown', 'mousedown'].forEach(event => {
-      document.addEventListener(event, enableVideoOnInteraction, { once: true, passive: true });
-    });
-    
-    // Intersection observer for play/pause based on visibility
-    const videoObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          console.log('Video section is visible');
-          // Video is visible - try to play
-          if (phoneVideo.paused && !videoInitialized) {
-            attemptVideoPlay();
-          } else if (phoneVideo.paused && videoInitialized) {
-            phoneVideo.play().catch(console.log);
-          }
-        } else {
-          // Video is not visible - pause to save resources
-          if (!phoneVideo.paused) {
-            phoneVideo.pause();
-          }
-        }
-      });
-    }, {
-      threshold: 0.1,
-      rootMargin: '0px'
-    });
-
-    // Observe the about section for video visibility
+    // Încearcă să ruleze video-ul când devine vizibil
     const aboutSection = document.querySelector('#about');
     if (aboutSection) {
+      const videoObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            console.log('About section vizibilă, încearcă să ruleze video-ul');
+            phoneVideo.play().catch(error => {
+              console.log('Autoplay blocat:', error);
+              console.log('Video va fi rulat la prima interacțiune');
+            });
+          }
+        });
+      }, { threshold: 0.1 });
+      
       videoObserver.observe(aboutSection);
     }
-
-    // Error handling with fallback
-    phoneVideo.addEventListener('error', (e) => {
-      console.error('Video error:', e);
-      showVideoFallback();
-    });
-
-    // Additional loading states
-    phoneVideo.addEventListener('loadstart', () => {
-      console.log('Video loading started');
-    });
     
-    phoneVideo.addEventListener('progress', () => {
-      console.log('Video downloading...');
-    });
-
-    phoneVideo.addEventListener('playing', () => {
-      console.log('Video is playing');
-      videoInitialized = true;
-      hideVideoFallback();
-    });
-
-    phoneVideo.addEventListener('pause', () => {
-      console.log('Video paused');
-    });
-    
-    phoneVideo.addEventListener('ended', () => {
-      console.log('Video ended, restarting');
-      phoneVideo.currentTime = 0;
-      phoneVideo.play().catch(console.log);
-    });
-    
-    // Force immediate load attempt
-    setTimeout(() => {
-      if (!videoInitialized) {
-        console.log('Forcing video load after timeout');
-        attemptVideoPlay();
+    // Rulează video la prima interacțiune utilizator
+    let userInteracted = false;
+    function handleFirstInteraction() {
+      if (!userInteracted) {
+        userInteracted = true;
+        console.log('Prima interacțiune detectată, rulează video-ul');
+        phoneVideo.play().catch(console.log);
       }
-    }, 1000);
+    }
+    
+    ['click', 'touchstart', 'keydown'].forEach(event => {
+      document.addEventListener(event, handleFirstInteraction, { once: true });
+    });
   }
 
   // Add CSS for ripple animation

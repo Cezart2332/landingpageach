@@ -26,8 +26,8 @@
 }
 
 html {
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
+  scroll-snap-type: none; /* Disable native scroll snap for custom implementation */
+  scroll-behavior: auto; /* Disable native smooth scroll for custom implementation */
   overflow-y: scroll;
 }
 
@@ -638,11 +638,59 @@ section {
 }
 
 .phone-content p {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
+/* Moved video overlay styles here */
+.phone-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 25px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  z-index: 2;
+  border-radius: 25px 25px 0 0;
+  padding: 20px;
+}
+
+.video-overlay .phone-content {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.video-overlay .phone-content p {
+  font-size: 0.65rem !important;
+  margin: 0 !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  max-width: 100% !important;
+  line-height: 1.2 !important;
+  padding: 0 2px !important;
+}
+
+/* Chat bubble styles */
 .chat-bubble {
   background: var(--card-bg);
   border: 1px solid var(--primary-color);
@@ -1764,7 +1812,14 @@ section {
   }
 
   .phone-content p {
-    font-size: 0.85rem !important;
+    font-size: 0.75rem !important;
+    margin: 0 !important;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   /* FEATURES SECTION - Full height to prevent previous section bleeding */

@@ -12,6 +12,33 @@ document.addEventListener("DOMContentLoaded", function () {
   // Flag to prevent duplicate handler initialization
   let handlersInitialized = false;
 
+  // Windows-compatible smooth scroll function
+  function smoothScrollTo(targetY, duration = 1000) {
+    const startY = window.pageYOffset;
+    const distance = targetY - startY;
+    const startTime = performance.now();
+
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    }
+
+    function animation(currentTime) {
+      const timeElapsed = currentTime - startTime;
+      const progress = Math.min(timeElapsed / duration, 1);
+      const ease = easeInOutCubic(progress);
+      
+      window.scrollTo(0, startY + distance * ease);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animation);
+      } else {
+        isScrolling = false;
+      }
+    }
+
+    requestAnimationFrame(animation);
+  }
+
   // Update active indicator function - declare early
   function updateIndicators() {
     const dots = document.querySelectorAll('.section-indicator');
@@ -26,9 +53,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Update the scrollToSection function - declare early
+  // Update the scrollToSection function with Windows-compatible scrolling
   function scrollToSection(index) {
-    if (index >= 0 && index < sections.length) {
+    if (index >= 0 && index < sections.length && !isScrolling) {
         isScrolling = true;
         currentSectionIndex = index;
         updateIndicators();
@@ -38,15 +65,10 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Add extra offset for the first section to show full content
         const offset = index === 0 ? -20 : 0;
+        const targetY = sectionTop + offset;
         
-        window.scrollTo({
-            top: sectionTop + offset,
-            behavior: 'smooth'
-        });
-
-        setTimeout(() => {
-            isScrolling = false;
-        }, 1000);
+        // Use custom smooth scroll instead of native browser scrolling
+        smoothScrollTo(targetY, 800);
     }
   }
 
@@ -81,19 +103,15 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // For home section, scroll to the very top
         if (targetId === '#home') {
-          window.scrollTo({
-            top: 0,
-            behavior: "smooth",
-          });
+          isScrolling = true;
+          smoothScrollTo(0, 800);
           // Update the fullpage scroll system
           currentSectionIndex = 0;
           updateIndicators();
         } else if (targetId === '#footer') {
           // For footer, scroll to the very bottom to ensure it's fully visible
-          window.scrollTo({
-            top: document.documentElement.scrollHeight,
-            behavior: "smooth",
-          });
+          isScrolling = true;
+          smoothScrollTo(document.documentElement.scrollHeight, 800);
           // Update the fullpage scroll system to footer index
           const footerIndex = Array.from(sections).indexOf(targetSection);
           if (footerIndex !== -1) {
@@ -105,10 +123,8 @@ document.addEventListener("DOMContentLoaded", function () {
           const elementPosition = targetSection.offsetTop;
           const offsetPosition = elementPosition - navbarHeight;
           
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: "smooth",
-          });
+          isScrolling = true;
+          smoothScrollTo(offsetPosition, 800);
           
           // Update the fullpage scroll system
           const sectionIndex = Array.from(sections).indexOf(targetSection);
@@ -892,6 +908,44 @@ document.addEventListener("DOMContentLoaded", function () {
     }, { threshold: 0.3 });
     
     aboutObserver.observe(aboutSection);
+  }
+
+  // Video playback observer for about section
+  const phoneVideo = document.getElementById('phone-video');
+  
+  if (phoneVideo) {
+    const videoObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // Play video when about section is visible
+          phoneVideo.play().catch(e => {
+            console.log('Video autoplay prevented:', e);
+          });
+        } else {
+          // Pause video when about section is not visible
+          phoneVideo.pause();
+        }
+      });
+    }, {
+      threshold: 0.3, // Trigger when 30% of the about section is visible
+      rootMargin: '0px 0px -100px 0px' // Add some margin to prevent early triggering
+    });
+
+    // Observe the about section
+    if (aboutSection) {
+      videoObserver.observe(aboutSection);
+    }
+
+    // Handle video loading and error states
+    phoneVideo.addEventListener('loadedmetadata', () => {
+      console.log('Video metadata loaded');
+    });
+
+    phoneVideo.addEventListener('error', (e) => {
+      console.error('Video loading error:', e);
+      // Hide video and show fallback if video fails to load
+      phoneVideo.style.display = 'none';
+    });
   }
 
   // Add CSS for ripple animation

@@ -109,9 +109,21 @@
               <div class="phone-mockup">
                 <div class="screen">
                   <div class="app-interface">
-                    <div class="phone-content">
-                      <h3>AcoomH App</h3>
-                      <p>Descoperă orașul tău!</p>
+                    <video 
+                      id="phone-video" 
+                      class="phone-video"
+                      muted
+                      loop
+                      playsinline
+                      preload="metadata"
+                    >
+                      <source src="acoomharta.mp4" type="video/mp4">
+                      Your browser does not support the video tag.
+                    </video>
+                    <div class="video-overlay">
+                      <div class="phone-content">
+                        <p>Descoperă orașul tău!</p>
+                      </div>
                     </div>
                   </div>
                 </div>

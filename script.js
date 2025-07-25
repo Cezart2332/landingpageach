@@ -42,6 +42,18 @@ document.addEventListener("DOMContentLoaded", function () {
           // Update the fullpage scroll system
           currentSectionIndex = 0;
           updateIndicators();
+        } else if (targetId === '#footer') {
+          // For footer, scroll to the very bottom to ensure it's fully visible
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: "smooth",
+          });
+          // Update the fullpage scroll system to footer index
+          const footerIndex = Array.from(sections).indexOf(targetSection);
+          if (footerIndex !== -1) {
+            currentSectionIndex = footerIndex;
+            updateIndicators();
+          }
         } else {
           // For other sections, account for navbar height
           const elementPosition = targetSection.offsetTop;
@@ -192,8 +204,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Create popup content
     const popup = document.createElement('div');
     popup.className = 'popup-content';
-    popup.style.background = 'linear-gradient(145deg, var(--card-bg), rgba(26, 26, 26, 0.95))';
-    popup.style.border = '1px solid var(--primary-color)';
+    popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
+    popup.style.border = '1px solid #6b46c1';
     popup.style.borderRadius = '25px';
     popup.style.padding = '40px 30px';
     popup.style.textAlign = 'center';
@@ -207,12 +219,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // Add popup content
     popup.innerHTML = `
       <div style="margin-bottom: 25px;">
-        <i class="fas fa-rocket" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 20px; display: block;"></i>
-        <h3 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
-        <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
+        <i class="fas fa-rocket" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
+        <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
+        <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
       </div>
       <button class="popup-close-btn" style="
-        background: var(--gradient);
+        background: linear-gradient(135deg, #6b46c1, #7c3aed);
         color: white;
         border: none;
         border-radius: 15px;
@@ -298,8 +310,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Create popup content
     const popup = document.createElement('div');
     popup.className = 'popup-content';
-    popup.style.background = 'linear-gradient(145deg, var(--card-bg), rgba(26, 26, 26, 0.95))';
-    popup.style.border = '1px solid var(--primary-color)';
+    popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
+    popup.style.border = '1px solid #6b46c1';
     popup.style.borderRadius = '25px';
     popup.style.padding = '40px 30px';
     popup.style.textAlign = 'center';
@@ -313,12 +325,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // Add popup content
     popup.innerHTML = `
       <div style="margin-bottom: 25px;">
-        <i class="fas fa-clock" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 20px; display: block;"></i>
-        <h3 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
-        <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
+        <i class="fas fa-clock" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
+        <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
+        <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
       </div>
       <button class="popup-close-btn" style="
-        background: var(--gradient);
+        background: linear-gradient(135deg, #6b46c1, #7c3aed);
         color: white;
         border: none;
         border-radius: 15px;
@@ -404,8 +416,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Create popup content
     const popup = document.createElement('div');
     popup.className = 'popup-content';
-    popup.style.background = 'linear-gradient(145deg, var(--card-bg), rgba(26, 26, 26, 0.95))';
-    popup.style.border = '1px solid var(--primary-color)';
+    popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
+    popup.style.border = '1px solid #6b46c1';
     popup.style.borderRadius = '25px';
     popup.style.padding = '40px 30px';
     popup.style.textAlign = 'center';
@@ -419,12 +431,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // Add popup content
     popup.innerHTML = `
       <div style="margin-bottom: 25px;">
-        <i class="fas fa-wrench" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 20px; display: block;"></i>
-        <h3 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Funcționalitate în dezvoltare</h3>
-        <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Această funcționalitate este încă în dezvoltare</p>
+        <i class="fas fa-wrench" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
+        <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Funcționalitate în dezvoltare</h3>
+        <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Această funcționalitate este încă în dezvoltare</p>
       </div>
       <button class="popup-close-btn" style="
-        background: var(--gradient);
+        background: linear-gradient(135deg, #6b46c1, #7c3aed);
         color: white;
         border: none;
         border-radius: 15px;

@@ -1,5 +1,18 @@
+// DEBUGGING: Testează încărcarea script-ului pe hosted
+console.log('🚀 AcoomH Script Loading...', new Date().toISOString());
+console.log('📱 Device:', navigator.userAgent);
+
+// Test execuție imediată
+try {
+  console.log('✅ JavaScript engine functional');
+} catch (error) {
+  console.error('❌ JavaScript error:', error);
+}
+
 // Mobile Navigation Toggle
 document.addEventListener("DOMContentLoaded", function () {
+  console.log('🎯 DOM Ready - Starting script execution...');
+  
   // Debugging pentru elemente critice - DECLARATE O SINGURĂ DATĂ
   const phoneVideo = document.getElementById('phone-video');
   const navToggle = document.querySelector(".nav-toggle");

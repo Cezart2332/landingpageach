@@ -136,6 +136,358 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  // Download button click handler
+  const downloadButton = document.querySelector(".btn-primary.btn-large");
+  if (downloadButton) {
+    downloadButton.addEventListener("click", function(e) {
+      e.preventDefault();
+      showDownloadPopup();
+    });
+  }
+
+  // Early access button click handler
+  const earlyAccessButton = document.querySelector(".btn-outline.btn-large");
+  if (earlyAccessButton) {
+    earlyAccessButton.addEventListener("click", function(e) {
+      e.preventDefault();
+      showEarlyAccessPopup();
+    });
+  }
+
+  // Hero section buttons - Rezervări and Download
+  const heroSectionButtons = document.querySelectorAll(".hero-buttons .btn");
+  if (heroSectionButtons.length >= 2) {
+    // Rezervări button (first button)
+    heroSectionButtons[0].addEventListener("click", function(e) {
+      e.preventDefault();
+      showReservationPopup();
+    });
+    
+    // Download button (second button)
+    heroSectionButtons[1].addEventListener("click", function(e) {
+      e.preventDefault();
+      showDownloadPopup();
+    });
+  }
+
+  // Show download popup function
+  function showDownloadPopup() {
+    // Create popup overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    overlay.style.zIndex = '10000';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.backdropFilter = 'blur(10px)';
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.3s ease';
+
+    // Create popup content
+    const popup = document.createElement('div');
+    popup.className = 'popup-content';
+    popup.style.background = 'linear-gradient(145deg, var(--card-bg), rgba(26, 26, 26, 0.95))';
+    popup.style.border = '1px solid var(--primary-color)';
+    popup.style.borderRadius = '25px';
+    popup.style.padding = '40px 30px';
+    popup.style.textAlign = 'center';
+    popup.style.maxWidth = '400px';
+    popup.style.width = '90%';
+    popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
+    popup.style.transform = 'scale(0.8) translateY(20px)';
+    popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    popup.style.position = 'relative';
+
+    // Add popup content
+    popup.innerHTML = `
+      <div style="margin-bottom: 25px;">
+        <i class="fas fa-rocket" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 20px; display: block;"></i>
+        <h3 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
+      </div>
+      <button class="popup-close-btn" style="
+        background: var(--gradient);
+        color: white;
+        border: none;
+        border-radius: 15px;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+      ">
+        <i class="fas fa-check" style="margin-right: 8px;"></i>
+        Înțeles!
+      </button>
+    `;
+
+    // Add hover effect to close button
+    const closeBtn = popup.querySelector('.popup-close-btn');
+    closeBtn.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-3px)';
+      this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
+    });
+    closeBtn.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+      this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
+    });
+
+    // Close popup function
+    function closePopup() {
+      overlay.style.opacity = '0';
+      popup.style.transform = 'scale(0.8) translateY(20px)';
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+      }, 300);
+    }
+
+    // Add event listeners
+    closeBtn.addEventListener('click', closePopup);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        closePopup();
+      }
+    });
+
+    // Add escape key listener
+    const escapeHandler = function(e) {
+      if (e.key === 'Escape') {
+        closePopup();
+        document.removeEventListener('keydown', escapeHandler);
+      }
+    };
+    document.addEventListener('keydown', escapeHandler);
+
+    // Add to DOM
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    // Animate in
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      popup.style.transform = 'scale(1) translateY(0)';
+    }, 10);
+  }
+
+  // Show early access popup function
+  function showEarlyAccessPopup() {
+    // Create popup overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    overlay.style.zIndex = '10000';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.backdropFilter = 'blur(10px)';
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.3s ease';
+
+    // Create popup content
+    const popup = document.createElement('div');
+    popup.className = 'popup-content';
+    popup.style.background = 'linear-gradient(145deg, var(--card-bg), rgba(26, 26, 26, 0.95))';
+    popup.style.border = '1px solid var(--primary-color)';
+    popup.style.borderRadius = '25px';
+    popup.style.padding = '40px 30px';
+    popup.style.textAlign = 'center';
+    popup.style.maxWidth = '400px';
+    popup.style.width = '90%';
+    popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
+    popup.style.transform = 'scale(0.8) translateY(20px)';
+    popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    popup.style.position = 'relative';
+
+    // Add popup content
+    popup.innerHTML = `
+      <div style="margin-bottom: 25px;">
+        <i class="fas fa-clock" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 20px; display: block;"></i>
+        <h3 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
+      </div>
+      <button class="popup-close-btn" style="
+        background: var(--gradient);
+        color: white;
+        border: none;
+        border-radius: 15px;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+      ">
+        <i class="fas fa-check" style="margin-right: 8px;"></i>
+        Înțeles!
+      </button>
+    `;
+
+    // Add hover effect to close button
+    const closeBtn = popup.querySelector('.popup-close-btn');
+    closeBtn.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-3px)';
+      this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
+    });
+    closeBtn.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+      this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
+    });
+
+    // Close popup function
+    function closePopup() {
+      overlay.style.opacity = '0';
+      popup.style.transform = 'scale(0.8) translateY(20px)';
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+      }, 300);
+    }
+
+    // Add event listeners
+    closeBtn.addEventListener('click', closePopup);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        closePopup();
+      }
+    });
+
+    // Add escape key listener
+    const escapeHandler = function(e) {
+      if (e.key === 'Escape') {
+        closePopup();
+        document.removeEventListener('keydown', escapeHandler);
+      }
+    };
+    document.addEventListener('keydown', escapeHandler);
+
+    // Add to DOM
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    // Animate in
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      popup.style.transform = 'scale(1) translateY(0)';
+    }, 10);
+  }
+
+  // Show reservation popup function
+  function showReservationPopup() {
+    // Create popup overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    overlay.style.zIndex = '10000';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.backdropFilter = 'blur(10px)';
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.3s ease';
+
+    // Create popup content
+    const popup = document.createElement('div');
+    popup.className = 'popup-content';
+    popup.style.background = 'linear-gradient(145deg, var(--card-bg), rgba(26, 26, 26, 0.95))';
+    popup.style.border = '1px solid var(--primary-color)';
+    popup.style.borderRadius = '25px';
+    popup.style.padding = '40px 30px';
+    popup.style.textAlign = 'center';
+    popup.style.maxWidth = '400px';
+    popup.style.width = '90%';
+    popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
+    popup.style.transform = 'scale(0.8) translateY(20px)';
+    popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    popup.style.position = 'relative';
+
+    // Add popup content
+    popup.innerHTML = `
+      <div style="margin-bottom: 25px;">
+        <i class="fas fa-wrench" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 20px; display: block;"></i>
+        <h3 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Funcționalitate în dezvoltare</h3>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Această funcționalitate este încă în dezvoltare</p>
+      </div>
+      <button class="popup-close-btn" style="
+        background: var(--gradient);
+        color: white;
+        border: none;
+        border-radius: 15px;
+        padding: 12px 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+      ">
+        <i class="fas fa-check" style="margin-right: 8px;"></i>
+        Înțeles!
+      </button>
+    `;
+
+    // Add hover effect to close button
+    const closeBtn = popup.querySelector('.popup-close-btn');
+    closeBtn.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-3px)';
+      this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
+    });
+    closeBtn.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+      this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
+    });
+
+    // Close popup function
+    function closePopup() {
+      overlay.style.opacity = '0';
+      popup.style.transform = 'scale(0.8) translateY(20px)';
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+      }, 300);
+    }
+
+    // Add event listeners
+    closeBtn.addEventListener('click', closePopup);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        closePopup();
+      }
+    });
+
+    // Add escape key listener
+    const escapeHandler = function(e) {
+      if (e.key === 'Escape') {
+        closePopup();
+        document.removeEventListener('keydown', escapeHandler);
+      }
+    };
+    document.addEventListener('keydown', escapeHandler);
+
+    // Add to DOM
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    // Animate in
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      popup.style.transform = 'scale(1) translateY(0)';
+    }, 10);
+  }
+
   // Mystery box interaction
   const mysteryBox = document.querySelector(".mystery-box");
   if (mysteryBox) {
@@ -328,7 +680,7 @@ document.addEventListener("DOMContentLoaded", function () {
     `);
 
   // Fullpage scroll functionality
-  const sections = document.querySelectorAll('section');
+  const sections = document.querySelectorAll('section, footer');
   let isScrolling = false;
   let currentSectionIndex = 0;
 
@@ -406,6 +758,17 @@ document.addEventListener("DOMContentLoaded", function () {
   // Handle wheel events
   window.addEventListener('wheel', (e) => {
     if (!isScrolling) {
+      // Check if we're at the footer and scrolling down (allow natural scroll within footer)
+      const footer = document.querySelector('#footer');
+      const footerRect = footer.getBoundingClientRect();
+      const isInFooter = footerRect.top <= 0 && footerRect.bottom >= window.innerHeight;
+      
+      // Only allow natural scroll if we're IN the footer and scrolling down
+      if (isInFooter && e.deltaY > 0) {
+        return; // Don't prevent default, allow natural scroll within footer
+      }
+      
+      // Normal snap scroll behavior for all other cases
       if (e.deltaY > 0) {
         scrollToSection(currentSectionIndex + 1);
       } else {

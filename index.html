@@ -119,14 +119,15 @@
                       autoplay
                       preload="auto"
                       poster=""
+                      disablePictureInPicture
+                      controlslist="nodownload nofullscreen noremoteplayback"
                     >
                       <source src="acoomharta.mp4" type="video/mp4">
+                      <!-- Add fallback poster image if video fails -->
+                      <img src="acoomh.png" alt="AcoomH App Preview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 25px;">
                       Your browser does not support the video tag.
                     </video>
                     <div class="video-overlay">
-                      <div class="phone-content">
-                        <p>Descoperă orașul tău!</p>
-                      </div>
                     </div>
                   </div>
                 </div>

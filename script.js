@@ -914,15 +914,41 @@ document.addEventListener("DOMContentLoaded", function () {
   const phoneVideo = document.getElementById('phone-video');
   
   if (phoneVideo) {
-    // Enhanced video setup for better compatibility
+    // Enhanced video setup for better compatibility and quality
     phoneVideo.setAttribute('webkit-playsinline', 'true');
     phoneVideo.setAttribute('playsinline', 'true');
     phoneVideo.setAttribute('muted', 'true');
     phoneVideo.setAttribute('autoplay', 'true');
     phoneVideo.muted = true; // Ensure muted is set programmatically
     
-    // Force load the video
+    // Force load the video with quality optimization
     phoneVideo.load();
+    
+    // Wait for video metadata to ensure proper dimensions
+    phoneVideo.addEventListener('loadedmetadata', () => {
+      console.log('Video metadata loaded - dimensions:', phoneVideo.videoWidth, 'x', phoneVideo.videoHeight);
+      
+      // Force video to fill the container completely
+      phoneVideo.style.width = '100%';
+      phoneVideo.style.height = '100%';
+      phoneVideo.style.objectFit = 'cover';
+      phoneVideo.style.objectPosition = 'center center';
+      phoneVideo.style.minWidth = '100%';
+      phoneVideo.style.minHeight = '100%';
+      
+      // Try to play once metadata is loaded
+      phoneVideo.play().catch(e => {
+        console.log('Video metadata play attempt failed:', e);
+      });
+    });
+    
+    // Add quality optimization for hosted platforms
+    phoneVideo.addEventListener('canplaythrough', () => {
+      console.log('Video can play through');
+      // Ensure video quality is maintained
+      phoneVideo.style.imageRendering = 'crisp-edges';
+      phoneVideo.style.transform = 'translateZ(0)';
+    });
     
     // Add a fallback for autoplay restrictions
     let videoPlayAttempted = false;
@@ -932,7 +958,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function enableVideoAfterInteraction() {
       if (!userHasInteracted) {
         userHasInteracted = true;
-        if (phoneVideo && !phoneVideo.played.length) {
+        if (phoneVideo && phoneVideo.paused) {
           phoneVideo.play().catch(e => {
             console.log('Video play after interaction failed:', e);
           });
@@ -996,15 +1022,11 @@ document.addEventListener("DOMContentLoaded", function () {
     phoneVideo.addEventListener('canplay', () => {
       console.log('Video can start playing');
       // Try to play when video is ready
-      if (!phoneVideo.played.length) {
+      if (phoneVideo.paused) {
         phoneVideo.play().catch(e => {
           console.log('Video canplay autoplay prevented:', e);
         });
       }
-    });
-
-    phoneVideo.addEventListener('loadedmetadata', () => {
-      console.log('Video metadata loaded');
     });
 
     phoneVideo.addEventListener('playing', () => {
@@ -1016,15 +1038,17 @@ document.addEventListener("DOMContentLoaded", function () {
       // Hide video and show fallback if video fails to load
       phoneVideo.style.display = 'none';
       
-      // Show the text overlay more prominently as fallback
-      const videoOverlay = document.querySelector('.video-overlay');
-      if (videoOverlay) {
-        videoOverlay.style.background = 'linear-gradient(135deg, #1a1a1a, #0f0f0f)';
-        videoOverlay.style.height = '100%';
-        videoOverlay.style.borderRadius = '25px';
-        videoOverlay.style.display = 'flex';
-        videoOverlay.style.alignItems = 'center';
-        videoOverlay.style.justifyContent = 'center';
+      // Show the fallback image from HTML
+      const appInterface = document.querySelector('.app-interface');
+      if (appInterface) {
+        const fallbackImg = phoneVideo.querySelector('img');
+        if (fallbackImg) {
+          fallbackImg.style.display = 'block';
+          fallbackImg.style.position = 'absolute';
+          fallbackImg.style.top = '0';
+          fallbackImg.style.left = '0';
+          fallbackImg.style.zIndex = '2';
+        }
       }
     });
 

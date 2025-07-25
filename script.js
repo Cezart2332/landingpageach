@@ -914,156 +914,168 @@ document.addEventListener("DOMContentLoaded", function () {
   const phoneVideo = document.getElementById('phone-video');
   
   if (phoneVideo) {
-    // Enhanced video setup for better compatibility and quality
+    // Enhanced video setup for cross-platform compatibility
     phoneVideo.setAttribute('webkit-playsinline', 'true');
     phoneVideo.setAttribute('playsinline', 'true');
     phoneVideo.setAttribute('muted', 'true');
-    phoneVideo.setAttribute('autoplay', 'true');
-    phoneVideo.muted = true; // Ensure muted is set programmatically
+    phoneVideo.muted = true;
+    phoneVideo.defaultMuted = true;
+    phoneVideo.volume = 0;
     
-    // Force load the video with quality optimization
-    phoneVideo.load();
+    // Robust video initialization
+    let videoInitialized = false;
+    let playAttempts = 0;
+    const maxPlayAttempts = 5;
     
-    // Wait for video metadata to ensure proper dimensions
-    phoneVideo.addEventListener('loadedmetadata', () => {
-      console.log('Video metadata loaded - dimensions:', phoneVideo.videoWidth, 'x', phoneVideo.videoHeight);
+    // Function to attempt video play with retries
+    function attemptVideoPlay() {
+      if (playAttempts >= maxPlayAttempts) {
+        console.log('Max play attempts reached, video may not autoplay');
+        return;
+      }
       
-      // Force video to fill the container completely
+      playAttempts++;
+      phoneVideo.play().then(() => {
+        console.log('Video playing successfully');
+        videoInitialized = true;
+      }).catch(error => {
+        console.log(`Video play attempt ${playAttempts} failed:`, error);
+        
+        // Try again after a short delay
+        setTimeout(() => {
+          if (!videoInitialized && phoneVideo.paused) {
+            attemptVideoPlay();
+          }
+        }, 1000);
+      });
+    }
+    
+    // Enhanced video setup for quality and compatibility
+    phoneVideo.addEventListener('loadedmetadata', () => {
+      console.log('Video metadata loaded');
+      
+      // Ensure video fills container properly
       phoneVideo.style.width = '100%';
       phoneVideo.style.height = '100%';
       phoneVideo.style.objectFit = 'cover';
       phoneVideo.style.objectPosition = 'center center';
-      phoneVideo.style.minWidth = '100%';
-      phoneVideo.style.minHeight = '100%';
       
-      // Try to play once metadata is loaded
-      phoneVideo.play().catch(e => {
-        console.log('Video metadata play attempt failed:', e);
-      });
+      // Try initial play
+      attemptVideoPlay();
     });
     
-    // Add quality optimization for hosted platforms
+    // Handle video ready states
+    phoneVideo.addEventListener('canplay', () => {
+      if (!videoInitialized && phoneVideo.paused) {
+        attemptVideoPlay();
+      }
+    });
+    
     phoneVideo.addEventListener('canplaythrough', () => {
-      console.log('Video can play through');
-      // Ensure video quality is maintained
-      phoneVideo.style.imageRendering = 'crisp-edges';
-      phoneVideo.style.transform = 'translateZ(0)';
+      // Optimize video rendering
+      phoneVideo.style.willChange = 'transform';
+      phoneVideo.style.backfaceVisibility = 'hidden';
+      
+      if (!videoInitialized && phoneVideo.paused) {
+        attemptVideoPlay();
+      }
     });
     
-    // Add a fallback for autoplay restrictions
-    let videoPlayAttempted = false;
-    let userHasInteracted = false;
+    // Load video immediately
+    phoneVideo.load();
     
-    // Track user interaction to enable video playback
-    function enableVideoAfterInteraction() {
-      if (!userHasInteracted) {
-        userHasInteracted = true;
-        if (phoneVideo && phoneVideo.paused) {
-          phoneVideo.play().catch(e => {
-            console.log('Video play after interaction failed:', e);
-          });
+    // User interaction enabler for autoplay restrictions
+    let userInteracted = false;
+    
+    function enableVideoOnInteraction() {
+      if (!userInteracted) {
+        userInteracted = true;
+        if (phoneVideo.paused) {
+          attemptVideoPlay();
         }
       }
     }
     
-    // Listen for any user interaction to enable video
-    document.addEventListener('click', enableVideoAfterInteraction, { once: true });
-    document.addEventListener('touchstart', enableVideoAfterInteraction, { once: true });
-    document.addEventListener('scroll', enableVideoAfterInteraction, { once: true });
+    // Multiple interaction listeners for maximum compatibility
+    ['click', 'touchstart', 'scroll', 'keydown'].forEach(event => {
+      document.addEventListener(event, enableVideoOnInteraction, { once: true, passive: true });
+    });
     
+    // Intersection observer for play/pause based on visibility
     const videoObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          // Multiple attempts to play video when about section is visible
-          if (!videoPlayAttempted) {
-            videoPlayAttempted = true;
-            
-            // Immediate play attempt
-            phoneVideo.play().catch(e => {
-              console.log('Immediate video autoplay prevented:', e);
-              
-              // Retry after a short delay
-              setTimeout(() => {
-                phoneVideo.play().catch(e2 => {
-                  console.log('Delayed video autoplay prevented:', e2);
-                });
-              }, 500);
-            });
-          } else {
-            // Resume if paused
-            if (phoneVideo.paused) {
-              phoneVideo.play().catch(e => {
-                console.log('Video resume prevented:', e);
-              });
-            }
+          // Video is visible - try to play
+          if (phoneVideo.paused) {
+            attemptVideoPlay();
           }
         } else {
-          // Pause video when about section is not visible
+          // Video is not visible - pause to save resources
           if (!phoneVideo.paused) {
             phoneVideo.pause();
           }
         }
       });
     }, {
-      threshold: 0.2, // Reduced threshold for earlier triggering
-      rootMargin: '0px 0px -50px 0px'
+      threshold: 0.25,
+      rootMargin: '0px 0px -100px 0px'
     });
 
-    // Observe the about section
+    // Observe the about section for video visibility
+    const aboutSection = document.querySelector('#about');
     if (aboutSection) {
       videoObserver.observe(aboutSection);
     }
 
-    // Enhanced video event handlers
+    // Error handling
+    phoneVideo.addEventListener('error', (e) => {
+      console.error('Video error:', e);
+      // Hide video and show poster on error
+      phoneVideo.style.display = 'none';
+      
+      // Create fallback image if not exists
+      if (!phoneVideo.parentElement.querySelector('.video-fallback')) {
+        const fallback = document.createElement('img');
+        fallback.className = 'video-fallback';
+        fallback.src = 'acoomh.png';
+        fallback.alt = 'AcoomH App Preview';
+        fallback.style.cssText = `
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 25px;
+          position: absolute;
+          top: 0;
+          left: 0;
+        `;
+        phoneVideo.parentElement.appendChild(fallback);
+      }
+    });
+
+    // Additional loading states
     phoneVideo.addEventListener('loadstart', () => {
       console.log('Video loading started');
     });
     
-    phoneVideo.addEventListener('canplay', () => {
-      console.log('Video can start playing');
-      // Try to play when video is ready
-      if (phoneVideo.paused) {
-        phoneVideo.play().catch(e => {
-          console.log('Video canplay autoplay prevented:', e);
-        });
+    phoneVideo.addEventListener('progress', () => {
+      // Video is downloading
+      if (phoneVideo.buffered.length > 0) {
+        const bufferedEnd = phoneVideo.buffered.end(phoneVideo.buffered.length - 1);
+        const duration = phoneVideo.duration;
+        if (bufferedEnd >= duration * 0.1 && !videoInitialized && phoneVideo.paused) {
+          // Enough video buffered, try to play
+          attemptVideoPlay();
+        }
       }
     });
 
     phoneVideo.addEventListener('playing', () => {
       console.log('Video is playing');
+      videoInitialized = true;
     });
 
-    phoneVideo.addEventListener('error', (e) => {
-      console.error('Video loading error:', e);
-      // Hide video and show fallback if video fails to load
-      phoneVideo.style.display = 'none';
-      
-      // Show the fallback image from HTML
-      const appInterface = document.querySelector('.app-interface');
-      if (appInterface) {
-        const fallbackImg = phoneVideo.querySelector('img');
-        if (fallbackImg) {
-          fallbackImg.style.display = 'block';
-          fallbackImg.style.position = 'absolute';
-          fallbackImg.style.top = '0';
-          fallbackImg.style.left = '0';
-          fallbackImg.style.zIndex = '2';
-        }
-      }
-    });
-
-    // Additional play attempt when user scrolls to about section
-    window.addEventListener('scroll', () => {
-      if (aboutSection) {
-        const rect = aboutSection.getBoundingClientRect();
-        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-        
-        if (isVisible && phoneVideo.paused && userHasInteracted) {
-          phoneVideo.play().catch(e => {
-            console.log('Scroll-triggered video play prevented:', e);
-          });
-        }
-      }
+    phoneVideo.addEventListener('pause', () => {
+      console.log('Video paused');
     });
   }
 

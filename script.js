@@ -914,21 +914,73 @@ document.addEventListener("DOMContentLoaded", function () {
   const phoneVideo = document.getElementById('phone-video');
   
   if (phoneVideo) {
+    // Enhanced video setup for better compatibility
+    phoneVideo.setAttribute('webkit-playsinline', 'true');
+    phoneVideo.setAttribute('playsinline', 'true');
+    phoneVideo.setAttribute('muted', 'true');
+    phoneVideo.setAttribute('autoplay', 'true');
+    phoneVideo.muted = true; // Ensure muted is set programmatically
+    
+    // Force load the video
+    phoneVideo.load();
+    
+    // Add a fallback for autoplay restrictions
+    let videoPlayAttempted = false;
+    let userHasInteracted = false;
+    
+    // Track user interaction to enable video playback
+    function enableVideoAfterInteraction() {
+      if (!userHasInteracted) {
+        userHasInteracted = true;
+        if (phoneVideo && !phoneVideo.played.length) {
+          phoneVideo.play().catch(e => {
+            console.log('Video play after interaction failed:', e);
+          });
+        }
+      }
+    }
+    
+    // Listen for any user interaction to enable video
+    document.addEventListener('click', enableVideoAfterInteraction, { once: true });
+    document.addEventListener('touchstart', enableVideoAfterInteraction, { once: true });
+    document.addEventListener('scroll', enableVideoAfterInteraction, { once: true });
+    
     const videoObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          // Play video when about section is visible
-          phoneVideo.play().catch(e => {
-            console.log('Video autoplay prevented:', e);
-          });
+          // Multiple attempts to play video when about section is visible
+          if (!videoPlayAttempted) {
+            videoPlayAttempted = true;
+            
+            // Immediate play attempt
+            phoneVideo.play().catch(e => {
+              console.log('Immediate video autoplay prevented:', e);
+              
+              // Retry after a short delay
+              setTimeout(() => {
+                phoneVideo.play().catch(e2 => {
+                  console.log('Delayed video autoplay prevented:', e2);
+                });
+              }, 500);
+            });
+          } else {
+            // Resume if paused
+            if (phoneVideo.paused) {
+              phoneVideo.play().catch(e => {
+                console.log('Video resume prevented:', e);
+              });
+            }
+          }
         } else {
           // Pause video when about section is not visible
-          phoneVideo.pause();
+          if (!phoneVideo.paused) {
+            phoneVideo.pause();
+          }
         }
       });
     }, {
-      threshold: 0.3, // Trigger when 30% of the about section is visible
-      rootMargin: '0px 0px -100px 0px' // Add some margin to prevent early triggering
+      threshold: 0.2, // Reduced threshold for earlier triggering
+      rootMargin: '0px 0px -50px 0px'
     });
 
     // Observe the about section
@@ -936,15 +988,58 @@ document.addEventListener("DOMContentLoaded", function () {
       videoObserver.observe(aboutSection);
     }
 
-    // Handle video loading and error states
+    // Enhanced video event handlers
+    phoneVideo.addEventListener('loadstart', () => {
+      console.log('Video loading started');
+    });
+    
+    phoneVideo.addEventListener('canplay', () => {
+      console.log('Video can start playing');
+      // Try to play when video is ready
+      if (!phoneVideo.played.length) {
+        phoneVideo.play().catch(e => {
+          console.log('Video canplay autoplay prevented:', e);
+        });
+      }
+    });
+
     phoneVideo.addEventListener('loadedmetadata', () => {
       console.log('Video metadata loaded');
+    });
+
+    phoneVideo.addEventListener('playing', () => {
+      console.log('Video is playing');
     });
 
     phoneVideo.addEventListener('error', (e) => {
       console.error('Video loading error:', e);
       // Hide video and show fallback if video fails to load
       phoneVideo.style.display = 'none';
+      
+      // Show the text overlay more prominently as fallback
+      const videoOverlay = document.querySelector('.video-overlay');
+      if (videoOverlay) {
+        videoOverlay.style.background = 'linear-gradient(135deg, #1a1a1a, #0f0f0f)';
+        videoOverlay.style.height = '100%';
+        videoOverlay.style.borderRadius = '25px';
+        videoOverlay.style.display = 'flex';
+        videoOverlay.style.alignItems = 'center';
+        videoOverlay.style.justifyContent = 'center';
+      }
+    });
+
+    // Additional play attempt when user scrolls to about section
+    window.addEventListener('scroll', () => {
+      if (aboutSection) {
+        const rect = aboutSection.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+        
+        if (isVisible && phoneVideo.paused && userHasInteracted) {
+          phoneVideo.play().catch(e => {
+            console.log('Scroll-triggered video play prevented:', e);
+          });
+        }
+      }
     });
   }
 

@@ -193,6 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Show download popup function
   function showDownloadPopup() {
+    console.log("Download popup triggered");
     // Create popup overlay
     const overlay = document.createElement('div');
     overlay.className = 'popup-overlay';
@@ -299,6 +300,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Show early access popup function
   function showEarlyAccessPopup() {
+    console.log("Early access popup triggered");
     // Create popup overlay
     const overlay = document.createElement('div');
     overlay.className = 'popup-overlay';
@@ -405,6 +407,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Show reservation popup function
   function showReservationPopup() {
+    console.log("Reservation popup triggered");
     // Create popup overlay
     const overlay = document.createElement('div');
     overlay.className = 'popup-overlay';
@@ -509,38 +512,122 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 10);
   }
 
-  // Hero section buttons - Rezervări and Download
-  const heroSectionButtons = document.querySelectorAll(".hero-buttons .btn");
-  if (heroSectionButtons.length >= 2) {
-    // Rezervări button (first button - btn-primary)
-    heroSectionButtons[0].addEventListener("click", function(e) {
-      e.preventDefault();
-      showReservationPopup();
-    });
+  // Enhanced button handling with multiple selectors and debugging
+  function initializeButtonHandlers() {
+    console.log("Initializing button handlers...");
     
-    // Download button (second button - btn-secondary)
-    heroSectionButtons[1].addEventListener("click", function(e) {
-      e.preventDefault();
-      showDownloadPopup();
-    });
+    // Hero section buttons - multiple approaches
+    const heroButtons = document.querySelector(".hero-buttons");
+    if (heroButtons) {
+      console.log("Hero buttons container found");
+      
+      // Method 1: Direct button selection
+      const allHeroButtons = heroButtons.querySelectorAll("button");
+      console.log("Found hero buttons:", allHeroButtons.length);
+      
+      if (allHeroButtons.length >= 2) {
+        // Rezervări button (first button)
+        allHeroButtons[0].addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("Rezervări button clicked");
+          showReservationPopup();
+        });
+        
+        // Download button (second button)
+        allHeroButtons[1].addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("Download button clicked");
+          showDownloadPopup();
+        });
+        
+        console.log("Hero button handlers attached successfully");
+      }
+      
+      // Method 2: By class selectors (backup)
+      const rezervariBtn = heroButtons.querySelector(".btn-primary");
+      const downloadBtn = heroButtons.querySelector(".btn-secondary");
+      
+      if (rezervariBtn) {
+        rezervariBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("Rezervări button clicked (backup handler)");
+          showReservationPopup();
+        });
+      }
+      
+      if (downloadBtn) {
+        downloadBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("Download button clicked (backup handler)");
+          showDownloadPopup();
+        });
+      }
+      
+      // Method 3: Universal click handler for hero buttons
+      heroButtons.addEventListener("click", function(e) {
+        const clickedButton = e.target.closest("button");
+        if (clickedButton) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const buttonText = clickedButton.textContent.trim().toLowerCase();
+          console.log("Button clicked with text:", buttonText);
+          
+          if (buttonText.includes("rezervări")) {
+            showReservationPopup();
+          } else if (buttonText.includes("download")) {
+            showDownloadPopup();
+          }
+        }
+      });
+    } else {
+      console.error("Hero buttons container not found");
+    }
+    
+    // CTA section buttons with enhanced error handling
+    setTimeout(() => {
+      const ctaSection = document.querySelector(".cta");
+      if (ctaSection) {
+        console.log("CTA section found");
+        
+        const ctaButtons = ctaSection.querySelector(".cta-buttons");
+        if (ctaButtons) {
+          console.log("CTA buttons container found");
+          
+          // Universal click handler for CTA section
+          ctaButtons.addEventListener("click", function(e) {
+            const clickedButton = e.target.closest("button");
+            if (clickedButton) {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              const buttonText = clickedButton.textContent.trim().toLowerCase();
+              console.log("CTA button clicked with text:", buttonText);
+              
+              if (buttonText.includes("descarcă") || buttonText.includes("download")) {
+                showDownloadPopup();
+              } else if (buttonText.includes("acces") || buttonText.includes("anticipat")) {
+                showEarlyAccessPopup();
+              }
+            }
+          });
+        }
+      }
+    }, 500); // Delay to ensure DOM is fully loaded
   }
 
-  // CTA section buttons
-  const ctaDownloadButton = document.querySelector(".cta .btn-primary.btn-large");
-  if (ctaDownloadButton) {
-    ctaDownloadButton.addEventListener("click", function(e) {
-      e.preventDefault();
-      showDownloadPopup();
-    });
-  }
+  // Initialize button handlers with delay
+  setTimeout(initializeButtonHandlers, 1000);
+  
+  // Also try immediate initialization
+  initializeButtonHandlers();
 
-  const ctaEarlyAccessButton = document.querySelector(".cta .btn-outline.btn-large");
-  if (ctaEarlyAccessButton) {
-    ctaEarlyAccessButton.addEventListener("click", function(e) {
-      e.preventDefault();
-      showEarlyAccessPopup();
-    });
-  }
+  // Remove duplicate button handlers
+  // (Remove the old hero section button handlers that were duplicated)
 
   // Mystery box interaction
   const mysteryBox = document.querySelector(".mystery-box");

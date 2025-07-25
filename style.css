@@ -963,11 +963,11 @@ section {
   }
 }
 
-/* Text reveal animation - character by character */
+/* Text reveal animation - character by character - FIXED */
 .text-reveal {
   display: inline-block;
-  overflow: hidden;
-  opacity: 0; /* Hide initially */
+  overflow: visible; /* Changed from hidden to visible */
+  opacity: 1; /* Changed from 0 to 1 - let JavaScript handle initial state */
 }
 
 .text-reveal.animate {
@@ -976,9 +976,12 @@ section {
 
 .text-reveal .char {
   display: inline-block;
-  opacity: 0;
+  opacity: 0; /* Start invisible */
   transform: translateY(50px) rotateX(90deg);
   animation: charReveal 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  /* Ensure animation works */
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
 }
 
 /* Gradient text with character animation support */
@@ -987,6 +990,8 @@ section {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  /* Ensure gradient works with animation */
+  display: inline-block;
 }
 
 @keyframes charReveal {
@@ -1004,28 +1009,12 @@ section {
   }
 }
 
-@keyframes textReveal {
-  0% {
-    width: 0;
-    opacity: 0;
+/* Fallback for browsers that don't support the animation */
+@supports not (animation: charReveal) {
+  .text-reveal .char {
+    opacity: 1 !important;
+    transform: none !important;
   }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    width: auto;
-    opacity: 1;
-  }
-}
-
-.hero-title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 700;
-  margin-bottom: 20px;
-  line-height: 1.1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2em;
 }
 
 /* CTA/Download Section */

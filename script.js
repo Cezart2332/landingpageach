@@ -13,800 +13,854 @@ try {
 document.addEventListener("DOMContentLoaded", function () {
   console.log('🎯 DOM Ready - Starting script execution...');
   
-  // Debugging pentru elemente critice - DECLARATE O SINGURĂ DATĂ
-  const phoneVideo = document.getElementById('phone-video');
-  const navToggle = document.querySelector(".nav-toggle");
-  const heroButtons = document.querySelector(".hero-buttons");
+  try {
+    // Debugging pentru elemente critice - DECLARATE O SINGURĂ DATĂ
+    const phoneVideo = document.getElementById('phone-video');
+    const navToggle = document.querySelector(".nav-toggle");
+    const heroButtons = document.querySelector(".hero-buttons");
 
-  const navMenu = document.querySelector(".nav-menu");
-  const navLinks = document.querySelectorAll(".nav-link");
+    console.log('📱 Phone video element:', phoneVideo);
+    console.log('🍔 Nav toggle element:', navToggle);
+    console.log('🔘 Hero buttons element:', heroButtons);
 
-  // Fullpage scroll functionality - declare these variables early
-  const sections = document.querySelectorAll('section, footer');
-  let isScrolling = false;
-  let currentSectionIndex = 0;
+    const navMenu = document.querySelector(".nav-menu");
+    const navLinks = document.querySelectorAll(".nav-link");
 
-  // Flag to prevent duplicate handler initialization
-  let handlersInitialized = false;
+    // Enhanced mobile detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    console.log('🔍 Device detection:', { isMobile, isTouch });
 
-  // Windows-compatible smooth scroll function
-  function smoothScrollTo(targetY, duration = 1000) {
-    const startY = window.pageYOffset;
-    const distance = targetY - startY;
-    const startTime = performance.now();
+    // Mobile-specific scroll handling variables
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let lastTouchTime = 0;
+    let scrollThreshold = 50; // Minimum distance for swipe
+    let timeThreshold = 300; // Maximum time for swipe (ms)
+    let cooldownTime = 1000; // Cooldown between scrolls (ms)
+    let lastScrollTime = 0;
 
-    function easeInOutCubic(t) {
-      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-    }
-
-    function animation(currentTime) {
-      const timeElapsed = currentTime - startTime;
-      const progress = Math.min(timeElapsed / duration, 1);
-      const ease = easeInOutCubic(progress);
+    // Disable default scroll behavior on mobile
+    if (isMobile || isTouch) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       
-      window.scrollTo(0, startY + distance * ease);
+      // Prevent default scroll on mobile
+      document.addEventListener('touchmove', function(e) {
+        if (!e.target.closest('.phone-video')) { // Allow video interactions
+          e.preventDefault();
+        }
+      }, { passive: false });
       
-      if (progress < 1) {
-        requestAnimationFrame(animation);
-      } else {
-        isScrolling = false;
-      }
+      document.addEventListener('wheel', function(e) {
+        e.preventDefault();
+      }, { passive: false });
     }
 
-    requestAnimationFrame(animation);
-  }
+    // Fullpage scroll functionality - declare these variables early
+    const sections = document.querySelectorAll('section, footer');
+    let isScrolling = false;
+    let currentSectionIndex = 0;
 
-  // Update active indicator function - declare early
-  function updateIndicators() {
-    const dots = document.querySelectorAll('.section-indicator');
-    dots.forEach((dot, index) => {
-      if (index === currentSectionIndex) {
-        dot.style.backgroundColor = 'rgba(139, 92, 246, 1)';
-        dot.style.transform = 'scale(1.2)';
-      } else {
-        dot.style.backgroundColor = 'rgba(139, 92, 246, 0.3)';
-        dot.style.transform = 'scale(1)';
+    // Flag to prevent duplicate handler initialization
+    let handlersInitialized = false;
+
+    // Windows-compatible smooth scroll function
+    function smoothScrollTo(targetY, duration = 1000) {
+      const startY = window.pageYOffset;
+      const distance = targetY - startY;
+      const startTime = performance.now();
+
+      function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
       }
-    });
-  }
 
-  // Update the scrollToSection function with Windows-compatible scrolling
-  function scrollToSection(index) {
-    if (index >= 0 && index < sections.length && !isScrolling) {
-        isScrolling = true;
-        currentSectionIndex = index;
-        updateIndicators();
+      function animation(currentTime) {
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        const ease = easeInOutCubic(progress);
         
-        const section = sections[index];
-        const sectionTop = section.offsetTop;
+        window.scrollTo(0, startY + distance * ease);
         
-        // Add extra offset for the first section to show full content
-        const offset = index === 0 ? -20 : 0;
-        const targetY = sectionTop + offset;
-        
-        // Use custom smooth scroll instead of native browser scrolling
-        smoothScrollTo(targetY, 800);
-    }
-  }
-
-  // Toggle mobile menu
-  navToggle.addEventListener("click", function () {
-    navMenu.classList.toggle("active");
-
-    // Animate hamburger
-    const bars = navToggle.querySelectorAll(".bar");
-    bars.forEach((bar) => bar.classList.toggle("active"));
-  });
-
-  // Close menu when clicking on links
-  navLinks.forEach((link) => {
-    link.addEventListener("click", function () {
-      navMenu.classList.remove("active");
-      const bars = navToggle.querySelectorAll(".bar");
-      bars.forEach((bar) => bar.classList.remove("active"));
-    });
-  });
-
-  // Smooth scrolling for navigation links
-  navLinks.forEach((link) => {
-    link.addEventListener("click", function (e) {
-      e.preventDefault();
-      const targetId = this.getAttribute("href");
-      const targetSection = document.querySelector(targetId);
-
-      if (targetSection) {
-        // Calculate offset based on navbar height and section
-        const navbarHeight = 70;
-        
-        // For home section, scroll to the very top
-        if (targetId === '#home') {
-          isScrolling = true;
-          smoothScrollTo(0, 800);
-          // Update the fullpage scroll system
-          currentSectionIndex = 0;
-          updateIndicators();
-        } else if (targetId === '#footer') {
-          // For footer, scroll to the very bottom to ensure it's fully visible
-          isScrolling = true;
-          smoothScrollTo(document.documentElement.scrollHeight, 800);
-          // Update the fullpage scroll system to footer index
-          const footerIndex = Array.from(sections).indexOf(targetSection);
-          if (footerIndex !== -1) {
-            currentSectionIndex = footerIndex;
-            updateIndicators();
-          }
+        if (progress < 1) {
+          requestAnimationFrame(animation);
         } else {
-          // For other sections, account for navbar height
-          const elementPosition = targetSection.offsetTop;
-          const offsetPosition = elementPosition - navbarHeight;
-          
-          isScrolling = true;
-          smoothScrollTo(offsetPosition, 800);
-          
-          // Update the fullpage scroll system
-          const sectionIndex = Array.from(sections).indexOf(targetSection);
-          if (sectionIndex !== -1) {
-            currentSectionIndex = sectionIndex;
-            updateIndicators();
-          }
+          isScrolling = false;
         }
       }
-    });
-  });
 
-  // Navbar background on scroll
-  const navbar = document.querySelector(".navbar");
-  window.addEventListener("scroll", function () {
-    if (window.scrollY > 50) {
-      navbar.style.background = "rgba(15, 15, 15, 0.98)";
-    } else {
-      navbar.style.background = "rgba(15, 15, 15, 0.95)";
-    }
-  });
-
-  // Scroll reveal animations
-  const observerOptions = {
-    threshold: 0.1,
-    rootMargin: "0px 0px -50px 0px",
-  };
-
-  const observer = new IntersectionObserver(function (entries) {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.style.opacity = "1";
-        entry.target.style.transform = "translateY(0)";
-      }
-    });
-  }, observerOptions);
-
-  // Observe elements for animation
-  const animateElements = document.querySelectorAll(
-    ".feature-card, .about-text, .mystery-box"
-  );
-  animateElements.forEach((el) => {
-    el.style.opacity = "0";
-    el.style.transform = "translateY(30px)";
-    el.style.transition = "opacity 0.6s ease, transform 0.6s ease";
-    observer.observe(el);
-  });
-
-  // Parallax effect for hero background
-  window.addEventListener("scroll", function () {
-    const scrolled = window.pageYOffset;
-    const parallax = document.querySelector(".hero");
-    const speed = scrolled * 0.5;
-
-    if (parallax) {
-      parallax.style.transform = `translateY(${speed}px)`;
-    }
-  });
-
-  // Floating cards animation enhancement
-  const cards = document.querySelectorAll(".card");
-  cards.forEach((card, index) => {
-    card.addEventListener("mouseenter", function () {
-      this.style.transform = "translateY(-15px) scale(1.05)";
-      this.style.zIndex = "10";
-    });
-
-    card.addEventListener("mouseleave", function () {
-      this.style.transform = "translateY(0) scale(1)";
-      this.style.zIndex = "1";
-    });
-  });
-
-  // Button hover effects
-  const buttons = document.querySelectorAll(".btn");
-  buttons.forEach((button) => {
-    button.addEventListener("mouseenter", function () {
-      this.style.transform = "translateY(-2px)";
-    });
-
-    button.addEventListener("mouseleave", function () {
-      this.style.transform = "translateY(0)";
-    });
-  });
-
-  // Show download popup function
-  function showDownloadPopup() {
-    // Remove any existing popups first
-    const existingPopups = document.querySelectorAll('.popup-overlay');
-    existingPopups.forEach(popup => popup.remove());
-    
-    // Create popup overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'popup-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    overlay.style.zIndex = '10000';
-    overlay.style.display = 'flex';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
-    overlay.style.backdropFilter = 'blur(10px)';
-    overlay.style.opacity = '0';
-    overlay.style.transition = 'opacity 0.3s ease';
-
-    // Create popup content
-    const popup = document.createElement('div');
-    popup.className = 'popup-content';
-    popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
-    popup.style.border = '1px solid #6b46c1';
-    popup.style.borderRadius = '25px';
-    popup.style.padding = '40px 30px';
-    popup.style.textAlign = 'center';
-    popup.style.maxWidth = '400px';
-    popup.style.width = '90%';
-    popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
-    popup.style.transform = 'scale(0.8) translateY(20px)';
-    popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    popup.style.position = 'relative';
-
-    // Add popup content
-    popup.innerHTML = `
-      <div style="margin-bottom: 25px;">
-        <i class="fas fa-rocket" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
-        <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
-        <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
-      </div>
-      <button class="popup-close-btn" style="
-        background: linear-gradient(135deg, #6b46c1, #7c3aed);
-        color: white;
-        border: none;
-        border-radius: 15px;
-        padding: 12px 30px;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-      ">
-        <i class="fas fa-check" style="margin-right: 8px;"></i>
-        Înțeles!
-      </button>
-    `;
-
-    // Add hover effect to close button
-    const closeBtn = popup.querySelector('.popup-close-btn');
-    closeBtn.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-3px)';
-      this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
-    });
-    closeBtn.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0)';
-      this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
-    });
-
-    // Close popup function
-    function closePopup() {
-      overlay.style.opacity = '0';
-      popup.style.transform = 'scale(0.8) translateY(20px)';
-      setTimeout(() => {
-        document.body.removeChild(overlay);
-      }, 300);
+      requestAnimationFrame(animation);
     }
 
-    // Add event listeners
-    closeBtn.addEventListener('click', closePopup);
-    overlay.addEventListener('click', function(e) {
-      if (e.target === overlay) {
-        closePopup();
-      }
-    });
-
-    // Add escape key listener
-    const escapeHandler = function(e) {
-      if (e.key === 'Escape') {
-        closePopup();
-        document.removeEventListener('keydown', escapeHandler);
-      }
-    };
-    document.addEventListener('keydown', escapeHandler);
-
-    // Add to DOM
-    overlay.appendChild(popup);
-    document.body.appendChild(overlay);
-
-    // Animate in
-    setTimeout(() => {
-      overlay.style.opacity = '1';
-      popup.style.transform = 'scale(1) translateY(0)';
-    }, 10);
-  }
-
-  // Show early access popup function
-  function showEarlyAccessPopup() {
-    // Remove any existing popups first
-    const existingPopups = document.querySelectorAll('.popup-overlay');
-    existingPopups.forEach(popup => popup.remove());
-    
-    // Create popup overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'popup-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    overlay.style.zIndex = '10000';
-    overlay.style.display = 'flex';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
-    overlay.style.backdropFilter = 'blur(10px)';
-    overlay.style.opacity = '0';
-    overlay.style.transition = 'opacity 0.3s ease';
-
-    // Create popup content
-    const popup = document.createElement('div');
-    popup.className = 'popup-content';
-    popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
-    popup.style.border = '1px solid #6b46c1';
-    popup.style.borderRadius = '25px';
-    popup.style.padding = '40px 30px';
-    popup.style.textAlign = 'center';
-    popup.style.maxWidth = '400px';
-    popup.style.width = '90%';
-    popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
-    popup.style.transform = 'scale(0.8) translateY(20px)';
-    popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    popup.style.position = 'relative';
-
-    // Add popup content
-    popup.innerHTML = `
-      <div style="margin-bottom: 25px;">
-        <i class="fas fa-clock" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
-        <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
-        <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
-      </div>
-      <button class="popup-close-btn" style="
-        background: linear-gradient(135deg, #6b46c1, #7c3aed);
-        color: white;
-        border: none;
-        border-radius: 15px;
-        padding: 12px 30px;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-      ">
-        <i class="fas fa-check" style="margin-right: 8px;"></i>
-        Înțeles!
-      </button>
-    `;
-
-    // Add hover effect to close button
-    const closeBtn = popup.querySelector('.popup-close-btn');
-    closeBtn.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-3px)';
-      this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
-    });
-    closeBtn.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0)';
-      this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
-    });
-
-    // Close popup function
-    function closePopup() {
-      overlay.style.opacity = '0';
-      popup.style.transform = 'scale(0.8) translateY(20px)';
-      setTimeout(() => {
-        document.body.removeChild(overlay);
-      }, 300);
-    }
-
-    // Add event listeners
-    closeBtn.addEventListener('click', closePopup);
-    overlay.addEventListener('click', function(e) {
-      if (e.target === overlay) {
-        closePopup();
-      }
-    });
-
-    // Add escape key listener
-    const escapeHandler = function(e) {
-      if (e.key === 'Escape') {
-        closePopup();
-        document.removeEventListener('keydown', escapeHandler);
-      }
-    };
-    document.addEventListener('keydown', escapeHandler);
-
-    // Add to DOM
-    overlay.appendChild(popup);
-    document.body.appendChild(overlay);
-
-    // Animate in
-    setTimeout(() => {
-      overlay.style.opacity = '1';
-      popup.style.transform = 'scale(1) translateY(0)';
-    }, 10);
-  }
-
-  // Show reservation popup function
-  function showReservationPopup() {
-    // Remove any existing popups first
-    const existingPopups = document.querySelectorAll('.popup-overlay');
-    existingPopups.forEach(popup => popup.remove());
-    
-    // Create popup overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'popup-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    overlay.style.zIndex = '10000';
-    overlay.style.display = 'flex';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
-    overlay.style.backdropFilter = 'blur(10px)';
-    overlay.style.opacity = '0';
-    overlay.style.transition = 'opacity 0.3s ease';
-
-    // Create popup content
-    const popup = document.createElement('div');
-    popup.className = 'popup-content';
-    popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
-    popup.style.border = '1px solid #6b46c1';
-    popup.style.borderRadius = '25px';
-    popup.style.padding = '40px 30px';
-    popup.style.textAlign = 'center';
-    popup.style.maxWidth = '400px';
-    popup.style.width = '90%';
-    popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
-    popup.style.transform = 'scale(0.8) translateY(20px)';
-    popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    popup.style.position = 'relative';
-
-    // Add popup content
-    popup.innerHTML = `
-      <div style="margin-bottom: 25px;">
-        <i class="fas fa-wrench" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
-        <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Funcționalitate în dezvoltare</h3>
-        <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Această funcționalitate este încă în dezvoltare</p>
-      </div>
-      <button class="popup-close-btn" style="
-        background: linear-gradient(135deg, #6b46c1, #7c3aed);
-        color: white;
-        border: none;
-        border-radius: 15px;
-        padding: 12px 30px;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-      ">
-        <i class="fas fa-check" style="margin-right: 8px;"></i>
-        Înțeles!
-      </button>
-    `;
-
-    // Add hover effect to close button
-    const closeBtn = popup.querySelector('.popup-close-btn');
-    closeBtn.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-3px)';
-      this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
-    });
-    closeBtn.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0)';
-      this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
-    });
-
-    // Close popup function
-    function closePopup() {
-      overlay.style.opacity = '0';
-      popup.style.transform = 'scale(0.8) translateY(20px)';
-      setTimeout(() => {
-        document.body.removeChild(overlay);
-      }, 300);
-    }
-
-    // Add event listeners
-    closeBtn.addEventListener('click', closePopup);
-    overlay.addEventListener('click', function(e) {
-      if (e.target === overlay) {
-        closePopup();
-      }
-    });
-
-    // Add escape key listener
-    const escapeHandler = function(e) {
-      if (e.key === 'Escape') {
-        closePopup();
-        document.removeEventListener('keydown', escapeHandler);
-      }
-    };
-    document.addEventListener('keydown', escapeHandler);
-
-    // Add to DOM
-    overlay.appendChild(popup);
-    document.body.appendChild(overlay);
-
-    // Animate in
-    setTimeout(() => {
-      overlay.style.opacity = '1';
-      popup.style.transform = 'scale(1) translateY(0)';
-    }, 10);
-  }
-
-  // SINGLE, CLEAN button handler initialization
-  function initializeButtonHandlers() {
-    if (handlersInitialized) {
-      return;
-    }
-    
-    // Hero section buttons - Simple approach without cloning
-    const heroButtons = document.querySelector(".hero-buttons");
-    if (heroButtons) {
-      const allHeroButtons = heroButtons.querySelectorAll("button");
-      
-      if (allHeroButtons.length >= 2) {
-        // Rezervări button (first button)
-        allHeroButtons[0].addEventListener("click", function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          showReservationPopup();
-        });
-        
-        // Download button (second button)
-        allHeroButtons[1].addEventListener("click", function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          showDownloadPopup();
-        });
-      }
-    }
-    
-    // CTA section buttons - Simple approach without cloning
-    const ctaSection = document.querySelector(".cta");
-    if (ctaSection) {
-      const ctaButtons = ctaSection.querySelector(".cta-buttons");
-      if (ctaButtons) {
-        const allCtaButtons = ctaButtons.querySelectorAll("button");
-        
-        allCtaButtons.forEach(button => {
-          button.addEventListener("click", function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const buttonText = this.textContent.trim().toLowerCase();
-            
-            if (buttonText.includes("descarcă") || buttonText.includes("download")) {
-              showDownloadPopup();
-            } else if (buttonText.includes("acces") || buttonText.includes("anticipat")) {
-              showEarlyAccessPopup();
-            }
-          });
-        });
-      }
-    }
-
-    handlersInitialized = true;
-  }
-
-  // Initialize ONLY once, with a delay to ensure DOM is ready
-  setTimeout(() => {
-    initializeButtonHandlers();
-  }, 2000); // Wait 2 seconds for full page load including hosted environments
-
-  // Mystery box interaction
-  const mysteryBox = document.querySelector(".mystery-box");
-  if (mysteryBox) {
-    mysteryBox.addEventListener("click", function () {
-      const content = this.querySelector(".box-content i");
-      const icons = ["fa-question", "fa-eye", "fa-mask", "fa-star", "fa-magic"];
-      const randomIcon = icons[Math.floor(Math.random() * icons.length)];
-
-      content.className = `fas ${randomIcon}`;
-
-      // Add ripple effect
-      const ripple = document.createElement("div");
-      ripple.style.position = "absolute";
-      ripple.style.borderRadius = "50%";
-      ripple.style.background = "rgba(139, 92, 246, 0.3)";
-      ripple.style.transform = "scale(0)";
-      ripple.style.animation = "ripple 0.6s linear";
-      ripple.style.left = "50%";
-      ripple.style.top = "50%";
-      ripple.style.width = "20px";
-      ripple.style.height = "20px";
-      ripple.style.marginLeft = "-10px";
-      ripple.style.marginTop = "-10px";
-
-      this.appendChild(ripple);
-
-      setTimeout(() => {
-        ripple.remove();
-      }, 600);
-    });
-  }
-
-  // Character-by-character text reveal animation
-  function initCharacterRevealAnimation() {
-    const textElements = document.querySelectorAll(".text-reveal");
-    
-    if (textElements.length > 0) {
-      let totalDelay = 0;
-      
-      textElements.forEach((element, wordIndex) => {
-        const text = element.textContent;
-        element.innerHTML = ""; // Clear the text
-        
-        // Add animate class to show the element
-        element.classList.add("animate");
-        
-        // Split text into characters and wrap each in a span
-        const chars = text.split("").map((char, charIndex) => {
-          const span = document.createElement("span");
-          span.className = "char";
-          span.textContent = char === " " ? "\u00A0" : char; // Use non-breaking space
-          span.style.animationDelay = `${totalDelay + (charIndex * 40)}ms`; // Redus de la 80ms la 40ms
-          return span;
-        });
-        
-        // Add all character spans to the element
-        chars.forEach(char => element.appendChild(char));
-        
-        // Update total delay for next word (add time for all chars + word gap)
-        totalDelay += (text.length * 40) + 200; // Redus gap între cuvinte de la 400ms la 200ms
+    // Update active indicator function - declare early
+    function updateIndicators() {
+      const dots = document.querySelectorAll('.section-indicator');
+      dots.forEach((dot, index) => {
+        if (index === currentSectionIndex) {
+          dot.style.backgroundColor = 'rgba(139, 92, 246, 1)';
+          dot.style.transform = 'scale(1.2)';
+        } else {
+          dot.style.backgroundColor = 'rgba(139, 92, 246, 0.3)';
+          dot.style.transform = 'scale(1)';
+        }
       });
     }
-  }
 
-  // Initialize character reveal animation on page load
-  setTimeout(() => {
-    initCharacterRevealAnimation();
-  }, 400); // Redus de la 800ms la 400ms
-
-  // Enhanced subtitle animation
-  const heroSubtitle = document.querySelector(".hero-subtitle");
-  // Nu redeclara heroButtons - folosește variabila de mai sus
-  
-  if (heroSubtitle) {
-    heroSubtitle.style.opacity = "0";
-    heroSubtitle.style.transform = "translateY(30px)";
-    heroSubtitle.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
-    
-    setTimeout(() => {
-      heroSubtitle.style.opacity = "1";
-      heroSubtitle.style.transform = "translateY(0)";
-    }, 2200); // Redus de la 3500ms la 2200ms
-  }
-
-  if (heroButtons) {
-    heroButtons.style.opacity = "0";
-    heroButtons.style.transform = "translateY(30px)";
-    heroButtons.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
-    
-    setTimeout(() => {
-      heroButtons.style.opacity = "1";
-      heroButtons.style.transform = "translateY(0)";
-    }, 2600); // Redus de la 3900ms la 2600ms
-  }
-
-  // Loading screen effect
-  window.addEventListener("load", function () {
-    document.body.style.opacity = "0";
-    document.body.style.transition = "opacity 0.5s ease";
-
-    setTimeout(() => {
-      document.body.style.opacity = "1";
-    }, 100);
-  });
-
-  // Mouse glow effect
-  const cursor = {
-    glow: document.createElement('div')
-  };
-  
-  // Create and style the glow element
-  cursor.glow.className = 'cursor-glow';
-  cursor.glow.style.position = 'fixed';
-  cursor.glow.style.pointerEvents = 'none';
-  cursor.glow.style.width = '30px';
-  cursor.glow.style.height = '30px';
-  cursor.glow.style.borderRadius = '50%';
-  cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0) 70%)';
-  cursor.glow.style.transform = 'translate(-50%, -50%)';
-  cursor.glow.style.zIndex = '9999';
-  cursor.glow.style.transition = 'width 0.2s, height 0.2s, opacity 0.2s, background 0.2s';
-  document.body.appendChild(cursor.glow);
-
-  let isMoving = false;
-  let moveTimeout;
-  let clickTimeout;
-
-  // Initialize mousemove listener
-  window.addEventListener('mousemove', (e) => {
-    cursor.glow.style.left = e.clientX + 'px';
-    cursor.glow.style.top = e.clientY + 'px';
-    
-    // Enhance glow effect when moving
-    if (!isMoving) {
-      isMoving = true;
-      cursor.glow.style.width = '50px';
-      cursor.glow.style.height = '50px';
-      cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0) 70%)';
+    // Update the scrollToSection function with Windows-compatible scrolling
+    function scrollToSection(index) {
+      if (index >= 0 && index < sections.length && !isScrolling) {
+          isScrolling = true;
+          currentSectionIndex = index;
+          updateIndicators();
+          
+          const section = sections[index];
+          const sectionTop = section.offsetTop;
+          
+          // Add extra offset for the first section to show full content
+          const offset = index === 0 ? -20 : 0;
+          const targetY = sectionTop + offset;
+          
+          // Use custom smooth scroll instead of native browser scrolling
+          smoothScrollTo(targetY, 800);
+      }
     }
-    
-    // Reset the timeout on each move
-    clearTimeout(moveTimeout);
-    moveTimeout = setTimeout(() => {
-      isMoving = false;
-      if (!clickTimeout) { // Only shrink if not in click animation
-        cursor.glow.style.width = '30px';
-        cursor.glow.style.height = '30px';
-        cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0) 70%)';
-      }
-    }, 100);
-  });
 
-  // Add click animation
-  window.addEventListener('mousedown', () => {
-    cursor.glow.style.width = '70px';
-    cursor.glow.style.height = '70px';
-    cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.5) 0%, rgba(139, 92, 246, 0) 70%)';
-    
-    clearTimeout(clickTimeout);
-    clickTimeout = setTimeout(() => {
-      clickTimeout = null;
-      if (!isMoving) {
-        cursor.glow.style.width = '30px';
-        cursor.glow.style.height = '30px';
-        cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0) 70%)';
+    // Toggle mobile menu
+    navToggle.addEventListener("click", function () {
+      navMenu.classList.toggle("active");
+
+      // Animate hamburger
+      const bars = navToggle.querySelectorAll(".bar");
+      bars.forEach((bar) => bar.classList.toggle("active"));
+    });
+
+    // Close menu when clicking on links
+    navLinks.forEach((link) => {
+      link.addEventListener("click", function () {
+        navMenu.classList.remove("active");
+        const bars = navToggle.querySelectorAll(".bar");
+        bars.forEach((bar) => bar.classList.remove("active"));
+      });
+    });
+
+    // Smooth scrolling for navigation links
+    navLinks.forEach((link) => {
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute("href");
+        const targetSection = document.querySelector(targetId);
+
+        if (targetSection) {
+          // Calculate offset based on navbar height and section
+          const navbarHeight = 70;
+          
+          // For home section, scroll to the very top
+          if (targetId === '#home') {
+            isScrolling = true;
+            smoothScrollTo(0, 800);
+            // Update the fullpage scroll system
+            currentSectionIndex = 0;
+            updateIndicators();
+          } else if (targetId === '#footer') {
+            // For footer, scroll to the very bottom to ensure it's fully visible
+            isScrolling = true;
+            smoothScrollTo(document.documentElement.scrollHeight, 800);
+            // Update the fullpage scroll system to footer index
+            const footerIndex = Array.from(sections).indexOf(targetSection);
+            if (footerIndex !== -1) {
+              currentSectionIndex = footerIndex;
+              updateIndicators();
+            }
+          } else {
+            // For other sections, account for navbar height
+            const elementPosition = targetSection.offsetTop;
+            const offsetPosition = elementPosition - navbarHeight;
+            
+            isScrolling = true;
+            smoothScrollTo(offsetPosition, 800);
+            
+            // Update the fullpage scroll system
+            const sectionIndex = Array.from(sections).indexOf(targetSection);
+            if (sectionIndex !== -1) {
+              currentSectionIndex = sectionIndex;
+              updateIndicators();
+            }
+          }
+        }
+      });
+    });
+
+    // Navbar background on scroll
+    const navbar = document.querySelector(".navbar");
+    window.addEventListener("scroll", function () {
+      if (window.scrollY > 50) {
+        navbar.style.background = "rgba(15, 15, 15, 0.98)";
       } else {
-        cursor.glow.style.width = '50px';
-        cursor.glow.style.height = '50px';
-        cursor.glow.style.background = 'radial-gradient(circle at center, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0) 70%)';
+        navbar.style.background = "rgba(15, 15, 15, 0.95)";
       }
-    }, 300);
-  });
+    });
 
-  // Remove old sparkle-related elements if they exist
-  document.querySelectorAll('.cursor-circle').forEach(circle => circle.remove());
+    // Scroll reveal animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: "0px 0px -50px 0px",
+    };
 
-  // Console easter egg
-  console.log(`
-    🎭 Welcome to AcoomH - Discover the Hidden
+    const observer = new IntersectionObserver(function (entries) {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = "1";
+          entry.target.style.transform = "translateY(0)";
+        }
+      });
+    }, observerOptions);
+
+    // Observe elements for animation
+    const animateElements = document.querySelectorAll(
+      ".feature-card, .about-text, .mystery-box"
+    );
+    animateElements.forEach((el) => {
+      el.style.opacity = "0";
+      el.style.transform = "translateY(30px)";
+      el.style.transition = "opacity 0.6s ease, transform 0.6s ease";
+      observer.observe(el);
+    });
+
+    // Parallax effect for hero background
+    window.addEventListener("scroll", function () {
+      const scrolled = window.pageYOffset;
+      const parallax = document.querySelector(".hero");
+      const speed = scrolled * 0.5;
+
+      if (parallax) {
+        parallax.style.transform = `translateY(${speed}px)`;
+      }
+    });
+
+    // Floating cards animation enhancement
+    const cards = document.querySelectorAll(".card");
+    cards.forEach((card, index) => {
+      card.addEventListener("mouseenter", function () {
+        this.style.transform = "translateY(-15px) scale(1.05)";
+        this.style.zIndex = "10";
+      });
+
+      card.addEventListener("mouseleave", function () {
+        this.style.transform = "translateY(0) scale(1)";
+        this.style.zIndex = "1";
+      });
+    });
+
+    // Button hover effects
+    const buttons = document.querySelectorAll(".btn");
+    buttons.forEach((button) => {
+      button.addEventListener("mouseenter", function () {
+        this.style.transform = "translateY(-2px)";
+      });
+
+      button.addEventListener("mouseleave", function () {
+        this.style.transform = "translateY(0)";
+      });
+    });
+
+    // Show download popup function
+    function showDownloadPopup() {
+      // Remove any existing popups first
+      const existingPopups = document.querySelectorAll('.popup-overlay');
+      existingPopups.forEach(popup => popup.remove());
+      
+      // Create popup overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'popup-overlay';
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      overlay.style.zIndex = '10000';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.backdropFilter = 'blur(10px)';
+      overlay.style.opacity = '0';
+      overlay.style.transition = 'opacity 0.3s ease';
+
+      // Create popup content
+      const popup = document.createElement('div');
+      popup.className = 'popup-content';
+      popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
+      popup.style.border = '1px solid #6b46c1';
+      popup.style.borderRadius = '25px';
+      popup.style.padding = '40px 30px';
+      popup.style.textAlign = 'center';
+      popup.style.maxWidth = '400px';
+      popup.style.width = '90%';
+      popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
+      popup.style.transform = 'scale(0.8) translateY(20px)';
+      popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      popup.style.position = 'relative';
+
+      // Add popup content
+      popup.innerHTML = `
+        <div style="margin-bottom: 25px;">
+          <i class="fas fa-rocket" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
+          <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
+          <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
+        </div>
+        <button class="popup-close-btn" style="
+          background: linear-gradient(135deg, #6b46c1, #7c3aed);
+          color: white;
+          border: none;
+          border-radius: 15px;
+          padding: 12px 30px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        ">
+          <i class="fas fa-check" style="margin-right: 8px;"></i>
+          Înțeles!
+        </button>
+      `;
+
+      // Add hover effect to close button
+      const closeBtn = popup.querySelector('.popup-close-btn');
+      closeBtn.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-3px)';
+        this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
+      });
+      closeBtn.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
+      });
+
+      // Close popup function
+      function closePopup() {
+        overlay.style.opacity = '0';
+        popup.style.transform = 'scale(0.8) translateY(20px)';
+        setTimeout(() => {
+          document.body.removeChild(overlay);
+        }, 300);
+      }
+
+      // Add event listeners
+      closeBtn.addEventListener('click', closePopup);
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          closePopup();
+        }
+      });
+
+      // Add escape key listener
+      const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+          closePopup();
+          document.removeEventListener('keydown', escapeHandler);
+        }
+      };
+      document.addEventListener('keydown', escapeHandler);
+
+      // Add to DOM
+      overlay.appendChild(popup);
+      document.body.appendChild(overlay);
+
+      // Animate in
+      setTimeout(() => {
+        overlay.style.opacity = '1';
+        popup.style.transform = 'scale(1) translateY(0)';
+      }, 10);
+    }
+
+    // Show early access popup function
+    function showEarlyAccessPopup() {
+      // Remove any existing popups first
+      const existingPopups = document.querySelectorAll('.popup-overlay');
+      existingPopups.forEach(popup => popup.remove());
+      
+      // Create popup overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'popup-overlay';
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      overlay.style.zIndex = '10000';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.backdropFilter = 'blur(10px)';
+      overlay.style.opacity = '0';
+      overlay.style.transition = 'opacity 0.3s ease';
+
+      // Create popup content
+      const popup = document.createElement('div');
+      popup.className = 'popup-content';
+      popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
+      popup.style.border = '1px solid #6b46c1';
+      popup.style.borderRadius = '25px';
+      popup.style.padding = '40px 30px';
+      popup.style.textAlign = 'center';
+      popup.style.maxWidth = '400px';
+      popup.style.width = '90%';
+      popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
+      popup.style.transform = 'scale(0.8) translateY(20px)';
+      popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      popup.style.position = 'relative';
+
+      // Add popup content
+      popup.innerHTML = `
+        <div style="margin-bottom: 25px;">
+          <i class="fas fa-clock" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
+          <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
+          <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
+        </div>
+        <button class="popup-close-btn" style="
+          background: linear-gradient(135deg, #6b46c1, #7c3aed);
+          color: white;
+          border: none;
+          border-radius: 15px;
+          padding: 12px 30px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        ">
+          <i class="fas fa-check" style="margin-right: 8px;"></i>
+          Înțeles!
+        </button>
+      `;
+
+      // Add hover effect to close button
+      const closeBtn = popup.querySelector('.popup-close-btn');
+      closeBtn.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-3px)';
+        this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
+      });
+      closeBtn.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
+      });
+
+      // Close popup function
+      function closePopup() {
+        overlay.style.opacity = '0';
+        popup.style.transform = 'scale(0.8) translateY(20px)';
+        setTimeout(() => {
+          document.body.removeChild(overlay);
+        }, 300);
+      }
+
+      // Add event listeners
+      closeBtn.addEventListener('click', closePopup);
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          closePopup();
+        }
+      });
+
+      // Add escape key listener
+      const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+          closePopup();
+          document.removeEventListener('keydown', escapeHandler);
+        }
+      };
+      document.addEventListener('keydown', escapeHandler);
+
+      // Add to DOM
+      overlay.appendChild(popup);
+      document.body.appendChild(overlay);
+
+      // Animate in
+      setTimeout(() => {
+        overlay.style.opacity = '1';
+        popup.style.transform = 'scale(1) translateY(0)';
+      }, 10);
+    }
+
+    // Show reservation popup function
+    function showReservationPopup() {
+      // Remove any existing popups first
+      const existingPopups = document.querySelectorAll('.popup-overlay');
+      existingPopups.forEach(popup => popup.remove());
+      
+      // Create popup overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'popup-overlay';
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      overlay.style.zIndex = '10000';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.backdropFilter = 'blur(10px)';
+      overlay.style.opacity = '0';
+      overlay.style.transition = 'opacity 0.3s ease';
+
+      // Create popup content
+      const popup = document.createElement('div');
+      popup.className = 'popup-content';
+      popup.style.background = 'linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95))';
+      popup.style.border = '1px solid #6b46c1';
+      popup.style.borderRadius = '25px';
+      popup.style.padding = '40px 30px';
+      popup.style.textAlign = 'center';
+      popup.style.maxWidth = '400px';
+      popup.style.width = '90%';
+      popup.style.boxShadow = '0 20px 60px rgba(139, 92, 246, 0.4)';
+      popup.style.transform = 'scale(0.8) translateY(20px)';
+      popup.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      popup.style.position = 'relative';
+
+      // Add popup content
+      popup.innerHTML = `
+        <div style="margin-bottom: 25px;">
+          <i class="fas fa-wrench" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
+          <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Funcționalitate în dezvoltare</h3>
+          <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Această funcționalitate este încă în dezvoltare</p>
+        </div>
+        <button class="popup-close-btn" style="
+          background: linear-gradient(135deg, #6b46c1, #7c3aed);
+          color: white;
+          border: none;
+          border-radius: 15px;
+          padding: 12px 30px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        ">
+          <i class="fas fa-check" style="margin-right: 8px;"></i>
+          Înțeles!
+        </button>
+      `;
+
+      // Add hover effect to close button
+      const closeBtn = popup.querySelector('.popup-close-btn');
+      closeBtn.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-3px)';
+        this.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.5)';
+      });
+      closeBtn.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 10px 30px rgba(139, 92, 246, 0.3)';
+      });
+
+      // Close popup function
+      function closePopup() {
+        overlay.style.opacity = '0';
+        popup.style.transform = 'scale(0.8) translateY(20px)';
+        setTimeout(() => {
+          document.body.removeChild(overlay);
+        }, 300);
+      }
+
+      // Add event listeners
+      closeBtn.addEventListener('click', closePopup);
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          closePopup();
+        }
+      });
+
+      // Add escape key listener
+      const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+          closePopup();
+          document.removeEventListener('keydown', escapeHandler);
+        }
+      };
+      document.addEventListener('keydown', escapeHandler);
+
+      // Add to DOM
+      overlay.appendChild(popup);
+      document.body.appendChild(overlay);
+
+      // Animate in
+      setTimeout(() => {
+        overlay.style.opacity = '1';
+        popup.style.transform = 'scale(1) translateY(0)';
+      }, 10);
+    }
+
+    // SINGLE, CLEAN button handler initialization
+    function initializeButtonHandlers() {
+      if (handlersInitialized) {
+        return;
+      }
+      
+      // Hero section buttons - Simple approach without cloning
+      const heroButtons = document.querySelector(".hero-buttons");
+      if (heroButtons) {
+        const allHeroButtons = heroButtons.querySelectorAll("button");
+        
+        if (allHeroButtons.length >= 2) {
+          // Rezervări button (first button)
+          allHeroButtons[0].addEventListener("click", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showReservationPopup();
+          });
+          
+          // Download button (second button)
+          allHeroButtons[1].addEventListener("click", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showDownloadPopup();
+          });
+        }
+      }
+      
+      // CTA section buttons - Simple approach without cloning
+      const ctaSection = document.querySelector(".cta");
+      if (ctaSection) {
+        const ctaButtons = ctaSection.querySelector(".cta-buttons");
+        if (ctaButtons) {
+          const allCtaButtons = ctaButtons.querySelectorAll("button");
+          
+          allCtaButtons.forEach(button => {
+            button.addEventListener("click", function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              const buttonText = this.textContent.trim().toLowerCase();
+              
+              if (buttonText.includes("descarcă") || buttonText.includes("download")) {
+                showDownloadPopup();
+              } else if (buttonText.includes("acces") || buttonText.includes("anticipat")) {
+                showEarlyAccessPopup();
+              }
+            });
+          });
+        }
+      }
+
+      handlersInitialized = true;
+    }
+
+    // Initialize ONLY once, with a delay to ensure DOM is ready
+    setTimeout(() => {
+      initializeButtonHandlers();
+    }, 2000); // Wait 2 seconds for full page load including hosted environments
+
+    // Mystery box interaction
+    const mysteryBox = document.querySelector(".mystery-box");
+    if (mysteryBox) {
+      mysteryBox.addEventListener("click", function () {
+        const content = this.querySelector(".box-content i");
+        const icons = ["fa-question", "fa-eye", "fa-mask", "fa-star", "fa-magic"];
+        const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+
+        content.className = `fas ${randomIcon}`;
+
+        // Add ripple effect
+        const ripple = document.createElement("div");
+        ripple.style.position = "absolute";
+        ripple.style.borderRadius = "50%";
+        ripple.style.background = "rgba(139, 92, 246, 0.3)";
+        ripple.style.transform = "scale(0)";
+        ripple.style.animation = "ripple 0.6s linear";
+        ripple.style.left = "50%";
+        ripple.style.top = "50%";
+        ripple.style.width = "20px";
+        ripple.style.height = "20px";
+        ripple.style.marginLeft = "-10px";
+        ripple.style.marginTop = "-10px";
+
+        this.appendChild(ripple);
+
+        setTimeout(() => {
+          ripple.remove();
+        }, 600);
+      });
+    }
+
+    // Character-by-character text reveal animation - VERSIUNE RAPIDĂ
+    function initCharacterRevealAnimation() {
+      const textElements = document.querySelectorAll(".text-reveal");
+      
+      if (textElements.length > 0) {
+        let totalDelay = 0;
+        
+        textElements.forEach((element, wordIndex) => {
+          const text = element.textContent;
+          element.innerHTML = ""; // Clear the text
+          
+          // Add animate class to show the element
+          element.classList.add("animate");
+          
+          // Split text into characters and wrap each in a span
+          const chars = text.split("").map((char, charIndex) => {
+            const span = document.createElement("span");
+            span.className = "char";
+            span.textContent = char === " " ? "\u00A0" : char; // Use non-breaking space
+            span.style.animationDelay = `${totalDelay + (charIndex * 40)}ms`; // RAPID: 40ms în loc de 80ms
+            return span;
+          });
+          
+          // Add all character spans to the element
+          chars.forEach(char => element.appendChild(char));
+          
+          // Update total delay for next word (add time for all chars + word gap)
+          totalDelay += (text.length * 40) + 200; // RAPID: 200ms gap în loc de 400ms
+        });
+      }
+    }
+
+    // Initialize character reveal animation on page load - RAPID
+    setTimeout(() => {
+      initCharacterRevealAnimation();
+    }, 400); // RAPID: 400ms în loc de 800ms
+
+    // Enhanced subtitle animation - RAPID
+    const heroSubtitle = document.querySelector(".hero-subtitle");
     
-    ░█████╗░░█████╗░░█████╗░░█████╗░███╗░░░███╗██╗░░██╗
-    ██╔══██╗██╔══██╗██╔══██╗██╔══██╗████╗░████║██║░░██║
-    ███████║██║░░╚═╝██║░░██║██║░░██║██╔████╔██║███████║
-    ██╔══██║██║░░██╗██║░░██║██║░░██║██║╚██╔╝██║██╔══██║
-    ██║░░██║╚█████╔╝╚█████╔╝╚█████╔╝██║░╚═╝░██║██║░░██║
-    ╚═╝░░╚═╝░╚════╝░░╚════╝░░╚════╝░╚═╝░░░░░╚═╝╚═╝░░╚═╝
-    
-    You've found the hidden console. 
-    Enter the shadows and discover what others never see...
-    `);
+    if (heroSubtitle) {
+      heroSubtitle.style.opacity = "0";
+      heroSubtitle.style.transform = "translateY(30px)";
+      heroSubtitle.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+      
+      setTimeout(() => {
+        heroSubtitle.style.opacity = "1";
+        heroSubtitle.style.transform = "translateY(0)";
+      }, 2200); // RAPID: 2200ms în loc de 3500ms
+    }
+
+    if (heroButtons) {
+      heroButtons.style.opacity = "0";
+      heroButtons.style.transform = "translateY(30px)";
+      heroButtons.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+      
+      setTimeout(() => {
+        heroButtons.style.opacity = "1";
+        heroButtons.style.transform = "translateY(0)";
+      }, 2600); // RAPID: 2600ms în loc de 3900ms
+    }
+
+    // Mobile touch swipe handling - TikTok style
+    if (isMobile || isTouch) {
+      console.log('📱 Activating mobile TikTok-style scroll...');
+      
+      // Touch event handlers for swipe detection
+      document.addEventListener('touchstart', function(e) {
+        if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+          return; // Allow normal interaction with video and popups
+        }
+        
+        touchStartY = e.touches[0].clientY;
+        lastTouchTime = Date.now();
+      }, { passive: true });
+
+      document.addEventListener('touchend', function(e) {
+        if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+          return; // Allow normal interaction with video and popups
+        }
+        
+        const currentTime = Date.now();
+        touchEndY = e.changedTouches[0].clientY;
+        
+        const touchDistance = Math.abs(touchStartY - touchEndY);
+        const touchTime = currentTime - lastTouchTime;
+        const timeSinceLastScroll = currentTime - lastScrollTime;
+        
+        // Check if it's a valid swipe (like TikTok)
+        if (touchDistance > scrollThreshold && 
+            touchTime < timeThreshold && 
+            timeSinceLastScroll > cooldownTime && 
+            !isScrolling) {
+          
+          lastScrollTime = currentTime;
+          
+          // Determine direction and scroll
+          if (touchStartY > touchEndY) {
+            // Swipe up - next section
+            scrollToSection(currentSectionIndex + 1);
+          } else {
+            // Swipe down - previous section
+            scrollToSection(currentSectionIndex - 1);
+          }
+        }
+      }, { passive: true });
+
+      // Also handle fast swipes (shorter distance but very quick)
+      document.addEventListener('touchmove', function(e) {
+        if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+          return;
+        }
+        
+        const currentY = e.touches[0].clientY;
+        const currentTime = Date.now();
+        const distance = Math.abs(touchStartY - currentY);
+        const time = currentTime - lastTouchTime;
+        
+        // Detect very fast swipes (TikTok style)
+        if (distance > 30 && time < 150 && !isScrolling) {
+          const timeSinceLastScroll = currentTime - lastScrollTime;
+          
+          if (timeSinceLastScroll > cooldownTime) {
+            lastScrollTime = currentTime;
+            
+            if (touchStartY > currentY) {
+              // Fast swipe up
+              scrollToSection(currentSectionIndex + 1);
+            } else {
+              // Fast swipe down
+              scrollToSection(currentSectionIndex - 1);
+            }
+          }
+        }
+      }, { passive: true });
+    }
+
+    // Video playback observer cu debugging
+    if (phoneVideo) {
+      console.log('🎥 Configurez video handler...');
+      console.log('Video element găsit:', phoneVideo);
+      console.log('Video src:', phoneVideo.src);
+      console.log('Video currentSrc:', phoneVideo.currentSrc);
+      
+      // Verifică dacă video-ul se încarcă
+      phoneVideo.addEventListener('loadstart', () => {
+        console.log('Video loadstart - începe încărcarea');
+      });
+      
+      phoneVideo.addEventListener('loadedmetadata', () => {
+        console.log('Video metadata încărcată');
+        console.log('Video dimensions:', phoneVideo.videoWidth + 'x' + phoneVideo.videoHeight);
+        console.log('Video duration:', phoneVideo.duration);
+      });
+      
+      phoneVideo.addEventListener('error', (e) => {
+        console.error('Video error:', e);
+        console.error('Error code:', phoneVideo.error?.code);
+        console.error('Error message:', phoneVideo.error?.message);
+      });
+      
+      // Verifică dimensiunile container-ului
+      const phoneScreen = document.querySelector('.phone-screen');
+      if (phoneScreen) {
+        console.log('Phone screen dimensions:', {
+          width: phoneScreen.offsetWidth,
+          height: phoneScreen.offsetHeight,
+          computed: getComputedStyle(phoneScreen)
+        });
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Script error:', error);
+  }
 
   // Create section indicators
   const indicators = document.createElement('div');
@@ -898,12 +952,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize first section
   updateIndicators();
-
-  // Enhanced mobile detection
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  
-  console.log('Device detection:', { isMobile, isTouch });
 
   // Mobile-specific scroll handling variables
   let touchStartY = 0;

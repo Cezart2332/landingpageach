@@ -1,0 +1,30 @@
+{
+  "buildTime": "2025-07-25T21:10:54.776Z",
+  "timestamp": 1753477854629,
+  "files": {
+    "css": "style.min.css",
+    "js": "script.min.js"
+  },
+  "optimization": {
+    "css": {
+      "type": "css",
+      "success": true,
+      "originalSize": "46.94",
+      "minifiedSize": "38.86",
+      "savings": "17.2"
+    },
+    "js": {
+      "type": "js",
+      "success": true,
+      "originalSize": "16.65",
+      "minifiedSize": "10.78",
+      "savings": "35.2"
+    }
+  },
+  "performance": {
+    "cacheBreaking": true,
+    "compression": "gzip recommended",
+    "lazyLoading": "implemented",
+    "criticalCSS": "inlined"
+  }
+}

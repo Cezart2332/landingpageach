@@ -1,0 +1,15 @@
+# Deployment info (auto-generated)
+deploy-info.json
+
+# macOS
+.DS_Store
+
+# Node modules (if you ever add any)
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log

@@ -230,122 +230,117 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Universal TikTok-style scroll behavior for all desktop/laptop devices
     if (useUniversalScroll) {
+      // Simple, universal scroll system that works on all devices
+      let isScrolling = false;
       let scrollTimeout;
-      let scrollDeltaY = 0;
-      let isUniversalScrolling = false;
       let lastScrollTime = 0;
-      const scrollCooldown = 200; // Fast response time
+      const scrollCooldown = 600; // Universal cooldown period
       
       // Lock scrolling like TikTok - no free scroll
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
       
-      // Production-safe event handler with multiple fallbacks
+      // Simple, reliable event handler
       const handleWheelEvent = (e) => {
         const currentTime = Date.now();
         
-        // Prevent scrolling when already animating
-        if (isScrolling || isUniversalScrolling) {
+        // Prevent all scrolling if we're already animating
+        if (isScrolling) {
           e.preventDefault();
           e.stopPropagation();
           return false;
         }
         
-        // Check cooldown to prevent rapid triggering
+        // Universal cooldown - prevents rapid firing regardless of device
         if ((currentTime - lastScrollTime) < scrollCooldown) {
           e.preventDefault();
           e.stopPropagation();
           return false;
         }
         
-        // Accumulate delta for all types of scroll input
-        scrollDeltaY += e.deltaY;
-        
-        clearTimeout(scrollTimeout);
-        
-        // Very low threshold - works for trackpads, mice, and all input types
-        scrollTimeout = setTimeout(() => {
-          if (Math.abs(scrollDeltaY) > 1 && !isScrolling && !isUniversalScrolling) {
-            isUniversalScrolling = true;
-            lastScrollTime = currentTime;
+        // Simple threshold - any meaningful scroll triggers navigation
+        const deltaY = e.deltaY;
+        if (Math.abs(deltaY) > 0.5) {
+          // Prevent any further events during cooldown
+          lastScrollTime = currentTime;
+          isScrolling = true;
+          
+          // Handle footer edge case
+          const footer = document.querySelector('#footer');
+          if (footer) {
+            const footerRect = footer.getBoundingClientRect();
+            const isInFooter = footerRect.top <= 0 && footerRect.bottom >= window.innerHeight;
             
-            // Handle footer edge case
-            const footer = document.querySelector('#footer');
-            if (footer) {
-              const footerRect = footer.getBoundingClientRect();
-              const isInFooter = footerRect.top <= 0 && footerRect.bottom >= window.innerHeight;
-              
-              if (isInFooter && scrollDeltaY > 0) {
-                scrollDeltaY = 0;
-                isUniversalScrolling = false;
-                return;
-              }
+            if (isInFooter && deltaY > 0) {
+              isScrolling = false;
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
             }
-            
-            if (scrollDeltaY > 0) {
-              scrollToSection(currentSectionIndex + 1);
-            } else {
-              scrollToSection(currentSectionIndex - 1);
-            }
-            
-            scrollDeltaY = 0;
-            
-            // Reset scrolling flag after animation
-            setTimeout(() => {
-              isUniversalScrolling = false;
-            }, 200);
-          } else {
-            scrollDeltaY = 0;
-            isUniversalScrolling = false;
           }
-        }, 30); // Very fast response time
+          
+          // Navigate based on scroll direction
+          if (deltaY > 0) {
+            scrollToSection(currentSectionIndex + 1);
+          } else {
+            scrollToSection(currentSectionIndex - 1);
+          }
+          
+          // Reset scrolling flag after animation completes
+          setTimeout(() => {
+            isScrolling = false;
+          }, 800); // Match scroll animation duration
+        }
         
         e.preventDefault();
         e.stopPropagation();
         return false;
       };
 
-      // Add multiple event listeners for better compatibility
+      // Add event listeners
       window.addEventListener('wheel', handleWheelEvent, { passive: false, capture: true });
       document.addEventListener('wheel', handleWheelEvent, { passive: false, capture: true });
-      document.body.addEventListener('wheel', handleWheelEvent, { passive: false, capture: true });
       
       // Add mousewheel for older browsers
       window.addEventListener('mousewheel', handleWheelEvent, { passive: false, capture: true });
-      document.addEventListener('mousewheel', handleWheelEvent, { passive: false, capture: true });
       
       // Add DOMMouseScroll for Firefox
       window.addEventListener('DOMMouseScroll', handleWheelEvent, { passive: false, capture: true });
-      document.addEventListener('DOMMouseScroll', handleWheelEvent, { passive: false, capture: true });
 
-      // Keyboard navigation with production safety
+      // Keyboard navigation
       const handleKeyDown = (e) => {
-        if (!isScrolling && !isUniversalScrolling) {
+        if (!isScrolling) {
           if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-            scrollToSection(currentSectionIndex + 1);
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
+            const currentTime = Date.now();
+            if ((currentTime - lastScrollTime) >= scrollCooldown) {
+              lastScrollTime = currentTime;
+              isScrolling = true;
+              scrollToSection(currentSectionIndex + 1);
+              setTimeout(() => { isScrolling = false; }, 800);
+              e.preventDefault();
+              e.stopPropagation();
+            }
           } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-            scrollToSection(currentSectionIndex - 1);
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
+            const currentTime = Date.now();
+            if ((currentTime - lastScrollTime) >= scrollCooldown) {
+              lastScrollTime = currentTime;
+              isScrolling = true;
+              scrollToSection(currentSectionIndex - 1);
+              setTimeout(() => { isScrolling = false; }, 800);
+              e.preventDefault();
+              e.stopPropagation();
+            }
           }
         }
       };
       
       window.addEventListener('keydown', handleKeyDown, { capture: true });
-      document.addEventListener('keydown', handleKeyDown, { capture: true });
       
-      // Force disable any conflicting scroll behaviors
+      // Disable conflicting behaviors
       document.body.style.touchAction = 'none';
       document.documentElement.style.touchAction = 'none';
-      document.body.style.userSelect = 'none';
-      document.body.style.webkitUserSelect = 'none';
       
-      // Production debugging
-      console.log('Universal scroll system initialized for production');
+      console.log('Universal scroll system initialized - simple approach');
     }
 
     // Text reveal animation

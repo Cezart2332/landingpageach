@@ -10,47 +10,28 @@ document.addEventListener("DOMContentLoaded", function () {
     const navMenu = document.querySelector(".nav-menu");
     const navLinks = document.querySelectorAll(".nav-link");
 
-    // Device detection - improved trackpad handling
+    // Simplified universal device detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isActualDesktop = !isMobile && window.innerWidth > 1024;
+    const isLargeScreen = window.innerWidth > 1024;
+    const isDesktopDevice = !isMobile && isLargeScreen;
     
-    // Better trackpad detection - improved Windows detection
-    const isLaptop = !isMobile && isTouch && window.innerWidth > 1024;
-    const isMacTrackpad = isLaptop && navigator.userAgent.includes('Mac');
-    const isWindowsTrackpad = isLaptop && navigator.userAgent.includes('Windows');
-    const isLinuxTrackpad = isLaptop && !navigator.userAgent.includes('Mac') && !navigator.userAgent.includes('Windows');
-    const isTrackpad = isLaptop; // Any laptop with touch support
-    
-    // Windows specific detection improvements
-    const isWindows = navigator.userAgent.includes('Windows');
-    const hasPointerEvents = 'onpointerdown' in window;
-    const isWindowsLaptop = isWindows && isTouch && window.innerWidth > 1024;
-    
-    const isDevToolsMobile = isMobile && window.innerWidth > 800;
-    
-    // Scroll mode determination - Fixed Windows trackpad support
-    const useDesktopScroll = (isActualDesktop && !isTrackpad && !isWindowsLaptop) || (!isMobile && !isTouch && window.innerWidth > 1024);
-    const useTrackpadScroll = isTrackpad || isWindowsLaptop || (navigator.userAgent.includes('Mac') && !isMobile && window.innerWidth > 1024);
-    const useMobileScroll = isMobile && !isDevToolsMobile;
+    // Use mobile scroll for actual mobile devices only
+    const useMobileScroll = isMobile && window.innerWidth <= 1024;
+    // Use universal scroll for all desktop/laptop devices
+    const useUniversalScroll = isDesktopDevice;
 
-    // Debug logging (remove in production)
-    console.log('Device Detection:', {
+    // Debug logging
+    console.log('Universal Device Detection:', {
       isMobile,
       isTouch,
-      isActualDesktop,
-      isLaptop,
-      isMacTrackpad,
-      isWindowsTrackpad,
-      isWindowsLaptop,
-      isTrackpad,
-      useDesktopScroll,
-      useTrackpadScroll,
+      isLargeScreen,
+      isDesktopDevice,
       useMobileScroll,
+      useUniversalScroll,
       userAgent: navigator.userAgent,
       maxTouchPoints: navigator.maxTouchPoints,
-      windowWidth: window.innerWidth,
-      hasPointerEvents
+      windowWidth: window.innerWidth
     });
 
     // Scroll functionality variables
@@ -247,123 +228,82 @@ document.addEventListener("DOMContentLoaded", function () {
       }, { passive: true });
     }
 
-    // Trackpad scroll behavior - allows both free scroll and section scroll
-    if (useTrackpadScroll) {
-      let trackpadScrollTimeout;
-      let trackpadDeltaY = 0;
-      let isTrackpadScrolling = false;
-      let lastTrackpadScrollTime = 0;
-      const trackpadCooldown = 800; // Prevent double scrolling
+    // Universal TikTok-style scroll behavior for all desktop/laptop devices
+    if (useUniversalScroll) {
+      let scrollTimeout;
+      let scrollDeltaY = 0;
+      let isUniversalScrolling = false;
+      let lastScrollTime = 0;
+      const scrollCooldown = 200; // Fast response time
       
-      // Allow normal scrolling but add section snapping
-      document.body.style.overflow = 'auto';
-      document.documentElement.style.overflow = 'auto';
+      // Lock scrolling like TikTok - no free scroll
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       
       window.addEventListener('wheel', (e) => {
         const currentTime = Date.now();
         
-        // Check if cursor is in main content area (ignore side elements)
-        const rect = document.documentElement.getBoundingClientRect();
-        const isInMainArea = e.clientX >= 0 && e.clientX <= window.innerWidth && 
-                            e.clientY >= 0 && e.clientY <= window.innerHeight;
-        
-        if (!isInMainArea) {
-          return; // Allow default scroll for side areas
-        }
-        
-        // Prevent multiple scroll triggers
-        if (isScrolling || isTrackpadScrolling) {
+        // Prevent scrolling when already animating
+        if (isScrolling || isUniversalScrolling) {
           e.preventDefault();
           return;
         }
         
-        // Accumulate delta for trackpad gestures
-        trackpadDeltaY += e.deltaY;
-        
-        clearTimeout(trackpadScrollTimeout);
-        
-        // If large scroll movement and enough time has passed, trigger section scroll
-        if (Math.abs(trackpadDeltaY) > 100 && !isScrolling && 
-            (currentTime - lastTrackpadScrollTime) > trackpadCooldown) {
-          
-          isTrackpadScrolling = true;
-          lastTrackpadScrollTime = currentTime;
-          
-          if (trackpadDeltaY > 0) {
-            scrollToSection(currentSectionIndex + 1);
-          } else {
-            scrollToSection(currentSectionIndex - 1);
-          }
-          
-          trackpadDeltaY = 0;
+        // Check cooldown to prevent rapid triggering
+        if ((currentTime - lastScrollTime) < scrollCooldown) {
           e.preventDefault();
-          
-          // Reset scrolling flag after animation
-          setTimeout(() => {
-            isTrackpadScrolling = false;
-          }, 800);
-        } else {
-          // Allow free scrolling for small movements
-          trackpadScrollTimeout = setTimeout(() => {
-            trackpadDeltaY = 0;
-            isTrackpadScrolling = false;
-          }, 150);
-        }
-      }, { passive: false });
-    }
-
-    // Desktop scroll behavior (mouse wheel)
-    if (useDesktopScroll) {
-      window.addEventListener('wheel', (e) => {
-        const currentTime = Date.now();
-        
-        // Check if cursor is in main content area (ignore side elements)
-        const rect = document.documentElement.getBoundingClientRect();
-        const isInMainArea = e.clientX >= 50 && e.clientX <= (window.innerWidth - 50) && 
-                            e.clientY >= 0 && e.clientY <= window.innerHeight;
-        
-        if (!isInMainArea) {
-          return; // Allow default scroll for side areas
+          return;
         }
         
-        // Reset wheel count if enough time has passed
-        if (currentTime - lastWheelTime > wheelDebounceTime) {
-          wheelCount = 0;
-        }
+        // Accumulate delta for all types of scroll input
+        scrollDeltaY += e.deltaY;
         
-        wheelCount++;
-        lastWheelTime = currentTime;
+        clearTimeout(scrollTimeout);
         
-        // Clear existing timeout
-        clearTimeout(wheelTimeout);
-        
-        // Only process scroll if we haven't exceeded the max wheel events
-        if (wheelCount <= maxWheelEvents && !isScrolling) {
-          wheelTimeout = setTimeout(() => {
-            if (!isScrolling) {
-              const footer = document.querySelector('#footer');
+        // Very low threshold - works for trackpads, mice, and all input types
+        scrollTimeout = setTimeout(() => {
+          if (Math.abs(scrollDeltaY) > 1 && !isScrolling && !isUniversalScrolling) {
+            isUniversalScrolling = true;
+            lastScrollTime = currentTime;
+            
+            // Handle footer edge case
+            const footer = document.querySelector('#footer');
+            if (footer) {
               const footerRect = footer.getBoundingClientRect();
               const isInFooter = footerRect.top <= 0 && footerRect.bottom >= window.innerHeight;
               
-              if (isInFooter && e.deltaY > 0) {
+              if (isInFooter && scrollDeltaY > 0) {
+                scrollDeltaY = 0;
+                isUniversalScrolling = false;
+                e.preventDefault();
                 return;
               }
-              
-              if (e.deltaY > 0) {
-                scrollToSection(currentSectionIndex + 1);
-              } else {
-                scrollToSection(currentSectionIndex - 1);
-              }
             }
-          }, 50);
-        }
+            
+            if (scrollDeltaY > 0) {
+              scrollToSection(currentSectionIndex + 1);
+            } else {
+              scrollToSection(currentSectionIndex - 1);
+            }
+            
+            scrollDeltaY = 0;
+            
+            // Reset scrolling flag after animation
+            setTimeout(() => {
+              isUniversalScrolling = false;
+            }, 200);
+          } else {
+            scrollDeltaY = 0;
+            isUniversalScrolling = false;
+          }
+        }, 30); // Very fast response time
         
         e.preventDefault();
       }, { passive: false });
 
-      // Keyboard navigation for desktop
+      // Keyboard navigation
       window.addEventListener('keydown', (e) => {
-        if (!isScrolling) {
+        if (!isScrolling && !isUniversalScrolling) {
           if (e.key === 'ArrowDown' || e.key === 'PageDown') {
             scrollToSection(currentSectionIndex + 1);
             e.preventDefault();

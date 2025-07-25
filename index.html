@@ -271,6 +271,12 @@
       </div>
     </footer>
 
-    <script src="script.js"></script>
+    <script>
+      // Cache busting - generate timestamp for script loading
+      const timestamp = new Date().getTime();
+      const script = document.createElement('script');
+      script.src = `script.js?v=${timestamp}`;
+      document.head.appendChild(script);
+    </script>
   </body>
 </html>

@@ -560,6 +560,12 @@ section {
   position: relative;
   border: 2px solid var(--border-color);
   overflow: hidden;
+  /* Strict containment for hosted environments */
+  max-width: 260px;
+  max-height: 520px;
+  box-sizing: border-box;
+  /* Prevent scaling issues on hosted platforms */
+  flex-shrink: 0;
 }
 
 .phone-bezel {
@@ -613,18 +619,25 @@ section {
   position: relative;
   overflow: hidden;
   z-index: 1;
+  /* Ensure screen stays within bounds */
+  max-width: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
 }
 
 .phone-video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain; /* Changed from cover to contain to prevent overflow */
   object-position: center center;
   border-radius: 29px;
   position: absolute;
   top: 0;
   left: 0;
   z-index: 1;
+  /* Strict containment for hosted environments */
+  max-width: 100%;
+  max-height: 100%;
   /* Enhanced quality rendering */
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
@@ -635,6 +648,9 @@ section {
   /* Enhanced filters for better quality */
   -webkit-filter: contrast(1.15) brightness(1.08) saturate(1.12);
   filter: contrast(1.15) brightness(1.08) saturate(1.12);
+  /* Prevent video from breaking container bounds on hosted platforms */
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .video-fallback {

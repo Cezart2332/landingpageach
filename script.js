@@ -3,11 +3,23 @@ console.log('🚀 Script.js s-a încărcat!', new Date().toISOString());
 console.log('🌍 User Agent:', navigator.userAgent);
 console.log('📍 URL curent:', window.location.href);
 
+// DEBUGGING: Testează execuția imediată
+console.log('⚡ Cod JavaScript executat imediat!');
+
 // Mobile Navigation Toggle
 document.addEventListener("DOMContentLoaded", function () {
   console.log('✅ DOM Content Loaded - script rulează!');
-
+  console.log('🔍 Verifică elemente DOM...');
+  
+  // Debugging pentru elemente critice - DECLARATE O SINGURĂ DATĂ
+  const phoneVideo = document.getElementById('phone-video');
   const navToggle = document.querySelector(".nav-toggle");
+  const heroButtons = document.querySelector(".hero-buttons");
+  
+  console.log('📱 Phone video element:', phoneVideo);
+  console.log('🍔 Nav toggle element:', navToggle);
+  console.log('🔘 Hero buttons element:', heroButtons);
+
   const navMenu = document.querySelector(".nav-menu");
   const navLinks = document.querySelectorAll(".nav-link");
 
@@ -678,7 +690,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Enhanced subtitle animation
   const heroSubtitle = document.querySelector(".hero-subtitle");
-  const heroButtons = document.querySelector(".hero-buttons");
+  // Nu redeclara heroButtons - folosește variabila de mai sus
   
   if (heroSubtitle) {
     heroSubtitle.style.opacity = "0";
@@ -917,11 +929,9 @@ document.addEventListener("DOMContentLoaded", function () {
     aboutObserver.observe(aboutSection);
   }
 
-  // Video playback observer pentru debugging detaliat
-  const phoneVideo = document.getElementById('phone-video');
-  
+  // Video playback observer - folosește variabila phoneVideo declarată mai sus
   if (phoneVideo) {
-    // Debugging detaliat pentru probleme video
+    console.log('🎥 Configurez video handler...');
     console.log('Video element găsit:', phoneVideo);
     console.log('Video src:', phoneVideo.src);
     console.log('Video currentSrc:', phoneVideo.currentSrc);

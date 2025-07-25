@@ -4,6 +4,49 @@ document.addEventListener("DOMContentLoaded", function () {
   const navMenu = document.querySelector(".nav-menu");
   const navLinks = document.querySelectorAll(".nav-link");
 
+  // Fullpage scroll functionality - declare these variables early
+  const sections = document.querySelectorAll('section, footer');
+  let isScrolling = false;
+  let currentSectionIndex = 0;
+
+  // Update active indicator function - declare early
+  function updateIndicators() {
+    const dots = document.querySelectorAll('.section-indicator');
+    dots.forEach((dot, index) => {
+      if (index === currentSectionIndex) {
+        dot.style.backgroundColor = 'rgba(139, 92, 246, 1)';
+        dot.style.transform = 'scale(1.2)';
+      } else {
+        dot.style.backgroundColor = 'rgba(139, 92, 246, 0.3)';
+        dot.style.transform = 'scale(1)';
+      }
+    });
+  }
+
+  // Update the scrollToSection function - declare early
+  function scrollToSection(index) {
+    if (index >= 0 && index < sections.length) {
+        isScrolling = true;
+        currentSectionIndex = index;
+        updateIndicators();
+        
+        const section = sections[index];
+        const sectionTop = section.offsetTop;
+        
+        // Add extra offset for the first section to show full content
+        const offset = index === 0 ? -20 : 0;
+        
+        window.scrollTo({
+            top: sectionTop + offset,
+            behavior: 'smooth'
+        });
+
+        setTimeout(() => {
+            isScrolling = false;
+        }, 1000);
+    }
+  }
+
   // Toggle mobile menu
   navToggle.addEventListener("click", function () {
     navMenu.classList.toggle("active");
@@ -147,40 +190,6 @@ document.addEventListener("DOMContentLoaded", function () {
       this.style.transform = "translateY(0)";
     });
   });
-
-  // Download button click handler
-  const downloadButton = document.querySelector(".btn-primary.btn-large");
-  if (downloadButton) {
-    downloadButton.addEventListener("click", function(e) {
-      e.preventDefault();
-      showDownloadPopup();
-    });
-  }
-
-  // Early access button click handler
-  const earlyAccessButton = document.querySelector(".btn-outline.btn-large");
-  if (earlyAccessButton) {
-    earlyAccessButton.addEventListener("click", function(e) {
-      e.preventDefault();
-      showEarlyAccessPopup();
-    });
-  }
-
-  // Hero section buttons - Rezervări and Download
-  const heroSectionButtons = document.querySelectorAll(".hero-buttons .btn");
-  if (heroSectionButtons.length >= 2) {
-    // Rezervări button (first button)
-    heroSectionButtons[0].addEventListener("click", function(e) {
-      e.preventDefault();
-      showReservationPopup();
-    });
-    
-    // Download button (second button)
-    heroSectionButtons[1].addEventListener("click", function(e) {
-      e.preventDefault();
-      showDownloadPopup();
-    });
-  }
 
   // Show download popup function
   function showDownloadPopup() {
@@ -500,6 +509,39 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 10);
   }
 
+  // Hero section buttons - Rezervări and Download
+  const heroSectionButtons = document.querySelectorAll(".hero-buttons .btn");
+  if (heroSectionButtons.length >= 2) {
+    // Rezervări button (first button - btn-primary)
+    heroSectionButtons[0].addEventListener("click", function(e) {
+      e.preventDefault();
+      showReservationPopup();
+    });
+    
+    // Download button (second button - btn-secondary)
+    heroSectionButtons[1].addEventListener("click", function(e) {
+      e.preventDefault();
+      showDownloadPopup();
+    });
+  }
+
+  // CTA section buttons
+  const ctaDownloadButton = document.querySelector(".cta .btn-primary.btn-large");
+  if (ctaDownloadButton) {
+    ctaDownloadButton.addEventListener("click", function(e) {
+      e.preventDefault();
+      showDownloadPopup();
+    });
+  }
+
+  const ctaEarlyAccessButton = document.querySelector(".cta .btn-outline.btn-large");
+  if (ctaEarlyAccessButton) {
+    ctaEarlyAccessButton.addEventListener("click", function(e) {
+      e.preventDefault();
+      showEarlyAccessPopup();
+    });
+  }
+
   // Mystery box interaction
   const mysteryBox = document.querySelector(".mystery-box");
   if (mysteryBox) {
@@ -691,11 +733,6 @@ document.addEventListener("DOMContentLoaded", function () {
     Enter the shadows and discover what others never see...
     `);
 
-  // Fullpage scroll functionality
-  const sections = document.querySelectorAll('section, footer');
-  let isScrolling = false;
-  let currentSectionIndex = 0;
-
   // Create section indicators
   const indicators = document.createElement('div');
   indicators.className = 'section-indicators';
@@ -708,7 +745,7 @@ document.addEventListener("DOMContentLoaded", function () {
   indicators.style.flexDirection = 'column';
   indicators.style.gap = '10px';
 
-  sections.forEach((_, index) => {
+  sections.forEach((section, index) => {
     const dot = document.createElement('div');
     dot.className = 'section-indicator';
     dot.style.width = '10px';
@@ -717,6 +754,7 @@ document.addEventListener("DOMContentLoaded", function () {
     dot.style.backgroundColor = 'rgba(139, 92, 246, 0.3)';
     dot.style.cursor = 'pointer';
     dot.style.transition = 'all 0.3s ease';
+    dot.setAttribute('data-section', section.id || `section-${index}`);
     
     dot.addEventListener('click', () => {
       if (!isScrolling) {
@@ -728,44 +766,6 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   document.body.appendChild(indicators);
-
-  // Update active indicator
-  function updateIndicators() {
-    const dots = document.querySelectorAll('.section-indicator');
-    dots.forEach((dot, index) => {
-      if (index === currentSectionIndex) {
-        dot.style.backgroundColor = 'rgba(139, 92, 246, 1)';
-        dot.style.transform = 'scale(1.2)';
-      } else {
-        dot.style.backgroundColor = 'rgba(139, 92, 246, 0.3)';
-        dot.style.transform = 'scale(1)';
-      }
-    });
-  }
-
-  // Update the scrollToSection function
-  function scrollToSection(index) {
-    if (index >= 0 && index < sections.length) {
-        isScrolling = true;
-        currentSectionIndex = index;
-        updateIndicators();
-        
-        const section = sections[index];
-        const sectionTop = section.offsetTop;
-        
-        // Add extra offset for the first section to show full content
-        const offset = index === 0 ? -20 : 0;
-        
-        window.scrollTo({
-            top: sectionTop + offset,
-            behavior: 'smooth'
-        });
-
-        setTimeout(() => {
-            isScrolling = false;
-        }, 1000);
-    }
-  }
 
   // Handle wheel events
   window.addEventListener('wheel', (e) => {

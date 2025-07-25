@@ -15,18 +15,23 @@ document.addEventListener("DOMContentLoaded", function () {
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const isActualDesktop = !isMobile && window.innerWidth > 1024;
     
-    // Better trackpad detection
+    // Better trackpad detection - improved Windows detection
     const isLaptop = !isMobile && isTouch && window.innerWidth > 1024;
     const isMacTrackpad = isLaptop && navigator.userAgent.includes('Mac');
     const isWindowsTrackpad = isLaptop && navigator.userAgent.includes('Windows');
     const isLinuxTrackpad = isLaptop && !navigator.userAgent.includes('Mac') && !navigator.userAgent.includes('Windows');
-    const isTrackpad = isLaptop;
+    const isTrackpad = isLaptop; // Any laptop with touch support
+    
+    // Windows specific detection improvements
+    const isWindows = navigator.userAgent.includes('Windows');
+    const hasPointerEvents = 'onpointerdown' in window;
+    const isWindowsLaptop = isWindows && isTouch && window.innerWidth > 1024;
     
     const isDevToolsMobile = isMobile && window.innerWidth > 800;
     
-    // Scroll mode determination - Mac fallback fix
-    const useDesktopScroll = (isActualDesktop && !isTrackpad) || (!isMobile && !isTouch && window.innerWidth > 1024);
-    const useTrackpadScroll = isTrackpad || (navigator.userAgent.includes('Mac') && !isMobile && window.innerWidth > 1024);
+    // Scroll mode determination - Fixed Windows trackpad support
+    const useDesktopScroll = (isActualDesktop && !isTrackpad && !isWindowsLaptop) || (!isMobile && !isTouch && window.innerWidth > 1024);
+    const useTrackpadScroll = isTrackpad || isWindowsLaptop || (navigator.userAgent.includes('Mac') && !isMobile && window.innerWidth > 1024);
     const useMobileScroll = isMobile && !isDevToolsMobile;
 
     // Debug logging (remove in production)
@@ -36,13 +41,16 @@ document.addEventListener("DOMContentLoaded", function () {
       isActualDesktop,
       isLaptop,
       isMacTrackpad,
+      isWindowsTrackpad,
+      isWindowsLaptop,
       isTrackpad,
       useDesktopScroll,
       useTrackpadScroll,
       useMobileScroll,
       userAgent: navigator.userAgent,
       maxTouchPoints: navigator.maxTouchPoints,
-      windowWidth: window.innerWidth
+      windowWidth: window.innerWidth,
+      hasPointerEvents
     });
 
     // Scroll functionality variables
@@ -254,6 +262,15 @@ document.addEventListener("DOMContentLoaded", function () {
       window.addEventListener('wheel', (e) => {
         const currentTime = Date.now();
         
+        // Check if cursor is in main content area (ignore side elements)
+        const rect = document.documentElement.getBoundingClientRect();
+        const isInMainArea = e.clientX >= 0 && e.clientX <= window.innerWidth && 
+                            e.clientY >= 0 && e.clientY <= window.innerHeight;
+        
+        if (!isInMainArea) {
+          return; // Allow default scroll for side areas
+        }
+        
         // Prevent multiple scroll triggers
         if (isScrolling || isTrackpadScrolling) {
           e.preventDefault();
@@ -299,6 +316,15 @@ document.addEventListener("DOMContentLoaded", function () {
     if (useDesktopScroll) {
       window.addEventListener('wheel', (e) => {
         const currentTime = Date.now();
+        
+        // Check if cursor is in main content area (ignore side elements)
+        const rect = document.documentElement.getBoundingClientRect();
+        const isInMainArea = e.clientX >= 50 && e.clientX <= (window.innerWidth - 50) && 
+                            e.clientY >= 0 && e.clientY <= window.innerHeight;
+        
+        if (!isInMainArea) {
+          return; // Allow default scroll for side areas
+        }
         
         // Reset wheel count if enough time has passed
         if (currentTime - lastWheelTime > wheelDebounceTime) {

@@ -9,6 +9,9 @@ document.addEventListener("DOMContentLoaded", function () {
   let isScrolling = false;
   let currentSectionIndex = 0;
 
+  // Flag to prevent duplicate handler initialization
+  let handlersInitialized = false;
+
   // Update active indicator function - declare early
   function updateIndicators() {
     const dots = document.querySelectorAll('.section-indicator');
@@ -193,7 +196,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Show download popup function
   function showDownloadPopup() {
-    console.log("Download popup triggered");
+    // Remove any existing popups first
+    const existingPopups = document.querySelectorAll('.popup-overlay');
+    existingPopups.forEach(popup => popup.remove());
+    
     // Create popup overlay
     const overlay = document.createElement('div');
     overlay.className = 'popup-overlay';
@@ -300,7 +306,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Show early access popup function
   function showEarlyAccessPopup() {
-    console.log("Early access popup triggered");
+    // Remove any existing popups first
+    const existingPopups = document.querySelectorAll('.popup-overlay');
+    existingPopups.forEach(popup => popup.remove());
+    
     // Create popup overlay
     const overlay = document.createElement('div');
     overlay.className = 'popup-overlay';
@@ -407,7 +416,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Show reservation popup function
   function showReservationPopup() {
-    console.log("Reservation popup triggered");
+    // Remove any existing popups first
+    const existingPopups = document.querySelectorAll('.popup-overlay');
+    existingPopups.forEach(popup => popup.remove());
+    
     // Create popup overlay
     const overlay = document.createElement('div');
     overlay.className = 'popup-overlay';
@@ -512,25 +524,22 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 10);
   }
 
-  // Enhanced button handling with multiple selectors and debugging
+  // SINGLE, CLEAN button handler initialization
   function initializeButtonHandlers() {
-    console.log("Initializing button handlers...");
+    if (handlersInitialized) {
+      return;
+    }
     
-    // Hero section buttons - multiple approaches
+    // Hero section buttons - Simple approach without cloning
     const heroButtons = document.querySelector(".hero-buttons");
     if (heroButtons) {
-      console.log("Hero buttons container found");
-      
-      // Method 1: Direct button selection
       const allHeroButtons = heroButtons.querySelectorAll("button");
-      console.log("Found hero buttons:", allHeroButtons.length);
       
       if (allHeroButtons.length >= 2) {
         // Rezervări button (first button)
         allHeroButtons[0].addEventListener("click", function(e) {
           e.preventDefault();
           e.stopPropagation();
-          console.log("Rezervări button clicked");
           showReservationPopup();
         });
         
@@ -538,96 +547,42 @@ document.addEventListener("DOMContentLoaded", function () {
         allHeroButtons[1].addEventListener("click", function(e) {
           e.preventDefault();
           e.stopPropagation();
-          console.log("Download button clicked");
-          showDownloadPopup();
-        });
-        
-        console.log("Hero button handlers attached successfully");
-      }
-      
-      // Method 2: By class selectors (backup)
-      const rezervariBtn = heroButtons.querySelector(".btn-primary");
-      const downloadBtn = heroButtons.querySelector(".btn-secondary");
-      
-      if (rezervariBtn) {
-        rezervariBtn.addEventListener("click", function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log("Rezervări button clicked (backup handler)");
-          showReservationPopup();
-        });
-      }
-      
-      if (downloadBtn) {
-        downloadBtn.addEventListener("click", function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log("Download button clicked (backup handler)");
           showDownloadPopup();
         });
       }
-      
-      // Method 3: Universal click handler for hero buttons
-      heroButtons.addEventListener("click", function(e) {
-        const clickedButton = e.target.closest("button");
-        if (clickedButton) {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          const buttonText = clickedButton.textContent.trim().toLowerCase();
-          console.log("Button clicked with text:", buttonText);
-          
-          if (buttonText.includes("rezervări")) {
-            showReservationPopup();
-          } else if (buttonText.includes("download")) {
-            showDownloadPopup();
-          }
-        }
-      });
-    } else {
-      console.error("Hero buttons container not found");
     }
     
-    // CTA section buttons with enhanced error handling
-    setTimeout(() => {
-      const ctaSection = document.querySelector(".cta");
-      if (ctaSection) {
-        console.log("CTA section found");
+    // CTA section buttons - Simple approach without cloning
+    const ctaSection = document.querySelector(".cta");
+    if (ctaSection) {
+      const ctaButtons = ctaSection.querySelector(".cta-buttons");
+      if (ctaButtons) {
+        const allCtaButtons = ctaButtons.querySelectorAll("button");
         
-        const ctaButtons = ctaSection.querySelector(".cta-buttons");
-        if (ctaButtons) {
-          console.log("CTA buttons container found");
-          
-          // Universal click handler for CTA section
-          ctaButtons.addEventListener("click", function(e) {
-            const clickedButton = e.target.closest("button");
-            if (clickedButton) {
-              e.preventDefault();
-              e.stopPropagation();
-              
-              const buttonText = clickedButton.textContent.trim().toLowerCase();
-              console.log("CTA button clicked with text:", buttonText);
-              
-              if (buttonText.includes("descarcă") || buttonText.includes("download")) {
-                showDownloadPopup();
-              } else if (buttonText.includes("acces") || buttonText.includes("anticipat")) {
-                showEarlyAccessPopup();
-              }
+        allCtaButtons.forEach(button => {
+          button.addEventListener("click", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const buttonText = this.textContent.trim().toLowerCase();
+            
+            if (buttonText.includes("descarcă") || buttonText.includes("download")) {
+              showDownloadPopup();
+            } else if (buttonText.includes("acces") || buttonText.includes("anticipat")) {
+              showEarlyAccessPopup();
             }
           });
-        }
+        });
       }
-    }, 500); // Delay to ensure DOM is fully loaded
+    }
+
+    handlersInitialized = true;
   }
 
-  // Initialize button handlers with delay
-  setTimeout(initializeButtonHandlers, 1000);
-  
-  // Also try immediate initialization
-  initializeButtonHandlers();
-
-  // Remove duplicate button handlers
-  // (Remove the old hero section button handlers that were duplicated)
+  // Initialize ONLY once, with a delay to ensure DOM is ready
+  setTimeout(() => {
+    initializeButtonHandlers();
+  }, 2000); // Wait 2 seconds for full page load including hosted environments
 
   // Mystery box interaction
   const mysteryBox = document.querySelector(".mystery-box");

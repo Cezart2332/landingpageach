@@ -1,24 +1,9 @@
-// DEBUGGING: Verifică dacă script-ul se încarcă
-console.log('🚀 Script.js s-a încărcat!', new Date().toISOString());
-console.log('🌍 User Agent:', navigator.userAgent);
-console.log('📍 URL curent:', window.location.href);
-
-// DEBUGGING: Testează execuția imediată
-console.log('⚡ Cod JavaScript executat imediat!');
-
 // Mobile Navigation Toggle
 document.addEventListener("DOMContentLoaded", function () {
-  console.log('✅ DOM Content Loaded - script rulează!');
-  console.log('🔍 Verifică elemente DOM...');
-  
   // Debugging pentru elemente critice - DECLARATE O SINGURĂ DATĂ
   const phoneVideo = document.getElementById('phone-video');
   const navToggle = document.querySelector(".nav-toggle");
   const heroButtons = document.querySelector(".hero-buttons");
-  
-  console.log('📱 Phone video element:', phoneVideo);
-  console.log('🍔 Nav toggle element:', navToggle);
-  console.log('🔘 Hero buttons element:', heroButtons);
 
   const navMenu = document.querySelector(".nav-menu");
   const navLinks = document.querySelectorAll(".nav-link");
@@ -670,7 +655,7 @@ document.addEventListener("DOMContentLoaded", function () {
           const span = document.createElement("span");
           span.className = "char";
           span.textContent = char === " " ? "\u00A0" : char; // Use non-breaking space
-          span.style.animationDelay = `${totalDelay + (charIndex * 80)}ms`; // 80ms delay between chars
+          span.style.animationDelay = `${totalDelay + (charIndex * 40)}ms`; // Redus de la 80ms la 40ms
           return span;
         });
         
@@ -678,7 +663,7 @@ document.addEventListener("DOMContentLoaded", function () {
         chars.forEach(char => element.appendChild(char));
         
         // Update total delay for next word (add time for all chars + word gap)
-        totalDelay += (text.length * 80) + 400; // 400ms gap between words
+        totalDelay += (text.length * 40) + 200; // Redus gap între cuvinte de la 400ms la 200ms
       });
     }
   }
@@ -686,7 +671,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize character reveal animation on page load
   setTimeout(() => {
     initCharacterRevealAnimation();
-  }, 800); // Start after initial page load
+  }, 400); // Redus de la 800ms la 400ms
 
   // Enhanced subtitle animation
   const heroSubtitle = document.querySelector(".hero-subtitle");
@@ -700,7 +685,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setTimeout(() => {
       heroSubtitle.style.opacity = "1";
       heroSubtitle.style.transform = "translateY(0)";
-    }, 3500); // Start after character animation completes
+    }, 2200); // Redus de la 3500ms la 2200ms
   }
 
   if (heroButtons) {
@@ -711,7 +696,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setTimeout(() => {
       heroButtons.style.opacity = "1";
       heroButtons.style.transform = "translateY(0)";
-    }, 3900); // Start after subtitle animation
+    }, 2600); // Redus de la 3900ms la 2600ms
   }
 
   // Loading screen effect
@@ -901,6 +886,38 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize first section
   updateIndicators();
 
+  // Enhanced mobile detection
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  console.log('Device detection:', { isMobile, isTouch });
+
+  // Mobile-specific scroll handling variables
+  let touchStartY = 0;
+  let touchEndY = 0;
+  let lastTouchTime = 0;
+  let scrollThreshold = 50; // Minimum distance for swipe
+  let timeThreshold = 300; // Maximum time for swipe (ms)
+  let cooldownTime = 1000; // Cooldown between scrolls (ms)
+  let lastScrollTime = 0;
+
+  // Disable default scroll behavior on mobile
+  if (isMobile || isTouch) {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    // Prevent default scroll on mobile
+    document.addEventListener('touchmove', function(e) {
+      if (!e.target.closest('.phone-video')) { // Allow video interactions
+        e.preventDefault();
+      }
+    }, { passive: false });
+    
+    document.addEventListener('wheel', function(e) {
+      e.preventDefault();
+    }, { passive: false });
+  }
+
   // Simple hover effects for circular icons
   function initCircularIcons() {
     const iconItems = document.querySelectorAll('.icon-item');
@@ -931,11 +948,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Video playback observer - folosește variabila phoneVideo declarată mai sus
   if (phoneVideo) {
-    console.log('🎥 Configurez video handler...');
-    console.log('Video element găsit:', phoneVideo);
-    console.log('Video src:', phoneVideo.src);
-    console.log('Video currentSrc:', phoneVideo.currentSrc);
-    
     // Verifică dacă video-ul se încarcă
     phoneVideo.addEventListener('loadstart', () => {
       console.log('Video loadstart - începe încărcarea');
@@ -1038,4 +1050,122 @@ document.addEventListener("DOMContentLoaded", function () {
       }
   `;
   document.head.appendChild(style);
+
+  // Mobile touch swipe handling - TikTok style
+  if (isMobile || isTouch) {
+    // Touch event handlers for swipe detection
+    document.addEventListener('touchstart', function(e) {
+      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+        return; // Allow normal interaction with video and popups
+      }
+      
+      touchStartY = e.touches[0].clientY;
+      lastTouchTime = Date.now();
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+        return; // Allow normal interaction with video and popups
+      }
+      
+      const currentTime = Date.now();
+      touchEndY = e.changedTouches[0].clientY;
+      
+      const touchDistance = Math.abs(touchStartY - touchEndY);
+      const touchTime = currentTime - lastTouchTime;
+      const timeSinceLastScroll = currentTime - lastScrollTime;
+      
+      // Check if it's a valid swipe (like TikTok)
+      if (touchDistance > scrollThreshold && 
+          touchTime < timeThreshold && 
+          timeSinceLastScroll > cooldownTime && 
+          !isScrolling) {
+        
+        lastScrollTime = currentTime;
+        
+        // Determine direction and scroll
+        if (touchStartY > touchEndY) {
+          // Swipe up - next section
+          scrollToSection(currentSectionIndex + 1);
+        } else {
+          // Swipe down - previous section
+          scrollToSection(currentSectionIndex - 1);
+        }
+      }
+    }, { passive: true });
+
+    // Also handle fast swipes (shorter distance but very quick)
+    document.addEventListener('touchmove', function(e) {
+      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+        return;
+      }
+      
+      const currentY = e.touches[0].clientY;
+      const currentTime = Date.now();
+      const distance = Math.abs(touchStartY - currentY);
+      const time = currentTime - lastTouchTime;
+      
+      // Detect very fast swipes (TikTok style)
+      if (distance > 30 && time < 150 && !isScrolling) {
+        const timeSinceLastScroll = currentTime - lastScrollTime;
+        
+        if (timeSinceLastScroll > cooldownTime) {
+          lastScrollTime = currentTime;
+          
+          if (touchStartY > currentY) {
+            // Fast swipe up
+            scrollToSection(currentSectionIndex + 1);
+          } else {
+            // Fast swipe down
+            scrollToSection(currentSectionIndex - 1);
+          }
+        }
+      }
+    }, { passive: true });
+  }
+
+  // Enhanced scrollToSection for mobile with momentum
+  function scrollToSectionMobile(index) {
+    if (index >= 0 && index < sections.length && !isScrolling) {
+      isScrolling = true;
+      currentSectionIndex = index;
+      updateIndicators();
+      
+      const section = sections[index];
+      const sectionTop = section.offsetTop;
+      
+      // Mobile-optimized scroll with momentum effect
+      const startY = window.pageYOffset;
+      const targetY = sectionTop;
+      const distance = targetY - startY;
+      const duration = 600; // Faster on mobile
+      const startTime = performance.now();
+
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function animateScroll(currentTime) {
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        const ease = easeOutCubic(progress);
+        
+        window.scrollTo(0, startY + distance * ease);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        } else {
+          isScrolling = false;
+        }
+      }
+
+      requestAnimationFrame(animateScroll);
+    }
+  }
+
+  // Override scrollToSection for mobile devices
+  if (isMobile || isTouch) {
+    // Replace the existing scrollToSection with mobile version
+    window.scrollToSection = scrollToSectionMobile;
+  }
 });

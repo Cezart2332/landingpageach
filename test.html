@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AcoomH Server Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #0f0f0f; color: white; }
+        .status { padding: 20px; border-radius: 8px; margin: 10px 0; }
+        .success { background: #4ade80; color: black; }
+        .error { background: #ef4444; }
+        .info { background: #3b82f6; }
+    </style>
+</head>
+<body>
+    <h1>AcoomH Server Status Test</h1>
+    <div class="status success">✅ Server is responding correctly</div>
+    <div class="status info">📍 Current URL: <span id="current-url"></span></div>
+    <div class="status info">🕒 Test Time: <span id="test-time"></span></div>
+    
+    <h2>File Access Test</h2>
+    <div id="file-tests"></div>
+    
+    <script>
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('test-time').textContent = new Date().toLocaleString();
+        
+        const files = ['acoomh.png', 'style.min.css', 'script.min.js', 'acoomharta.mp4'];
+        const testContainer = document.getElementById('file-tests');
+        
+        files.forEach(file => {
+            const div = document.createElement('div');
+            div.className = 'status info';
+            div.innerHTML = `🔍 Testing ${file}...`;
+            testContainer.appendChild(div);
+            
+            fetch(file)
+                .then(response => {
+                    if (response.ok) {
+                        div.className = 'status success';
+                        div.innerHTML = `✅ ${file} - Accessible`;
+                    } else {
+                        div.className = 'status error';
+                        div.innerHTML = `❌ ${file} - Error ${response.status}`;
+                    }
+                })
+                .catch(() => {
+                    div.className = 'status error';
+                    div.innerHTML = `❌ ${file} - Failed to load`;
+                });
+        });
+        
+        // Test main page redirect
+        setTimeout(() => {
+            const mainLink = document.createElement('div');
+            mainLink.className = 'status info';
+            mainLink.innerHTML = '<a href="index.html" style="color: white;">🏠 Go to Main Site</a>';
+            testContainer.appendChild(mainLink);
+        }, 2000);
+    </script>
+</body>
+</html>

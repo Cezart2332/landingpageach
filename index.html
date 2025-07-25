@@ -107,31 +107,30 @@
           <div class="about-visual">
             <div class="app-showcase">
               <div class="phone-mockup">
-                <div class="screen">
-                  <div class="app-interface">
-                    <video 
-                      id="phone-video" 
-                      class="phone-video"
-                      muted
-                      loop
-                      playsinline
-                      webkit-playsinline
-                      autoplay
-                      preload="metadata"
-                      poster="acoomh.png"
-                      disablePictureInPicture
-                      controlslist="nodownload nofullscreen noremoteplayback"
-                      crossorigin="anonymous"
-                      x-webkit-airplay="deny"
-                    >
-                      <source src="acoomharta.mp4" type="video/mp4">
-                      <!-- Fallback image for unsupported browsers -->
-                      <img src="acoomh.png" alt="AcoomH App Preview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 25px;">
-                      Your browser does not support the video tag.
-                    </video>
-                    <div class="video-overlay">
+                <div class="phone-bezel">
+                  <!-- Phone hardware elements -->
+                  <div class="phone-speaker"></div>
+                  <div class="phone-camera"></div>
+                  <div class="phone-home-indicator"></div>
+                </div>
+                <div class="phone-screen">
+                  <video 
+                    id="phone-video" 
+                    class="phone-video"
+                    muted
+                    loop
+                    playsinline
+                    webkit-playsinline
+                    autoplay
+                    preload="auto"
+                    disablePictureInPicture
+                    controlslist="nodownload nofullscreen noremoteplayback"
+                  >
+                    <source src="acoomharta.mp4" type="video/mp4">
+                    <div class="video-fallback">
+                      <img src="acoomh.png" alt="AcoomH App Preview">
                     </div>
-                  </div>
+                  </video>
                 </div>
               </div>
             </div>

@@ -922,67 +922,88 @@ document.addEventListener("DOMContentLoaded", function () {
     phoneVideo.defaultMuted = true;
     phoneVideo.volume = 0;
     
+    // Force video to load immediately
+    phoneVideo.load();
+    
     // Robust video initialization
     let videoInitialized = false;
     let playAttempts = 0;
-    const maxPlayAttempts = 5;
+    const maxPlayAttempts = 10;
     
-    // Function to attempt video play with retries
+    // Function to attempt video play with aggressive retries
     function attemptVideoPlay() {
       if (playAttempts >= maxPlayAttempts) {
-        console.log('Max play attempts reached, video may not autoplay');
+        console.log('Max play attempts reached, showing fallback');
+        showVideoFallback();
         return;
       }
       
       playAttempts++;
-      phoneVideo.play().then(() => {
-        console.log('Video playing successfully');
-        videoInitialized = true;
-      }).catch(error => {
-        console.log(`Video play attempt ${playAttempts} failed:`, error);
-        
-        // Try again after a short delay
-        setTimeout(() => {
-          if (!videoInitialized && phoneVideo.paused) {
-            attemptVideoPlay();
-          }
-        }, 1000);
-      });
+      console.log(`Video play attempt ${playAttempts}`);
+      
+      const playPromise = phoneVideo.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log('Video playing successfully');
+          videoInitialized = true;
+          hideVideoFallback();
+        }).catch(error => {
+          console.log(`Video play attempt ${playAttempts} failed:`, error);
+          
+          // Try again after a short delay
+          setTimeout(() => {
+            if (!videoInitialized && phoneVideo.paused) {
+              attemptVideoPlay();
+            }
+          }, 500);
+        });
+      }
+    }
+    
+    // Show/hide fallback functions
+    function showVideoFallback() {
+      const fallback = phoneVideo.parentElement.querySelector('.video-fallback');
+      if (fallback) {
+        fallback.style.display = 'flex';
+        fallback.style.opacity = '1';
+      }
+    }
+    
+    function hideVideoFallback() {
+      const fallback = phoneVideo.parentElement.querySelector('.video-fallback');
+      if (fallback) {
+        fallback.style.display = 'none';
+        fallback.style.opacity = '0';
+      }
     }
     
     // Enhanced video setup for quality and compatibility
     phoneVideo.addEventListener('loadedmetadata', () => {
       console.log('Video metadata loaded');
-      
-      // Ensure video fills container properly
-      phoneVideo.style.width = '100%';
-      phoneVideo.style.height = '100%';
-      phoneVideo.style.objectFit = 'cover';
-      phoneVideo.style.objectPosition = 'center center';
-      
-      // Try initial play
       attemptVideoPlay();
     });
     
-    // Handle video ready states
+    phoneVideo.addEventListener('loadeddata', () => {
+      console.log('Video data loaded');
+      if (!videoInitialized && phoneVideo.paused) {
+        attemptVideoPlay();
+      }
+    });
+    
     phoneVideo.addEventListener('canplay', () => {
+      console.log('Video can play');
       if (!videoInitialized && phoneVideo.paused) {
         attemptVideoPlay();
       }
     });
     
     phoneVideo.addEventListener('canplaythrough', () => {
-      // Optimize video rendering
-      phoneVideo.style.willChange = 'transform';
-      phoneVideo.style.backfaceVisibility = 'hidden';
-      
+      console.log('Video can play through');
       if (!videoInitialized && phoneVideo.paused) {
         attemptVideoPlay();
       }
     });
-    
-    // Load video immediately
-    phoneVideo.load();
     
     // User interaction enabler for autoplay restrictions
     let userInteracted = false;
@@ -990,6 +1011,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function enableVideoOnInteraction() {
       if (!userInteracted) {
         userInteracted = true;
+        console.log('User interaction detected, attempting video play');
         if (phoneVideo.paused) {
           attemptVideoPlay();
         }
@@ -997,7 +1019,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     // Multiple interaction listeners for maximum compatibility
-    ['click', 'touchstart', 'scroll', 'keydown'].forEach(event => {
+    ['click', 'touchstart', 'scroll', 'keydown', 'mousedown'].forEach(event => {
       document.addEventListener(event, enableVideoOnInteraction, { once: true, passive: true });
     });
     
@@ -1005,9 +1027,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const videoObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
+          console.log('Video section is visible');
           // Video is visible - try to play
-          if (phoneVideo.paused) {
+          if (phoneVideo.paused && !videoInitialized) {
             attemptVideoPlay();
+          } else if (phoneVideo.paused && videoInitialized) {
+            phoneVideo.play().catch(console.log);
           }
         } else {
           // Video is not visible - pause to save resources
@@ -1017,8 +1042,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
     }, {
-      threshold: 0.25,
-      rootMargin: '0px 0px -100px 0px'
+      threshold: 0.1,
+      rootMargin: '0px'
     });
 
     // Observe the about section for video visibility
@@ -1027,29 +1052,10 @@ document.addEventListener("DOMContentLoaded", function () {
       videoObserver.observe(aboutSection);
     }
 
-    // Error handling
+    // Error handling with fallback
     phoneVideo.addEventListener('error', (e) => {
       console.error('Video error:', e);
-      // Hide video and show poster on error
-      phoneVideo.style.display = 'none';
-      
-      // Create fallback image if not exists
-      if (!phoneVideo.parentElement.querySelector('.video-fallback')) {
-        const fallback = document.createElement('img');
-        fallback.className = 'video-fallback';
-        fallback.src = 'acoomh.png';
-        fallback.alt = 'AcoomH App Preview';
-        fallback.style.cssText = `
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          border-radius: 25px;
-          position: absolute;
-          top: 0;
-          left: 0;
-        `;
-        phoneVideo.parentElement.appendChild(fallback);
-      }
+      showVideoFallback();
     });
 
     // Additional loading states
@@ -1058,25 +1064,32 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     
     phoneVideo.addEventListener('progress', () => {
-      // Video is downloading
-      if (phoneVideo.buffered.length > 0) {
-        const bufferedEnd = phoneVideo.buffered.end(phoneVideo.buffered.length - 1);
-        const duration = phoneVideo.duration;
-        if (bufferedEnd >= duration * 0.1 && !videoInitialized && phoneVideo.paused) {
-          // Enough video buffered, try to play
-          attemptVideoPlay();
-        }
-      }
+      console.log('Video downloading...');
     });
 
     phoneVideo.addEventListener('playing', () => {
       console.log('Video is playing');
       videoInitialized = true;
+      hideVideoFallback();
     });
 
     phoneVideo.addEventListener('pause', () => {
       console.log('Video paused');
     });
+    
+    phoneVideo.addEventListener('ended', () => {
+      console.log('Video ended, restarting');
+      phoneVideo.currentTime = 0;
+      phoneVideo.play().catch(console.log);
+    });
+    
+    // Force immediate load attempt
+    setTimeout(() => {
+      if (!videoInitialized) {
+        console.log('Forcing video load after timeout');
+        attemptVideoPlay();
+      }
+    }, 1000);
   }
 
   // Add CSS for ripple animation

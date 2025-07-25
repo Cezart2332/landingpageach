@@ -1,5 +1,12 @@
+// DEBUGGING: Verifică dacă script-ul se încarcă
+console.log('🚀 Script.js s-a încărcat!', new Date().toISOString());
+console.log('🌍 User Agent:', navigator.userAgent);
+console.log('📍 URL curent:', window.location.href);
+
 // Mobile Navigation Toggle
 document.addEventListener("DOMContentLoaded", function () {
+  console.log('✅ DOM Content Loaded - script rulează!');
+
   const navToggle = document.querySelector(".nav-toggle");
   const navMenu = document.querySelector(".nav-menu");
   const navLinks = document.querySelectorAll(".nav-link");

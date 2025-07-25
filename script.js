@@ -240,19 +240,22 @@ document.addEventListener("DOMContentLoaded", function () {
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
       
-      window.addEventListener('wheel', (e) => {
+      // Production-safe event handler with multiple fallbacks
+      const handleWheelEvent = (e) => {
         const currentTime = Date.now();
         
         // Prevent scrolling when already animating
         if (isScrolling || isUniversalScrolling) {
           e.preventDefault();
-          return;
+          e.stopPropagation();
+          return false;
         }
         
         // Check cooldown to prevent rapid triggering
         if ((currentTime - lastScrollTime) < scrollCooldown) {
           e.preventDefault();
-          return;
+          e.stopPropagation();
+          return false;
         }
         
         // Accumulate delta for all types of scroll input
@@ -275,7 +278,6 @@ document.addEventListener("DOMContentLoaded", function () {
               if (isInFooter && scrollDeltaY > 0) {
                 scrollDeltaY = 0;
                 isUniversalScrolling = false;
-                e.preventDefault();
                 return;
               }
             }
@@ -299,20 +301,51 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 30); // Very fast response time
         
         e.preventDefault();
-      }, { passive: false });
+        e.stopPropagation();
+        return false;
+      };
 
-      // Keyboard navigation
-      window.addEventListener('keydown', (e) => {
+      // Add multiple event listeners for better compatibility
+      window.addEventListener('wheel', handleWheelEvent, { passive: false, capture: true });
+      document.addEventListener('wheel', handleWheelEvent, { passive: false, capture: true });
+      document.body.addEventListener('wheel', handleWheelEvent, { passive: false, capture: true });
+      
+      // Add mousewheel for older browsers
+      window.addEventListener('mousewheel', handleWheelEvent, { passive: false, capture: true });
+      document.addEventListener('mousewheel', handleWheelEvent, { passive: false, capture: true });
+      
+      // Add DOMMouseScroll for Firefox
+      window.addEventListener('DOMMouseScroll', handleWheelEvent, { passive: false, capture: true });
+      document.addEventListener('DOMMouseScroll', handleWheelEvent, { passive: false, capture: true });
+
+      // Keyboard navigation with production safety
+      const handleKeyDown = (e) => {
         if (!isScrolling && !isUniversalScrolling) {
           if (e.key === 'ArrowDown' || e.key === 'PageDown') {
             scrollToSection(currentSectionIndex + 1);
             e.preventDefault();
+            e.stopPropagation();
+            return false;
           } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
             scrollToSection(currentSectionIndex - 1);
             e.preventDefault();
+            e.stopPropagation();
+            return false;
           }
         }
-      });
+      };
+      
+      window.addEventListener('keydown', handleKeyDown, { capture: true });
+      document.addEventListener('keydown', handleKeyDown, { capture: true });
+      
+      // Force disable any conflicting scroll behaviors
+      document.body.style.touchAction = 'none';
+      document.documentElement.style.touchAction = 'none';
+      document.body.style.userSelect = 'none';
+      document.body.style.webkitUserSelect = 'none';
+      
+      // Production debugging
+      console.log('Universal scroll system initialized for production');
     }
 
     // Text reveal animation

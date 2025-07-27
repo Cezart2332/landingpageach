@@ -1330,18 +1330,39 @@ section {
   transform: scale(1.02);
 }
 
-/* Simplified pulse animation */
-@keyframes pulse-contact {
-  0%, 100% {
-    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
-  }
-  50% {
-    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.6);
-  }
+/* Contact link styling - inherit all parent styles */
+.contact-link {
+  color: inherit;
+  text-decoration: none;
+  font-size: inherit;
+  line-height: inherit;
+  margin: inherit;
+  transition: color 0.2s ease, transform 0.2s ease;
+  will-change: transform;
+  display: inline-block;
+  width: 100%;
 }
 
-.contact-icon {
-  animation: pulse-contact 4s ease-in-out infinite;
+.contact-link:hover {
+  color: var(--primary-color) !important;
+  transform: scale(1.02);
+}
+
+.contact-link:visited {
+  color: inherit;
+}
+
+.contact-link:active {
+  color: var(--primary-color);
+}
+
+/* Ensure mobile styling is preserved for contact links */
+@media (max-width: 768px) {
+  .contact-link {
+    font-size: inherit !important;
+    line-height: inherit !important;
+    text-align: inherit !important;
+  }
 }
 
 /* Footer */

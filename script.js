@@ -14,73 +14,159 @@ document.addEventListener("DOMContentLoaded", function () {
     function initializeVideoForIOS() {
       if (!phoneVideo) return;
       
-      // Detect iOS devices
+      // Detect iOS devices (including iPad Pro)
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       
+      // Set basic video properties for all devices
+      phoneVideo.muted = true;
+      phoneVideo.playsInline = true;
+      phoneVideo.setAttribute('webkit-playsinline', 'true');
+      phoneVideo.setAttribute('playsinline', 'true');
+      phoneVideo.preload = 'auto';
+      
       if (isIOS) {
-        // iOS-specific video setup
-        phoneVideo.muted = true;
-        phoneVideo.playsInline = true;
-        phoneVideo.setAttribute('webkit-playsinline', 'true');
-        phoneVideo.setAttribute('playsinline', 'true');
+        console.log('iOS device detected, applying iOS-specific video fixes');
         
-        // Force video load on iOS
+        // Force video attributes for iOS
+        phoneVideo.setAttribute('muted', 'true');
+        phoneVideo.setAttribute('autoplay', 'true');
+        phoneVideo.setAttribute('loop', 'true');
+        
+        // Force video load
         phoneVideo.load();
         
-        // Attempt to play video immediately
-        const playPromise = phoneVideo.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.log('iOS autoplay prevented, will play on user interaction:', error);
+        // Create a more aggressive play attempt
+        const attemptPlay = () => {
+          const playPromise = phoneVideo.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log('Video started playing successfully');
+            }).catch(error => {
+              console.log('iOS autoplay blocked, setting up user interaction handler:', error);
+              setupUserInteractionHandler();
+            });
+          }
+        };
+        
+        // Setup user interaction handler
+        const setupUserInteractionHandler = () => {
+          let hasPlayed = false;
+          
+          const playOnInteraction = (event) => {
+            if (hasPlayed) return;
             
-            // Add user interaction handlers for iOS
-            const playVideoOnInteraction = () => {
-              phoneVideo.play().catch(e => console.log('Video play failed:', e));
-              // Remove listeners after first interaction
-              document.removeEventListener('touchstart', playVideoOnInteraction);
-              document.removeEventListener('click', playVideoOnInteraction);
-            };
-            
-            document.addEventListener('touchstart', playVideoOnInteraction, { once: true, passive: true });
-            document.addEventListener('click', playVideoOnInteraction, { once: true });
+            console.log('User interaction detected, attempting to play video');
+            const playPromise = phoneVideo.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                console.log('Video started after user interaction');
+                hasPlayed = true;
+                cleanup();
+              }).catch(e => {
+                console.log('Video play still failed:', e);
+                // Show fallback image
+                showVideoFallback();
+              });
+            }
+          };
+          
+          const cleanup = () => {
+            document.removeEventListener('touchstart', playOnInteraction);
+            document.removeEventListener('touchend', playOnInteraction);
+            document.removeEventListener('click', playOnInteraction);
+            document.removeEventListener('scroll', playOnInteraction);
+            window.removeEventListener('focus', playOnInteraction);
+          };
+          
+          // Add multiple event listeners for user interaction
+          document.addEventListener('touchstart', playOnInteraction, { once: true, passive: true });
+          document.addEventListener('touchend', playOnInteraction, { once: true, passive: true });
+          document.addEventListener('click', playOnInteraction, { once: true, passive: true });
+          document.addEventListener('scroll', playOnInteraction, { once: true, passive: true });
+          window.addEventListener('focus', playOnInteraction, { once: true, passive: true });
+          
+          // Also try when page becomes visible
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !hasPlayed) {
+              playOnInteraction();
+            }
+          });
+        };
+        
+        // Immediate play attempt
+        setTimeout(attemptPlay, 100);
+        
+        // Secondary attempt after page load
+        if (document.readyState === 'complete') {
+          setTimeout(attemptPlay, 500);
+        } else {
+          window.addEventListener('load', () => {
+            setTimeout(attemptPlay, 500);
           });
         }
         
-        // Handle visibility changes (iOS pauses videos when tab is not active)
+        // Handle visibility changes
         document.addEventListener('visibilitychange', () => {
           if (!document.hidden && phoneVideo.paused) {
-            phoneVideo.play().catch(e => console.log('Video resume failed:', e));
+            setTimeout(() => {
+              phoneVideo.play().catch(e => console.log('Video resume failed:', e));
+            }, 100);
           }
         });
         
-        // Handle page focus/blur
+        // Handle page focus
         window.addEventListener('focus', () => {
           if (phoneVideo.paused) {
-            phoneVideo.play().catch(e => console.log('Video focus play failed:', e));
+            setTimeout(() => {
+              phoneVideo.play().catch(e => console.log('Video focus play failed:', e));
+            }, 100);
           }
         });
+        
+      } else {
+        // Non-iOS devices - standard approach
+        setTimeout(() => {
+          phoneVideo.play().catch(e => console.log('Non-iOS video autoplay failed:', e));
+        }, 100);
       }
       
-      // General video error handling
-      phoneVideo.addEventListener('error', (e) => {
-        console.error('Video error:', e);
-        // Show fallback image on error
+      // Show fallback function
+      const showVideoFallback = () => {
         const fallback = phoneVideo.nextElementSibling;
         if (fallback && fallback.classList.contains('video-fallback')) {
           fallback.style.display = 'block';
           phoneVideo.style.display = 'none';
+          console.log('Video fallback image shown');
+        }
+      };
+      
+      // General video error handling
+      phoneVideo.addEventListener('error', (e) => {
+        console.error('Video error:', e);
+        showVideoFallback();
+      });
+      
+      phoneVideo.addEventListener('loadstart', () => {
+        console.log('Video loading started');
+      });
+      
+      phoneVideo.addEventListener('canplay', () => {
+        console.log('Video can start playing');
+        if (isIOS && phoneVideo.paused) {
+          phoneVideo.play().catch(e => console.log('Video play on canplay failed:', e));
         }
       });
       
-      // Ensure video plays when it becomes visible (intersection observer)
+      // Intersection observer for when video becomes visible
       const videoObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting && phoneVideo.paused) {
+            console.log('Video is visible, attempting to play');
             phoneVideo.play().catch(e => console.log('Video intersection play failed:', e));
           }
         });
-      }, { threshold: 0.5 });
+      }, { threshold: 0.3 });
       
       videoObserver.observe(phoneVideo);
     }

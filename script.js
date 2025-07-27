@@ -10,57 +10,139 @@ document.addEventListener("DOMContentLoaded", function () {
     const navMenu = document.querySelector(".nav-menu");
     const navLinks = document.querySelectorAll(".nav-link");
 
-    // iOS Video Fix - Simplificat pentru iOS Safari
+    // iOS Video Fix - Enhanced for remote host compatibility
     function initializeVideoForIOS() {
       if (!phoneVideo) return;
       
-      // Detectare iOS simplă
+      // Enhanced Safari detection
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isMacSafari = isSafari && !isIOS;
       
-      if (isIOS) {
-        console.log('iOS detectat - aplicare fix pentru video');
+      // Check if we're on a remote host (not localhost)
+      const isRemoteHost = !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+      
+      console.log('Video initialization:', { isSafari, isIOS, isMacSafari, isRemoteHost, hostname: window.location.hostname });
+      
+      // Enhanced settings for Safari on remote hosts
+      if (isSafari || isIOS) {
+        console.log('Safari/iOS detected - applying enhanced video fix');
         
-        // Setări simple pentru iOS
+        // Force video attributes
         phoneVideo.muted = true;
         phoneVideo.playsInline = true;
         phoneVideo.autoplay = true;
         phoneVideo.loop = true;
+        phoneVideo.controls = false;
+        phoneVideo.defaultMuted = true;
         
-        // Încercare de redare după o mică întârziere
-        setTimeout(() => {
-          phoneVideo.play().catch(error => {
-            console.log('Autoplay blocat pe iOS, se va reda la prima interacțiune');
-            
-            // Handler simplu pentru prima interacțiune
-            const playOnTouch = () => {
-              phoneVideo.play().then(() => {
-                console.log('Video pornit după interacțiune');
-                document.removeEventListener('touchstart', playOnTouch);
-                document.removeEventListener('click', playOnTouch);
-              }).catch(e => console.log('Eroare la redare:', e));
-            };
-            
-            // Ascultători pentru prima interacțiune
-            document.addEventListener('touchstart', playOnTouch, { once: true, passive: true });
-            document.addEventListener('click', playOnTouch, { once: true, passive: true });
+        // Set video element attributes directly
+        phoneVideo.setAttribute('muted', '');
+        phoneVideo.setAttribute('playsinline', '');
+        phoneVideo.setAttribute('autoplay', '');
+        phoneVideo.setAttribute('loop', '');
+        
+        // For remote hosts, use intersection observer to trigger play
+        if (isRemoteHost) {
+          console.log('Remote host detected - using intersection observer for video play');
+          
+          const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                console.log('Video in viewport - attempting play');
+                
+                // Multiple play attempts with increasing delays
+                const attemptPlay = (attempt = 1) => {
+                  phoneVideo.play().then(() => {
+                    console.log(`Video started successfully on attempt ${attempt}`);
+                    videoObserver.unobserve(phoneVideo);
+                  }).catch(error => {
+                    console.log(`Play attempt ${attempt} failed:`, error.message);
+                    
+                    if (attempt < 3) {
+                      setTimeout(() => attemptPlay(attempt + 1), 500 * attempt);
+                    } else {
+                      console.log('All play attempts failed - setting up interaction handler');
+                      setupInteractionHandler();
+                    }
+                  });
+                };
+                
+                attemptPlay();
+              }
+            });
+          }, {
+            threshold: 0.5,
+            rootMargin: '0px'
           });
-        }, 500);
+          
+          videoObserver.observe(phoneVideo);
+        } else {
+          // For localhost, try immediate play
+          setTimeout(() => {
+            phoneVideo.play().catch(error => {
+              console.log('Localhost autoplay failed:', error.message);
+              setupInteractionHandler();
+            });
+          }, 500);
+        }
+        
+        // Setup interaction handler for cases where autoplay fails
+        function setupInteractionHandler() {
+          const playOnInteraction = (event) => {
+            console.log('User interaction detected - attempting video play');
+            
+            phoneVideo.play().then(() => {
+              console.log('Video started after user interaction');
+              // Remove all interaction listeners
+              document.removeEventListener('touchstart', playOnInteraction);
+              document.removeEventListener('click', playOnInteraction);
+              document.removeEventListener('scroll', playOnInteraction);
+              document.removeEventListener('keydown', playOnInteraction);
+            }).catch(error => {
+              console.log('Video play failed even after interaction:', error);
+            });
+          };
+          
+          // Listen for various types of user interaction
+          document.addEventListener('touchstart', playOnInteraction, { once: true, passive: true });
+          document.addEventListener('click', playOnInteraction, { once: true, passive: true });
+          document.addEventListener('scroll', playOnInteraction, { once: true, passive: true });
+          document.addEventListener('keydown', playOnInteraction, { once: true, passive: true });
+          
+          console.log('Interaction handlers set up - video will play on first user interaction');
+        }
         
       } else {
-        // Pentru alte dispozitive
+        // For non-Safari browsers
         setTimeout(() => {
-          phoneVideo.play().catch(e => console.log('Autoplay eșuat pe desktop:', e));
+          phoneVideo.play().catch(e => console.log('Autoplay failed on non-Safari browser:', e));
         }, 200);
       }
       
-      // Handler pentru erori
+      // Enhanced error handling
       phoneVideo.addEventListener('error', (e) => {
-        console.error('Eroare video:', e);
+        console.error('Video error details:', {
+          error: e,
+          networkState: phoneVideo.networkState,
+          readyState: phoneVideo.readyState,
+          src: phoneVideo.currentSrc
+        });
+        
         const fallback = phoneVideo.nextElementSibling;
         if (fallback && fallback.classList.contains('video-fallback')) {
           fallback.style.display = 'block';
           phoneVideo.style.display = 'none';
         }
+      });
+      
+      // Add load event listener
+      phoneVideo.addEventListener('loadeddata', () => {
+        console.log('Video loaded successfully');
+      });
+      
+      phoneVideo.addEventListener('canplay', () => {
+        console.log('Video can start playing');
       });
     }
     

@@ -1977,7 +1977,6 @@ section {
     width: 100% !important;
     max-width: 360px !important;
     margin: 0 auto !important;
-    flex: 1 !important;
     /* Ensure it's not scrollable but fits */
     overflow: visible !important;
     max-height: unset !important;
@@ -2081,12 +2080,11 @@ section {
   /* FORCE horizontal layout on mobile with compact spacing */
   .contact-content {
     display: flex !important;
-    flex-direction: row !important;
+    flex-direction: column !important;
     gap: 10px !important;
-    width: 100% !important;
+    width: 80% !important;
     max-width: 360px !important;
     margin: 0 auto !important;
-    flex: 1 !important;
     justify-content: center !important;
     align-items: stretch !important;
   }

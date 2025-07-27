@@ -23,17 +23,6 @@ document.addEventListener("DOMContentLoaded", function () {
       // Force mobile mode when screen is small OR when DevTools mobile simulation is active
       const forceMobile = screenWidth <= 1024 || (isTouch && screenWidth <= 768);
       
-      console.log('🔍 Dynamic Mobile Detection:', {
-        isMobile,
-        isTouch,
-        screenWidth,
-        forceMobile,
-        userAgent: navigator.userAgent,
-        maxTouchPoints: navigator.maxTouchPoints,
-        currentMobileMode,
-        windowHeight: window.innerHeight
-      });
-      
       return forceMobile;
     }
 
@@ -85,7 +74,6 @@ document.addEventListener("DOMContentLoaded", function () {
         body.appendChild(sectionsWrapper);
       }
       
-      console.log('✅ Sections wrapper created during initialization');
       return sectionsWrapper;
     }
 
@@ -132,26 +120,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Desktop scroll to section - FIXED for snap scrolling
     function scrollToSection(index) {
-      console.log('🔍 ScrollToSection called with:', {
-        index,
-        sectionsLength: sections.length,
-        isScrolling,
-        indexValid: index >= 0 && index < sections.length,
-        conditionMet: index >= 0 && index < sections.length && !isScrolling
-      });
-      
       if (index >= 0 && index < sections.length && !isScrolling) {
         isScrolling = true;
         currentSectionIndex = index;
         updateIndicators();
         
         const section = sections[index];
-        
-        console.log('🖥️ Desktop scroll to section:', {
-          index,
-          sectionId: section.id,
-          currentScroll: window.pageYOffset
-        });
         
         // Use the pre-created wrapper instead of creating it here
         if (!sectionsWrapper) {
@@ -164,25 +138,10 @@ document.addEventListener("DOMContentLoaded", function () {
         
         sectionsWrapper.style.transform = `translateY(${translateY}px)`;
         
-        console.log('✅ Desktop scroll completed with transform:', {
-          targetIndex: index,
-          translateY,
-          transform: sectionsWrapper.style.transform
-        });
-        
         // Update completion after animation
         setTimeout(() => {
           isScrolling = false;
         }, 800);
-      } else {
-        console.log('❌ ScrollToSection blocked:', {
-          reason: index < 0 ? 'index too low' :
-                 index >= sections.length ? 'index too high' :
-                 isScrolling ? 'already scrolling' : 'unknown',
-          index,
-          sectionsLength: sections.length,
-          isScrolling
-        });
       }
     }
 
@@ -197,15 +156,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const viewportHeight = window.innerHeight;
         const targetY = index * viewportHeight;
         
-        console.log('📱 Mobile scroll to section:', {
-          index,
-          sectionId: section.id,
-          viewportHeight,
-          targetY,
-          currentScroll: window.pageYOffset,
-          calculatedDistance: targetY - window.pageYOffset
-        });
-        
         // Use the pre-created wrapper instead of creating it here
         if (!sectionsWrapper) {
           sectionsWrapper = createSectionsWrapper();
@@ -218,11 +168,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // Update completion after animation
         setTimeout(() => {
           isScrolling = false;
-          console.log('✅ Mobile scroll completed with transform:', {
-            targetIndex: index,
-            translateY,
-            transform: sectionsWrapper.style.transform
-          });
         }, 600);
       }
     }
@@ -234,7 +179,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       touchStartY = e.touches[0].clientY;
       touchStartTime = Date.now();
-      console.log('👆 Touch start:', { y: touchStartY, time: touchStartTime });
     };
 
     const touchEndHandler = function(e) {
@@ -243,7 +187,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       
       if (isScrolling) {
-        console.log('⏳ Already scrolling, ignoring touch end');
         return;
       }
       
@@ -253,17 +196,12 @@ document.addEventListener("DOMContentLoaded", function () {
       const swipeDistance = Math.abs(touchStartY - touchEndY);
       const swipeTime = touchEndTime - touchStartTime;
       const timeSinceLastScroll = touchEndTime - lastScrollTime;
+      const direction = touchStartY > touchEndY ? 'down' : 'up';
       
-      console.log('📊 Touch end analysis:', {
-        startY: touchStartY,
-        endY: touchEndY,
-        swipeDistance,
-        swipeTime,
-        timeSinceLastScroll,
-        minDistance: minSwipeDistance,
-        maxTime: maxSwipeTime,
-        cooldown: scrollCooldown
-      });
+      // CRITICAL FIX: Allow pull-to-refresh when on first section and swiping down
+      if (currentSectionIndex === 0 && direction === 'up') {
+        return; // Don't prevent default, allow native pull-to-refresh
+      }
       
       if (swipeDistance > minSwipeDistance && 
           swipeTime < maxSwipeTime && 
@@ -271,30 +209,31 @@ document.addEventListener("DOMContentLoaded", function () {
         
         lastScrollTime = touchEndTime;
         
-        const direction = touchStartY > touchEndY ? 'down' : 'up';
         const targetIndex = direction === 'down' ? currentSectionIndex + 1 : currentSectionIndex - 1;
         
-        console.log('✨ Valid swipe detected:', {
-          direction,
-          currentIndex: currentSectionIndex,
-          targetIndex,
-          sectionsLength: sections.length
-        });
-        
         scrollToSectionMobile(targetIndex);
-      } else {
-        console.log('❌ Swipe rejected:', {
-          reason: swipeDistance <= minSwipeDistance ? 'distance too small' :
-                 swipeTime >= maxSwipeTime ? 'took too long' :
-                 timeSinceLastScroll <= scrollCooldown ? 'too soon after last scroll' : 'unknown'
-        });
       }
     };
 
     const touchMoveHandler = function(e) {
-      if (!e.target.closest('.phone-video') && !e.target.closest('.popup-overlay')) {
-        e.preventDefault();
+      // Don't prevent default for video or popup interactions
+      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+        return;
       }
+      
+      // CRITICAL FIX: Allow pull-to-refresh when on first section
+      // Check if user is on first section and moving downward (pull-to-refresh gesture)
+      if (currentSectionIndex === 0) {
+        const currentY = e.touches[0].clientY;
+        const isMovingDown = currentY > touchStartY;
+        
+        if (isMovingDown) {
+          return; // Don't prevent default, allow native pull-to-refresh
+        }
+      }
+      
+      // Prevent default for all other touch movements to maintain custom scroll behavior
+      e.preventDefault();
     };
 
     const wheelHandler = function(e) {
@@ -306,8 +245,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function initializeMobileMode() {
       if (mobileEventListenersActive) return;
-      
-      console.log('🔥 INITIALIZING MOBILE SCROLL BEHAVIOR');
       
       // CRITICAL: Create sections wrapper before adding event listeners
       if (!sectionsWrapper) {
@@ -335,8 +272,6 @@ document.addEventListener("DOMContentLoaded", function () {
     function initializeDesktopMode() {
       if (desktopEventListenersActive) return;
       
-      console.log('🖥️ INITIALIZING DESKTOP SCROLL BEHAVIOR');
-      
       // CRITICAL: Create sections wrapper before adding event listeners
       if (!sectionsWrapper) {
         createSectionsWrapper();
@@ -353,17 +288,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const currentTime = Date.now();
         
         if (isScrolling) {
-          console.log('⏳ Desktop wheel blocked - already scrolling');
           e.preventDefault();
           e.stopPropagation();
           return false;
         }
         
         if ((currentTime - lastScrollTime) < scrollCooldown) {
-          console.log('⏳ Desktop wheel blocked - cooldown active:', {
-            timeSinceLastScroll: currentTime - lastScrollTime,
-            cooldown: scrollCooldown
-          });
           e.preventDefault();
           e.stopPropagation();
           return false;
@@ -376,29 +306,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const isTrackpad = Math.abs(deltaY) < 50; // Trackpad usually sends smaller values
         const threshold = isTrackpad ? 15 : 0.5; // Higher threshold for trackpad
         
-        console.log('🖱️ Desktop wheel event:', {
-          deltaY,
-          isTrackpad,
-          threshold,
-          meetsThreshold: Math.abs(deltaY) > threshold,
-          isScrolling,
-          timeSinceLastScroll: currentTime - lastScrollTime,
-          cooldown: scrollCooldown
-        });
-        
         if (Math.abs(deltaY) > threshold) {
           lastScrollTime = currentTime;
           
           const targetIndex = deltaY > 0 ? currentSectionIndex + 1 : currentSectionIndex - 1;
-          
-          console.log('🔥 Desktop scroll triggered:', {
-            direction: deltaY > 0 ? 'down' : 'up',
-            currentSection: currentSectionIndex,
-            targetSection: targetIndex,
-            sectionsLength: sections.length,
-            isScrolling: isScrolling,
-            deviceType: isTrackpad ? 'trackpad' : 'mouse'
-          });
           
           // Call scrollToSection immediately, it will handle the isScrolling flag
           if (deltaY > 0) {
@@ -428,7 +339,6 @@ document.addEventListener("DOMContentLoaded", function () {
     function removeMobileEventListeners() {
       if (!mobileEventListenersActive) return;
       
-      console.log('🔄 REMOVING MOBILE EVENT LISTENERS');
       document.removeEventListener('touchstart', touchStartHandler);
       document.removeEventListener('touchend', touchEndHandler);
       document.removeEventListener('touchmove', touchMoveHandler);
@@ -440,7 +350,6 @@ document.addEventListener("DOMContentLoaded", function () {
     function removeDesktopEventListeners() {
       if (!desktopEventListenersActive || !desktopWheelHandler) return;
       
-      console.log('🔄 REMOVING DESKTOP EVENT LISTENERS');
       window.removeEventListener('wheel', desktopWheelHandler);
       document.removeEventListener('wheel', desktopWheelHandler);
       
@@ -451,8 +360,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const shouldUseMobile = detectMobileMode();
       
       if (shouldUseMobile !== currentMobileMode) {
-        console.log(`🔄 SWITCHING FROM ${currentMobileMode ? 'MOBILE' : 'DESKTOP'} TO ${shouldUseMobile ? 'MOBILE' : 'DESKTOP'} MODE`);
-        
         currentMobileMode = shouldUseMobile;
         
         if (currentMobileMode) {
@@ -579,7 +486,6 @@ document.addEventListener("DOMContentLoaded", function () {
       dot.addEventListener('click', () => {
         if (!isScrolling) {
           const isCurrentlyMobile = detectMobileMode();
-          console.log('🎯 Section indicator clicked:', index, 'Mobile mode:', isCurrentlyMobile);
           
           if (isCurrentlyMobile) {
             scrollToSectionMobile(index);
@@ -683,18 +589,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (targetSection) {
           const isCurrentlyMobile = detectMobileMode();
-          console.log('🧭 Nav link clicked:', targetId, 'Mobile mode:', isCurrentlyMobile);
           
           const sectionIndex = Array.from(sections).indexOf(targetSection);
-          console.log('📍 Target section index:', sectionIndex);
           
           if (sectionIndex !== -1) {
             if (isCurrentlyMobile) {
-              console.log('📱 Using mobile scroll for navigation');
               scrollToSectionMobile(sectionIndex);
             } else {
-              console.log('🖥️ Using desktop snap scroll for navigation');
-              // Use the same snap scrolling system for desktop navigation
               scrollToSection(sectionIndex);
             }
           }

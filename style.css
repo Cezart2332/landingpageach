@@ -398,10 +398,155 @@ h6 {
   flex-direction: column;
   align-items: center;
   padding-bottom: 20px;
-  gap: 10px;
-  color: var(--text-muted);
+  gap: 15px;
+  color: var(--text-primary);
   font-size: 0.9rem;
   z-index: 10;
+  position: relative;
+  animation: fadeInBounce 2s ease-out 1.5s both; /* Appear faster - reduced from 3s to 1.5s */
+}
+
+.scroll-line {
+  width: 2px;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, var(--primary-color), transparent);
+  border-radius: 2px;
+  position: relative;
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+
+.scroll-line::before {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 10px solid var(--primary-color);
+  animation: bounceArrow 1.5s ease-in-out infinite;
+}
+
+.scroll-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  animation: scrollDot 2s ease-in-out infinite;
+}
+
+.scroll-indicator span {
+  font-weight: 600;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+  animation: textGlow 3s ease-in-out infinite;
+  text-align: center;
+  position: relative;
+}
+
+.scroll-indicator span::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 1px;
+  background: var(--primary-color);
+  animation: underlineExpand 2s ease-in-out infinite;
+}
+
+/* Animation keyframes */
+@keyframes fadeInBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scrollPulse {
+  0%, 100% {
+    background: linear-gradient(to bottom, transparent, var(--primary-color), transparent);
+    transform: scaleY(1);
+  }
+  50% {
+    background: linear-gradient(to bottom, transparent, var(--secondary-color), transparent);
+    transform: scaleY(1.2);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  }
+}
+
+@keyframes bounceArrow {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  25% {
+    transform: translateX(-50%) translateY(3px);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateX(-50%) translateY(8px);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translateX(-50%) translateY(3px);
+    opacity: 0.7;
+  }
+}
+
+@keyframes scrollDot {
+  0% {
+    transform: translateX(-50%) translateY(0);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(-50%) translateY(35px);
+    opacity: 1;
+    box-shadow: 0 0 15px var(--primary-color);
+  }
+  100% {
+    transform: translateX(-50%) translateY(40px);
+    opacity: 0;
+  }
+}
+
+@keyframes textGlow {
+  0%, 100% {
+    color: var(--primary-color);
+    text-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
+  }
+  50% {
+    color: var(--secondary-color);
+    text-shadow: 0 0 15px rgba(139, 92, 246, 0.8), 0 0 25px rgba(139, 92, 246, 0.4);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes underlineExpand {
+  0%, 100% {
+    width: 0;
+  }
+  50% {
+    width: 100%;
+  }
 }
 
 /* Sections */

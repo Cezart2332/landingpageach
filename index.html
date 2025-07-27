@@ -37,7 +37,7 @@
     <title>AcoomH - Discover Hidden Experiences</title>
     <link rel="icon" type="image/png" href="acoomh.png" />
     <!-- Load stylesheets with cache busting -->
-    <link rel="stylesheet" href="style.min.css?v=1753635671126" />
+    <link rel="stylesheet" href="style.min.css?v=1753642833766" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -143,22 +143,22 @@
                   <video 
                     id="phone-video" 
                     class="phone-video"
-                    autoplay
                     muted
                     playsinline
-                    loop
-                    preload="auto"
-                    disablePictureInPicture
                     webkit-playsinline
+                    preload="metadata"
+                    disablePictureInPicture
                   >
+                    <!-- iOS Safari prefers this order and explicit type declarations -->
+                    <source src="acoomharta_safe.mp4" type="video/mp4; codecs=avc1.42E01E,mp4a.40.2">
                     <source src="acoomharta_noaudio.mp4" type="video/mp4">
-                    <source src="acoomharta_safe.mp4" type="video/mp4">
                     <source src="acoomharta.mp4" type="video/mp4">
                     Your browser does not support the video tag.
                   </video>
-                  <!-- Fallback image pentru browsere care nu suportă video -->
-                  <div class="video-fallback" style="display: none;">
-                    <img src="acoomh.png" alt="AcoomH App Preview">
+                  <!-- Enhanced fallback image for better compatibility -->
+                  <div class="video-fallback" style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a, #2d2d2d); display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                    <img src="acoomh.png" alt="AcoomH App Preview" style="max-width: 80%; height: auto; margin-bottom: 20px;">
+                    <p style="color: #8b5cf6; font-size: 14px; text-align: center;">Video not supported on this device</p>
                   </div>
                 </div>
               </div>
@@ -321,6 +321,6 @@
     </footer>
 
     <!-- Load JavaScript -->
-    <script src="script.min.js?v=1753635671126"></script>
+    <script src="script.min.js?v=1753642833766"></script>
   </body>
 </html>

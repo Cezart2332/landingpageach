@@ -10,98 +10,86 @@ document.addEventListener("DOMContentLoaded", function () {
     const navMenu = document.querySelector(".nav-menu");
     const navLinks = document.querySelectorAll(".nav-link");
 
-    // Final Safari Video Fix - Handles all Safari autoplay scenarios
+    // Completely rewritten iOS-compatible video initialization
     function initializeVideoForIOS() {
       if (!phoneVideo) return;
       
-      console.log('🎥 Starting video initialization...');
+      console.log('🎥 Starting simplified video initialization for iOS...');
       
-      // Enhanced error handling for video loading
-      phoneVideo.addEventListener('loadstart', () => {
-        console.log('🎥 Video loading started');
-      });
+      // Clear any existing video attributes and start fresh
+      phoneVideo.removeAttribute('autoplay');
+      phoneVideo.removeAttribute('src');
       
-      phoneVideo.addEventListener('loadeddata', () => {
-        console.log('🎥 Video data loaded');
-      });
+      // Set essential iOS Safari attributes
+      phoneVideo.setAttribute('muted', 'true');
+      phoneVideo.setAttribute('playsinline', 'true');
+      phoneVideo.setAttribute('webkit-playsinline', 'true');
+      phoneVideo.setAttribute('controls', 'false');
+      phoneVideo.setAttribute('preload', 'metadata');
       
-      phoneVideo.addEventListener('canplay', () => {
-        console.log('🎥 Video can start playing');
-      });
-      
-      phoneVideo.addEventListener('error', (e) => {
-        console.error('🎥 Video error occurred:', {
-          error: e,
-          networkState: phoneVideo.networkState,
-          readyState: phoneVideo.readyState,
-          src: phoneVideo.currentSrc
-        });
-        
-        // Try alternative video sources if the current one fails
-        if (phoneVideo.src.includes('acoomharta_noaudio.mp4')) {
-          console.log('🎥 Trying fallback video: acoomharta_safe.mp4');
-          phoneVideo.src = 'acoomharta_safe.mp4';
-          phoneVideo.load();
-        } else if (phoneVideo.src.includes('acoomharta_safe.mp4')) {
-          console.log('🎥 Trying fallback video: acoomharta.mp4');
-          phoneVideo.src = 'acoomharta.mp4';
-          phoneVideo.load();
-        } else {
-          // Show fallback image if all videos fail
-          const fallback = document.querySelector('.video-fallback');
-          if (fallback) {
-            fallback.style.display = 'block';
-            phoneVideo.style.display = 'none';
-          }
-        }
-      });
-      
-      phoneVideo.addEventListener('stalled', () => {
-        console.log('⚠️ Video loading stalled - network might be slow');
-        // Force reload after stall
-        setTimeout(() => {
-          if (phoneVideo.readyState < 3) { // If not enough data loaded
-            console.log('🎥 Forcing video reload due to stall');
-            phoneVideo.load();
-          }
-        }, 2000);
-      });
-      
-      phoneVideo.addEventListener('suspend', () => {
-        console.log('⚠️ Video loading suspended');
-      });
-      
-      phoneVideo.addEventListener('abort', () => {
-        console.log('⚠️ Video loading aborted');
-      });
-      
-      // Set all required attributes for Safari autoplay
+      // Set properties
       phoneVideo.muted = true;
-      phoneVideo.defaultMuted = true;
       phoneVideo.playsInline = true;
-      phoneVideo.autoplay = true;
-      phoneVideo.loop = true;
+      phoneVideo.defaultMuted = true;
       phoneVideo.volume = 0;
+      phoneVideo.loop = true;
       
-      // Force HTML attributes
-      phoneVideo.setAttribute('muted', '');
-      phoneVideo.setAttribute('playsinline', '');
-      phoneVideo.setAttribute('autoplay', '');
-      phoneVideo.setAttribute('loop', '');
-      phoneVideo.setAttribute('preload', 'auto'); // Change to 'auto' for better loading
+      // Video sources in order of preference for iOS
+      const videoSources = [
+        'acoomharta_safe.mp4',
+        'acoomharta_noaudio.mp4', 
+        'acoomharta.mp4'
+      ];
       
-      console.log('🎥 Video attributes configured for Safari autoplay');
-      
-      // Track if video has started playing
+      let currentSourceIndex = 0;
       let hasStartedPlaying = false;
       
-      // Enhanced autoplay function with better error handling
-      const tryAutoplay = (strategy) => {
-        console.log(`🎥 Trying autoplay strategy: ${strategy}`);
+      function loadNextVideo() {
+        if (currentSourceIndex >= videoSources.length) {
+          console.log('❌ All video sources failed, showing fallback image');
+          showVideoFallback();
+          return;
+        }
         
-        // Check if video is ready to play
-        if (phoneVideo.readyState < 3) {
-          console.log(`🎥 Video not ready for strategy: ${strategy}, readyState: ${phoneVideo.readyState}`);
+        const videoSrc = videoSources[currentSourceIndex];
+        console.log(`🎥 Trying video source: ${videoSrc}`);
+        
+        // Clear existing sources
+        phoneVideo.innerHTML = '';
+        
+        // Create new source element
+        const source = document.createElement('source');
+        source.src = videoSrc;
+        source.type = 'video/mp4';
+        phoneVideo.appendChild(source);
+        
+        // Also set src directly for better compatibility
+        phoneVideo.src = videoSrc;
+        
+        currentSourceIndex++;
+        
+        // Force reload
+        phoneVideo.load();
+      }
+      
+      function showVideoFallback() {
+        const fallback = document.querySelector('.video-fallback');
+        if (fallback) {
+          fallback.style.display = 'block';
+          phoneVideo.style.display = 'none';
+          console.log('🖼️ Showing fallback image');
+        }
+      }
+      
+      function attemptPlay(strategy = 'unknown') {
+        if (hasStartedPlaying) return Promise.resolve(true);
+        
+        console.log(`🎥 Attempting play with strategy: ${strategy}`);
+        console.log(`🎥 Video readyState: ${phoneVideo.readyState}, networkState: ${phoneVideo.networkState}`);
+        
+        // For iOS, we need at least HAVE_CURRENT_DATA (readyState >= 2)
+        if (phoneVideo.readyState < 2) {
+          console.log(`🎥 Video not ready for playback, readyState: ${phoneVideo.readyState}`);
           return Promise.resolve(false);
         }
         
@@ -110,166 +98,140 @@ document.addEventListener("DOMContentLoaded", function () {
         if (playPromise !== undefined) {
           return playPromise
             .then(() => {
-              console.log(`✅ Autoplay successful with strategy: ${strategy}`);
+              console.log(`✅ Video started playing with strategy: ${strategy}`);
               hasStartedPlaying = true;
               return true;
             })
             .catch(error => {
-              console.log(`❌ Autoplay failed with strategy: ${strategy} - ${error.name}: ${error.message}`);
-              
-              // If it's a NotAllowedError, we need user interaction
-              if (error.name === 'NotAllowedError') {
-                console.log('🎥 Autoplay blocked - user interaction required');
-              }
-              
+              console.log(`❌ Play failed with strategy: ${strategy} - ${error.name}: ${error.message}`);
               return false;
             });
         }
+        
         return Promise.resolve(false);
-      };
+      }
       
-      // Strategy 1: Force video load first
-      phoneVideo.load();
+      // Enhanced error handling
+      phoneVideo.addEventListener('error', (e) => {
+        console.error('🎥 Video error:', {
+          error: phoneVideo.error,
+          networkState: phoneVideo.networkState,
+          readyState: phoneVideo.readyState,
+          currentSrc: phoneVideo.currentSrc
+        });
+        
+        // Try next video source
+        setTimeout(() => {
+          loadNextVideo();
+        }, 500);
+      });
       
-      // Strategy 2: Immediate play attempt after short delay
-      setTimeout(() => {
+      phoneVideo.addEventListener('loadeddata', () => {
+        console.log('🎥 Video data loaded successfully');
         if (!hasStartedPlaying) {
-          tryAutoplay('immediate');
-        }
-      }, 500);
-      
-      // Strategy 3: When video metadata is loaded
-      phoneVideo.addEventListener('loadedmetadata', () => {
-        console.log('🎥 Video metadata loaded');
-        if (!hasStartedPlaying) {
-          setTimeout(() => tryAutoplay('metadata-loaded'), 100);
+          setTimeout(() => attemptPlay('loadeddata'), 100);
         }
       });
       
-      // Strategy 4: When video can play through
+      phoneVideo.addEventListener('canplay', () => {
+        console.log('🎥 Video can play');
+        if (!hasStartedPlaying) {
+          setTimeout(() => attemptPlay('canplay'), 100);
+        }
+      });
+      
       phoneVideo.addEventListener('canplaythrough', () => {
         console.log('🎥 Video can play through');
         if (!hasStartedPlaying) {
-          setTimeout(() => tryAutoplay('can-play-through'), 100);
+          setTimeout(() => attemptPlay('canplaythrough'), 200);
         }
       });
       
-      // Strategy 5: When enough data is loaded
-      phoneVideo.addEventListener('canplay', () => {
-        console.log('🎥 Video can play (some data loaded)');
-        if (!hasStartedPlaying) {
-          setTimeout(() => tryAutoplay('can-play'), 200);
-        }
-      });
-      
-      // Strategy 6: Intersection Observer (when video becomes visible)
-      if ('IntersectionObserver' in window) {
-        const videoObserver = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting && entry.intersectionRatio > 0.3 && !hasStartedPlaying) {
-              console.log('🎥 Video is visible, attempting play');
-              setTimeout(() => {
-                tryAutoplay('intersection-observer').then(success => {
-                  if (success) {
-                    videoObserver.unobserve(phoneVideo);
-                  }
-                });
-              }, 200);
-            }
-          });
-        }, {
-          threshold: [0.3],
-          rootMargin: '20px'
-        });
-        
-        videoObserver.observe(phoneVideo);
-      }
-      
-      // Final fallback: User interaction handler
-      const setupUserInteractionFallback = () => {
-        console.log('🎥 Setting up user interaction fallback');
-        
-        const playOnInteraction = (eventType) => {
-          console.log(`🎥 User ${eventType} detected - attempting video play`);
-          
-          // Force reload if video seems stuck
-          if (phoneVideo.readyState < 2) {
-            console.log('🎥 Video not ready, forcing reload');
-            phoneVideo.load();
-            setTimeout(() => {
-              tryAutoplay(`user-${eventType}-after-reload`);
-            }, 500);
-          } else {
-            tryAutoplay(`user-${eventType}`).then(success => {
-              if (success) {
-                // Remove all interaction listeners after success
-                document.removeEventListener('click', clickHandler);
-                document.removeEventListener('touchstart', touchHandler);
-                document.removeEventListener('scroll', scrollHandler);
-                document.removeEventListener('keydown', keyHandler);
-              }
-            });
-          }
-        };
-        
-        const clickHandler = () => playOnInteraction('click');
-        const touchHandler = () => playOnInteraction('touch');
-        const scrollHandler = () => playOnInteraction('scroll');
-        const keyHandler = () => playOnInteraction('keypress');
-        
-        // Listen for various user interactions
-        document.addEventListener('click', clickHandler, { once: true, passive: true });
-        document.addEventListener('touchstart', touchHandler, { once: true, passive: true });
-        document.addEventListener('scroll', scrollHandler, { once: true, passive: true });
-        document.addEventListener('keydown', keyHandler, { once: true, passive: true });
-        
-        console.log('🎥 User interaction handlers registered');
-      };
-      
-      // Set up fallback after a delay if autoplay hasn't worked
-      setTimeout(() => {
-        if (!hasStartedPlaying) {
-          setupUserInteractionFallback();
-        }
-      }, 3000);
-      
-      // Success tracking
       phoneVideo.addEventListener('playing', () => {
         if (!hasStartedPlaying) {
-          console.log('🎉 Video is now playing successfully!');
+          console.log('🎉 Video is now playing!');
           hasStartedPlaying = true;
         }
       });
       
-      phoneVideo.addEventListener('pause', () => {
-        console.log('⏸️ Video paused');
-        // Auto-resume if paused unexpectedly
-        if (hasStartedPlaying && !phoneVideo.ended) {
-          setTimeout(() => {
-            if (!hasStartedPlaying) {
-              tryAutoplay('auto-resume');
-            }
-          }, 1000);
-        }
-      });
-      
-      // Network state monitoring
-      phoneVideo.addEventListener('progress', () => {
-        const buffered = phoneVideo.buffered;
-        if (buffered.length > 0) {
-          const bufferedEnd = buffered.end(buffered.length - 1);
-          const duration = phoneVideo.duration;
-          if (duration > 0) {
-            const bufferedPercent = (bufferedEnd / duration) * 100;
-            console.log(`🎥 Video loading progress: ${bufferedPercent.toFixed(1)}%`);
+      phoneVideo.addEventListener('stalled', () => {
+        console.log('⚠️ Video stalled - trying next source');
+        setTimeout(() => {
+          if (!hasStartedPlaying && phoneVideo.readyState < 2) {
+            loadNextVideo();
           }
-        }
+        }, 3000);
       });
       
-      // Monitor network state changes
-      phoneVideo.addEventListener('loadstart', () => {
-        console.log(`🎥 Network state: ${phoneVideo.networkState}, Ready state: ${phoneVideo.readyState}`);
+      phoneVideo.addEventListener('suspend', () => {
+        console.log('⚠️ Video loading suspended - trying next source');
+        setTimeout(() => {
+          if (!hasStartedPlaying) {
+            loadNextVideo();
+          }
+        }, 2000);
       });
+      
+      // iOS-specific: Set up intersection observer for autoplay when visible
+      if ('IntersectionObserver' in window) {
+        const videoObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && !hasStartedPlaying && phoneVideo.readyState >= 2) {
+              console.log('🎥 Video visible, attempting autoplay');
+              attemptPlay('intersection-observer').then(success => {
+                if (success) {
+                  videoObserver.unobserve(phoneVideo);
+                }
+              });
+            }
+          });
+        }, { threshold: 0.1 });
+        
+        videoObserver.observe(phoneVideo);
+      }
+      
+      // User interaction fallback - simplified
+      function setupUserInteraction() {
+        console.log('🎥 Setting up user interaction fallback');
+        
+        const handleUserInteraction = (eventType) => {
+          console.log(`🎥 User ${eventType} detected`);
+          
+          if (!hasStartedPlaying) {
+            if (phoneVideo.readyState < 2) {
+              console.log('🎥 Video not ready, forcing reload');
+              phoneVideo.load();
+              
+              // Wait for video to load then play
+              const loadHandler = () => {
+                if (phoneVideo.readyState >= 2) {
+                  attemptPlay(`user-${eventType}-after-reload`);
+                  phoneVideo.removeEventListener('loadeddata', loadHandler);
+                }
+              };
+              phoneVideo.addEventListener('loadeddata', loadHandler);
+            } else {
+              attemptPlay(`user-${eventType}`);
+            }
+          }
+          
+          // Remove listeners after first interaction
+          document.removeEventListener('click', clickHandler);
+          document.removeEventListener('touchstart', touchHandler);
+        };
+        
+        const clickHandler = () => handleUserInteraction('click');
+        const touchHandler = () => handleUserInteraction('touch');
+        
+        document.addEventListener('click', clickHandler, { once: true, passive: true });
+        document.addEventListener('touchstart', touchHandler, { once: true, passive: true });
+      }
+      
+      // Start loading the first video
+      loadNextVideo();
+      
+      // Set up user interaction after a delay
+      setTimeout(setupUserInteraction, 2000);
     }
     
     // Inițializare video

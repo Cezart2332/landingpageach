@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Test - AcoomH</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .video-container {
+            background: #333;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+        }
+        video {
+            width: 300px;
+            height: 400px;
+            border-radius: 15px;
+            object-fit: cover;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: #2a2a2a;
+        }
+        .success { background: #1a5d1a; }
+        .error { background: #5d1a1a; }
+        .warning { background: #5d4a1a; }
+        button {
+            background: #6b46c1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #logs {
+            text-align: left;
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎥 Video Autoplay Test</h1>
+        <p>Test page for Safari video autoplay debugging</p>
+        
+        <div id="browser-info" class="status"></div>
+        
+        <div class="video-container">
+            <h3>Test Video (No Audio)</h3>
+            <video 
+                id="test-video"
+                autoplay
+                muted
+                playsinline
+                loop
+                preload="auto"
+                disablePictureInPicture
+            >
+                <source src="acoomharta_noaudio.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            
+            <div id="video-status" class="status">Loading...</div>
+            
+            <div>
+                <button onclick="playVideo()">Manual Play</button>
+                <button onclick="checkVideoState()">Check State</button>
+                <button onclick="clearLogs()">Clear Logs</button>
+            </div>
+        </div>
+        
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('test-video');
+        const statusDiv = document.getElementById('video-status');
+        const browserInfo = document.getElementById('browser-info');
+        const logsDiv = document.getElementById('logs');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            console.log(logEntry);
+            logsDiv.innerHTML += logEntry + '\n';
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            log(`STATUS: ${message}`);
+        }
+        
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+            const isIOS = /iPad|iPhone|iPod/.test(ua);
+            const isMacSafari = isSafari && !isIOS;
+            const isRemoteHost = !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+            
+            browserInfo.innerHTML = `
+                <strong>Browser Detection:</strong><br>
+                Safari: ${isSafari ? '✅' : '❌'} | 
+                iOS: ${isIOS ? '✅' : '❌'} | 
+                Mac Safari: ${isMacSafari ? '✅' : '❌'} | 
+                Remote Host: ${isRemoteHost ? '✅' : '❌'}<br>
+                Host: ${window.location.hostname} | 
+                Protocol: ${window.location.protocol}
+            `;
+            
+            log(`Browser: Safari=${isSafari}, iOS=${isIOS}, MacSafari=${isMacSafari}, RemoteHost=${isRemoteHost}`);
+            log(`Host: ${window.location.hostname}, Protocol: ${window.location.protocol}`);
+        }
+        
+        function playVideo() {
+            log('Manual play button clicked');
+            video.play()
+                .then(() => {
+                    updateStatus('✅ Manual play successful!', 'success');
+                })
+                .catch(error => {
+                    updateStatus(`❌ Manual play failed: ${error.name}`, 'error');
+                    log(`Manual play error: ${error.name} - ${error.message}`);
+                });
+        }
+        
+        function checkVideoState() {
+            const state = {
+                paused: video.paused,
+                muted: video.muted,
+                autoplay: video.autoplay,
+                playsinline: video.playsInline,
+                readyState: video.readyState,
+                networkState: video.networkState,
+                currentTime: video.currentTime,
+                duration: video.duration,
+                volume: video.volume
+            };
+            
+            log('Video state: ' + JSON.stringify(state, null, 2));
+        }
+        
+        function clearLogs() {
+            logsDiv.innerHTML = '';
+        }
+        
+        // Initialize
+        detectBrowser();
+        log('🎥 Video test page loaded');
+        
+        // Video event listeners
+        video.addEventListener('loadstart', () => {
+            log('Event: loadstart');
+            updateStatus('Loading video...', 'warning');
+        });
+        
+        video.addEventListener('loadedmetadata', () => {
+            log('Event: loadedmetadata');
+            log(`Video duration: ${video.duration}s, dimensions: ${video.videoWidth}x${video.videoHeight}`);
+        });
+        
+        video.addEventListener('loadeddata', () => {
+            log('Event: loadeddata');
+            updateStatus('Video data loaded', 'warning');
+        });
+        
+        video.addEventListener('canplay', () => {
+            log('Event: canplay');
+            updateStatus('Video can play', 'warning');
+        });
+        
+        video.addEventListener('canplaythrough', () => {
+            log('Event: canplaythrough');
+            updateStatus('Video can play through', 'warning');
+            
+            // Attempt autoplay when ready
+            log('Attempting autoplay...');
+            video.play()
+                .then(() => {
+                    updateStatus('✅ Autoplay successful!', 'success');
+                })
+                .catch(error => {
+                    updateStatus(`❌ Autoplay blocked: ${error.name}`, 'error');
+                    log(`Autoplay error: ${error.name} - ${error.message}`);
+                });
+        });
+        
+        video.addEventListener('play', () => {
+            log('Event: play');
+            updateStatus('▶️ Video playing', 'success');
+        });
+        
+        video.addEventListener('playing', () => {
+            log('Event: playing');
+            updateStatus('✅ Video is playing!', 'success');
+        });
+        
+        video.addEventListener('pause', () => {
+            log('Event: pause');
+            updateStatus('⏸️ Video paused', 'warning');
+        });
+        
+        video.addEventListener('error', (e) => {
+            log(`Event: error - ${e.message || 'Unknown error'}`);
+            updateStatus(`❌ Video error: ${e.message || 'Unknown'}`, 'error');
+        });
+        
+        video.addEventListener('stalled', () => {
+            log('Event: stalled');
+            updateStatus('⏳ Video stalled', 'warning');
+        });
+        
+        video.addEventListener('waiting', () => {
+            log('Event: waiting');
+            updateStatus('⏳ Video buffering', 'warning');
+        });
+        
+        // User interaction fallback
+        document.addEventListener('click', function handleFirstClick() {
+            log('First user click detected - attempting video play');
+            video.play()
+                .then(() => {
+                    log('Video started after user interaction');
+                })
+                .catch(error => {
+                    log(`Video still failed after interaction: ${error.name}`);
+                });
+            
+            // Remove this listener after first use
+            document.removeEventListener('click', handleFirstClick);
+        }, { once: true });
+        
+        // Log initial video properties
+        setTimeout(() => {
+            checkVideoState();
+        }, 1000);
+    </script>
+</body>
+</html>

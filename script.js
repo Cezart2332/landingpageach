@@ -10,139 +10,94 @@ document.addEventListener("DOMContentLoaded", function () {
     const navMenu = document.querySelector(".nav-menu");
     const navLinks = document.querySelectorAll(".nav-link");
 
-    // iOS Video Fix - Enhanced for remote host compatibility
+    // Simplified Safari Video Fix - Direct and reliable approach
     function initializeVideoForIOS() {
       if (!phoneVideo) return;
       
-      // Enhanced Safari detection
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isMacSafari = isSafari && !isIOS;
+      console.log('🎥 Starting video initialization...');
       
-      // Check if we're on a remote host (not localhost)
-      const isRemoteHost = !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+      // Force all required attributes immediately
+      phoneVideo.muted = true;
+      phoneVideo.defaultMuted = true;
+      phoneVideo.playsInline = true;
+      phoneVideo.autoplay = true;
+      phoneVideo.loop = true;
+      phoneVideo.volume = 0;
       
-      console.log('Video initialization:', { isSafari, isIOS, isMacSafari, isRemoteHost, hostname: window.location.hostname });
+      // Set HTML attributes as backup
+      phoneVideo.setAttribute('muted', '');
+      phoneVideo.setAttribute('playsinline', '');
+      phoneVideo.setAttribute('autoplay', '');
+      phoneVideo.setAttribute('loop', '');
       
-      // Enhanced settings for Safari on remote hosts
-      if (isSafari || isIOS) {
-        console.log('Safari/iOS detected - applying enhanced video fix');
+      // Remove any loading attributes that might interfere
+      phoneVideo.removeAttribute('preload');
+      phoneVideo.setAttribute('preload', 'auto');
+      
+      console.log('🎥 Video attributes set:', {
+        muted: phoneVideo.muted,
+        autoplay: phoneVideo.autoplay,
+        playsInline: phoneVideo.playsInline,
+        src: phoneVideo.currentSrc || phoneVideo.src
+      });
+      
+      // Simple immediate play attempt
+      const attemptPlay = () => {
+        console.log('🎥 Attempting to play video...');
         
-        // Force video attributes
-        phoneVideo.muted = true;
-        phoneVideo.playsInline = true;
-        phoneVideo.autoplay = true;
-        phoneVideo.loop = true;
-        phoneVideo.controls = false;
-        phoneVideo.defaultMuted = true;
+        const playPromise = phoneVideo.play();
         
-        // Set video element attributes directly
-        phoneVideo.setAttribute('muted', '');
-        phoneVideo.setAttribute('playsinline', '');
-        phoneVideo.setAttribute('autoplay', '');
-        phoneVideo.setAttribute('loop', '');
-        
-        // For remote hosts, use intersection observer to trigger play
-        if (isRemoteHost) {
-          console.log('Remote host detected - using intersection observer for video play');
-          
-          const videoObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-                console.log('Video in viewport - attempting play');
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('✅ Video autoplay successful!');
+            })
+            .catch(error => {
+              console.log('❌ Video autoplay blocked:', error.name);
+              
+              // Simple fallback - play on any user interaction
+              const playOnInteraction = () => {
+                console.log('🎥 User interaction detected, trying to play...');
+                phoneVideo.play()
+                  .then(() => console.log('✅ Video started after interaction'))
+                  .catch(e => console.log('❌ Still failed after interaction:', e.name));
                 
-                // Multiple play attempts with increasing delays
-                const attemptPlay = (attempt = 1) => {
-                  phoneVideo.play().then(() => {
-                    console.log(`Video started successfully on attempt ${attempt}`);
-                    videoObserver.unobserve(phoneVideo);
-                  }).catch(error => {
-                    console.log(`Play attempt ${attempt} failed:`, error.message);
-                    
-                    if (attempt < 3) {
-                      setTimeout(() => attemptPlay(attempt + 1), 500 * attempt);
-                    } else {
-                      console.log('All play attempts failed - setting up interaction handler');
-                      setupInteractionHandler();
-                    }
-                  });
-                };
-                
-                attemptPlay();
-              }
+                // Remove listeners after first attempt
+                document.removeEventListener('click', playOnInteraction);
+                document.removeEventListener('touchstart', playOnInteraction);
+                document.removeEventListener('scroll', playOnInteraction);
+              };
+              
+              // Listen for ANY user interaction
+              document.addEventListener('click', playOnInteraction, { once: true, passive: true });
+              document.addEventListener('touchstart', playOnInteraction, { once: true, passive: true });
+              document.addEventListener('scroll', playOnInteraction, { once: true, passive: true });
+              
+              console.log('🎥 Waiting for user interaction to play video...');
             });
-          }, {
-            threshold: 0.5,
-            rootMargin: '0px'
-          });
-          
-          videoObserver.observe(phoneVideo);
-        } else {
-          // For localhost, try immediate play
-          setTimeout(() => {
-            phoneVideo.play().catch(error => {
-              console.log('Localhost autoplay failed:', error.message);
-              setupInteractionHandler();
-            });
-          }, 500);
         }
-        
-        // Setup interaction handler for cases where autoplay fails
-        function setupInteractionHandler() {
-          const playOnInteraction = (event) => {
-            console.log('User interaction detected - attempting video play');
-            
-            phoneVideo.play().then(() => {
-              console.log('Video started after user interaction');
-              // Remove all interaction listeners
-              document.removeEventListener('touchstart', playOnInteraction);
-              document.removeEventListener('click', playOnInteraction);
-              document.removeEventListener('scroll', playOnInteraction);
-              document.removeEventListener('keydown', playOnInteraction);
-            }).catch(error => {
-              console.log('Video play failed even after interaction:', error);
-            });
-          };
-          
-          // Listen for various types of user interaction
-          document.addEventListener('touchstart', playOnInteraction, { once: true, passive: true });
-          document.addEventListener('click', playOnInteraction, { once: true, passive: true });
-          document.addEventListener('scroll', playOnInteraction, { once: true, passive: true });
-          document.addEventListener('keydown', playOnInteraction, { once: true, passive: true });
-          
-          console.log('Interaction handlers set up - video will play on first user interaction');
-        }
-        
-      } else {
-        // For non-Safari browsers
-        setTimeout(() => {
-          phoneVideo.play().catch(e => console.log('Autoplay failed on non-Safari browser:', e));
-        }, 200);
-      }
+      };
       
-      // Enhanced error handling
+      // Try to play when video can play
+      phoneVideo.addEventListener('canplaythrough', attemptPlay, { once: true });
+      
+      // Fallback: try after a short delay regardless
+      setTimeout(attemptPlay, 1000);
+      
+      // Error handling
       phoneVideo.addEventListener('error', (e) => {
-        console.error('Video error details:', {
-          error: e,
-          networkState: phoneVideo.networkState,
-          readyState: phoneVideo.readyState,
-          src: phoneVideo.currentSrc
-        });
-        
-        const fallback = phoneVideo.nextElementSibling;
-        if (fallback && fallback.classList.contains('video-fallback')) {
+        console.error('🎥 Video error:', e);
+        // Show fallback image
+        const fallback = document.querySelector('.video-fallback');
+        if (fallback) {
           fallback.style.display = 'block';
           phoneVideo.style.display = 'none';
         }
       });
       
-      // Add load event listener
-      phoneVideo.addEventListener('loadeddata', () => {
-        console.log('Video loaded successfully');
-      });
-      
-      phoneVideo.addEventListener('canplay', () => {
-        console.log('Video can start playing');
+      // Success logging
+      phoneVideo.addEventListener('playing', () => {
+        console.log('🎥 Video is now playing successfully!');
       });
     }
     

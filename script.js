@@ -10,6 +10,84 @@ document.addEventListener("DOMContentLoaded", function () {
     const navMenu = document.querySelector(".nav-menu");
     const navLinks = document.querySelectorAll(".nav-link");
 
+    // iOS Video Fix - Enhanced video handling for iOS devices
+    function initializeVideoForIOS() {
+      if (!phoneVideo) return;
+      
+      // Detect iOS devices
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      
+      if (isIOS) {
+        // iOS-specific video setup
+        phoneVideo.muted = true;
+        phoneVideo.playsInline = true;
+        phoneVideo.setAttribute('webkit-playsinline', 'true');
+        phoneVideo.setAttribute('playsinline', 'true');
+        
+        // Force video load on iOS
+        phoneVideo.load();
+        
+        // Attempt to play video immediately
+        const playPromise = phoneVideo.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.log('iOS autoplay prevented, will play on user interaction:', error);
+            
+            // Add user interaction handlers for iOS
+            const playVideoOnInteraction = () => {
+              phoneVideo.play().catch(e => console.log('Video play failed:', e));
+              // Remove listeners after first interaction
+              document.removeEventListener('touchstart', playVideoOnInteraction);
+              document.removeEventListener('click', playVideoOnInteraction);
+            };
+            
+            document.addEventListener('touchstart', playVideoOnInteraction, { once: true, passive: true });
+            document.addEventListener('click', playVideoOnInteraction, { once: true });
+          });
+        }
+        
+        // Handle visibility changes (iOS pauses videos when tab is not active)
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && phoneVideo.paused) {
+            phoneVideo.play().catch(e => console.log('Video resume failed:', e));
+          }
+        });
+        
+        // Handle page focus/blur
+        window.addEventListener('focus', () => {
+          if (phoneVideo.paused) {
+            phoneVideo.play().catch(e => console.log('Video focus play failed:', e));
+          }
+        });
+      }
+      
+      // General video error handling
+      phoneVideo.addEventListener('error', (e) => {
+        console.error('Video error:', e);
+        // Show fallback image on error
+        const fallback = phoneVideo.nextElementSibling;
+        if (fallback && fallback.classList.contains('video-fallback')) {
+          fallback.style.display = 'block';
+          phoneVideo.style.display = 'none';
+        }
+      });
+      
+      // Ensure video plays when it becomes visible (intersection observer)
+      const videoObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && phoneVideo.paused) {
+            phoneVideo.play().catch(e => console.log('Video intersection play failed:', e));
+          }
+        });
+      }, { threshold: 0.5 });
+      
+      videoObserver.observe(phoneVideo);
+    }
+    
+    // Initialize video handling immediately
+    initializeVideoForIOS();
+
     // DYNAMIC mobile detection that updates on resize
     let currentMobileMode = false;
     let mobileEventListenersActive = false;

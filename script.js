@@ -24,7 +24,6 @@ document.addEventListener("DOMContentLoaded", function () {
       phoneVideo.setAttribute('muted', 'true');
       phoneVideo.setAttribute('playsinline', 'true');
       phoneVideo.setAttribute('webkit-playsinline', 'true');
-      phoneVideo.setAttribute('controls', 'false');
       phoneVideo.setAttribute('preload', 'metadata');
       
       // Set properties
@@ -92,7 +91,9 @@ document.addEventListener("DOMContentLoaded", function () {
           console.log(`🎥 Video not ready for playback, readyState: ${phoneVideo.readyState}`);
           return Promise.resolve(false);
         }
-        
+        // Ensure autoplay and muted are set before play
+        phoneVideo.muted = true;
+        phoneVideo.autoplay = true;
         const playPromise = phoneVideo.play();
         
         if (playPromise !== undefined) {

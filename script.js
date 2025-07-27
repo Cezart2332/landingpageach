@@ -10,117 +10,224 @@ document.addEventListener("DOMContentLoaded", function () {
     const navMenu = document.querySelector(".nav-menu");
     const navLinks = document.querySelectorAll(".nav-link");
 
-    // iOS Video Fix - Enhanced video handling for iOS devices
+    // iOS Video Fix - Safari-specific enhanced video handling
     function initializeVideoForIOS() {
       if (!phoneVideo) return;
       
-      // Detect iOS devices (including iPad Pro)
+      // Enhanced iOS/Safari detection
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      const isIOSSafari = isIOS && (isSafari || /CriOS|FxiOS|EdgiOS/.test(navigator.userAgent));
       
       // Set basic video properties for all devices
       phoneVideo.muted = true;
       phoneVideo.playsInline = true;
       phoneVideo.setAttribute('webkit-playsinline', 'true');
       phoneVideo.setAttribute('playsinline', 'true');
-      phoneVideo.preload = 'auto';
+      phoneVideo.preload = 'metadata'; // Changed from 'auto' for Safari
       
       if (isIOS) {
-        console.log('iOS device detected, applying iOS-specific video fixes');
+        console.log(`iOS device detected (Safari: ${isIOSSafari}), applying iOS-specific video fixes`);
         
-        // Force video attributes for iOS
-        phoneVideo.setAttribute('muted', 'true');
-        phoneVideo.setAttribute('autoplay', 'true');
-        phoneVideo.setAttribute('loop', 'true');
+        // Safari-specific setup
+        if (isIOSSafari) {
+          console.log('Safari on iOS detected - using Safari-specific approach');
+          
+          // Force all required attributes for Safari
+          phoneVideo.setAttribute('muted', '');
+          phoneVideo.setAttribute('autoplay', '');
+          phoneVideo.setAttribute('loop', '');
+          phoneVideo.setAttribute('playsinline', '');
+          phoneVideo.setAttribute('webkit-playsinline', '');
+          phoneVideo.setAttribute('controls', 'false');
+          phoneVideo.removeAttribute('controls');
+          
+          // Safari requires these to be set via properties too
+          phoneVideo.muted = true;
+          phoneVideo.autoplay = true;
+          phoneVideo.loop = true;
+          phoneVideo.playsInline = true;
+          phoneVideo.controls = false;
+          
+          // Safari-specific preload strategy
+          phoneVideo.preload = 'none';
+          phoneVideo.load();
+          
+          // Wait for Safari to be ready, then set preload to metadata
+          setTimeout(() => {
+            phoneVideo.preload = 'metadata';
+            phoneVideo.load();
+          }, 100);
+        }
         
-        // Force video load
-        phoneVideo.load();
-        
-        // Create a more aggressive play attempt
-        const attemptPlay = () => {
-          const playPromise = phoneVideo.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              console.log('Video started playing successfully');
-            }).catch(error => {
-              console.log('iOS autoplay blocked, setting up user interaction handler:', error);
-              setupUserInteractionHandler();
+        // Create immediate play strategy for Safari
+        const safariPlayStrategy = () => {
+          // Strategy 1: Direct play attempt
+          const directPlay = () => {
+            if (phoneVideo.readyState >= 2) { // HAVE_CURRENT_DATA
+              return phoneVideo.play();
+            }
+            return Promise.reject('Video not ready');
+          };
+          
+          // Strategy 2: Load then play
+          const loadAndPlay = () => {
+            return new Promise((resolve, reject) => {
+              const onCanPlay = () => {
+                phoneVideo.removeEventListener('canplay', onCanPlay);
+                phoneVideo.removeEventListener('error', onError);
+                phoneVideo.play().then(resolve).catch(reject);
+              };
+              
+              const onError = (e) => {
+                phoneVideo.removeEventListener('canplay', onCanPlay);
+                phoneVideo.removeEventListener('error', onError);
+                reject(e);
+              };
+              
+              phoneVideo.addEventListener('canplay', onCanPlay, { once: true });
+              phoneVideo.addEventListener('error', onError, { once: true });
+              phoneVideo.load();
             });
-          }
+          };
+          
+          // Try strategies in sequence
+          return directPlay()
+            .catch(() => loadAndPlay())
+            .catch(() => {
+              console.log('Safari autoplay blocked, setting up interaction handlers');
+              setupSafariInteractionHandlers();
+            });
         };
         
-        // Setup user interaction handler
-        const setupUserInteractionHandler = () => {
-          let hasPlayed = false;
+        // Safari-specific interaction handlers
+        const setupSafariInteractionHandlers = () => {
+          let videoPlayed = false;
+          let interactionAttempts = 0;
+          const maxAttempts = 3;
           
-          const playOnInteraction = (event) => {
-            if (hasPlayed) return;
+          const playSafariVideo = async () => {
+            if (videoPlayed || interactionAttempts >= maxAttempts) return;
             
-            console.log('User interaction detected, attempting to play video');
-            const playPromise = phoneVideo.play();
-            if (playPromise !== undefined) {
-              playPromise.then(() => {
-                console.log('Video started after user interaction');
-                hasPlayed = true;
-                cleanup();
-              }).catch(e => {
-                console.log('Video play still failed:', e);
-                // Show fallback image
+            interactionAttempts++;
+            console.log(`Safari play attempt ${interactionAttempts}`);
+            
+            try {
+              // Safari sometimes needs a small delay
+              await new Promise(resolve => setTimeout(resolve, 50));
+              
+              // Ensure video is properly configured
+              phoneVideo.muted = true;
+              phoneVideo.playsInline = true;
+              
+              // Force reload if needed
+              if (phoneVideo.readyState === 0) {
+                phoneVideo.load();
+                await new Promise(resolve => {
+                  const onLoadStart = () => {
+                    phoneVideo.removeEventListener('loadstart', onLoadStart);
+                    resolve();
+                  };
+                  phoneVideo.addEventListener('loadstart', onLoadStart);
+                });
+              }
+              
+              const playPromise = phoneVideo.play();
+              await playPromise;
+              
+              console.log('Safari video started successfully');
+              videoPlayed = true;
+              cleanupSafariHandlers();
+              
+            } catch (error) {
+              console.log(`Safari play attempt ${interactionAttempts} failed:`, error);
+              
+              if (interactionAttempts >= maxAttempts) {
+                console.log('All Safari play attempts failed, showing fallback');
                 showVideoFallback();
-              });
+                cleanupSafariHandlers();
+              }
             }
           };
           
-          const cleanup = () => {
-            document.removeEventListener('touchstart', playOnInteraction);
-            document.removeEventListener('touchend', playOnInteraction);
-            document.removeEventListener('click', playOnInteraction);
-            document.removeEventListener('scroll', playOnInteraction);
-            window.removeEventListener('focus', playOnInteraction);
+          const cleanupSafariHandlers = () => {
+            document.removeEventListener('touchstart', playSafariVideo);
+            document.removeEventListener('touchend', playSafariVideo);
+            document.removeEventListener('touchmove', playSafariVideo);
+            document.removeEventListener('click', playSafariVideo);
+            document.removeEventListener('scroll', playSafariVideo);
+            document.removeEventListener('keydown', playSafariVideo);
+            window.removeEventListener('focus', playSafariVideo);
           };
           
-          // Add multiple event listeners for user interaction
-          document.addEventListener('touchstart', playOnInteraction, { once: true, passive: true });
-          document.addEventListener('touchend', playOnInteraction, { once: true, passive: true });
-          document.addEventListener('click', playOnInteraction, { once: true, passive: true });
-          document.addEventListener('scroll', playOnInteraction, { once: true, passive: true });
-          window.addEventListener('focus', playOnInteraction, { once: true, passive: true });
+          // Add comprehensive event listeners for Safari
+          document.addEventListener('touchstart', playSafariVideo, { passive: true });
+          document.addEventListener('touchend', playSafariVideo, { passive: true });
+          document.addEventListener('touchmove', playSafariVideo, { passive: true });
+          document.addEventListener('click', playSafariVideo, { passive: true });
+          document.addEventListener('scroll', playSafariVideo, { passive: true });
+          document.addEventListener('keydown', playSafariVideo, { passive: true });
+          window.addEventListener('focus', playSafariVideo, { passive: true });
           
-          // Also try when page becomes visible
+          // Safari-specific: Try on page visibility change
           document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && !hasPlayed) {
-              playOnInteraction();
+            if (!document.hidden && !videoPlayed) {
+              setTimeout(playSafariVideo, 100);
             }
           });
+          
+          // Safari-specific: Try when video becomes visible
+          const safariObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting && !videoPlayed) {
+                setTimeout(playSafariVideo, 200);
+              }
+            });
+          }, { threshold: 0.1 });
+          
+          safariObserver.observe(phoneVideo);
+          
+          // Cleanup observer when video plays
+          const originalPlay = playSafariVideo;
+          const wrappedPlay = async () => {
+            await originalPlay();
+            if (videoPlayed) {
+              safariObserver.disconnect();
+            }
+          };
+          
+          // Replace the function reference
+          document.removeEventListener('touchstart', playSafariVideo);
+          document.addEventListener('touchstart', wrappedPlay, { passive: true });
         };
         
-        // Immediate play attempt
-        setTimeout(attemptPlay, 100);
+        // Initial play attempts with Safari-specific timing
+        setTimeout(() => safariPlayStrategy(), 200);
         
         // Secondary attempt after page load
         if (document.readyState === 'complete') {
-          setTimeout(attemptPlay, 500);
+          setTimeout(() => safariPlayStrategy(), 800);
         } else {
           window.addEventListener('load', () => {
-            setTimeout(attemptPlay, 500);
+            setTimeout(() => safariPlayStrategy(), 800);
           });
         }
         
-        // Handle visibility changes
+        // Handle Safari lifecycle events
         document.addEventListener('visibilitychange', () => {
           if (!document.hidden && phoneVideo.paused) {
             setTimeout(() => {
-              phoneVideo.play().catch(e => console.log('Video resume failed:', e));
-            }, 100);
+              phoneVideo.play().catch(e => console.log('Safari resume failed:', e));
+            }, 300);
           }
         });
         
-        // Handle page focus
-        window.addEventListener('focus', () => {
+        window.addEventListener('pageshow', () => {
           if (phoneVideo.paused) {
             setTimeout(() => {
-              phoneVideo.play().catch(e => console.log('Video focus play failed:', e));
-            }, 100);
+              phoneVideo.play().catch(e => console.log('Safari pageshow play failed:', e));
+            }, 300);
           }
         });
         
@@ -138,12 +245,34 @@ document.addEventListener("DOMContentLoaded", function () {
           fallback.style.display = 'block';
           phoneVideo.style.display = 'none';
           console.log('Video fallback image shown');
+        } else {
+          // Create fallback if it doesn't exist
+          const fallbackImg = document.createElement('img');
+          fallbackImg.src = 'acoomh.png';
+          fallbackImg.alt = 'AcoomH App Preview';
+          fallbackImg.className = 'video-fallback';
+          fallbackImg.style.cssText = `
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+          `;
+          phoneVideo.parentNode.insertBefore(fallbackImg, phoneVideo.nextSibling);
+          fallbackImg.style.display = 'block';
+          phoneVideo.style.display = 'none';
+          console.log('Video fallback image created and shown');
         }
       };
       
-      // General video error handling
+      // Enhanced error handling for Safari
       phoneVideo.addEventListener('error', (e) => {
         console.error('Video error:', e);
+        console.error('Video error details:', {
+          error: e.target.error,
+          networkState: phoneVideo.networkState,
+          readyState: phoneVideo.readyState,
+          src: phoneVideo.currentSrc
+        });
         showVideoFallback();
       });
       
@@ -153,20 +282,37 @@ document.addEventListener("DOMContentLoaded", function () {
       
       phoneVideo.addEventListener('canplay', () => {
         console.log('Video can start playing');
-        if (isIOS && phoneVideo.paused) {
-          phoneVideo.play().catch(e => console.log('Video play on canplay failed:', e));
+        if (isIOSSafari && phoneVideo.paused) {
+          // Give Safari a moment before trying to play
+          setTimeout(() => {
+            phoneVideo.play().catch(e => console.log('Video play on canplay failed:', e));
+          }, 100);
         }
       });
       
-      // Intersection observer for when video becomes visible
+      // Safari-specific: Handle when video can play through
+      phoneVideo.addEventListener('canplaythrough', () => {
+        console.log('Video can play through');
+        if (isIOSSafari && phoneVideo.paused) {
+          setTimeout(() => {
+            phoneVideo.play().catch(e => console.log('Video play on canplaythrough failed:', e));
+          }, 100);
+        }
+      });
+      
+      // Intersection observer with Safari-optimized settings
       const videoObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting && phoneVideo.paused) {
             console.log('Video is visible, attempting to play');
-            phoneVideo.play().catch(e => console.log('Video intersection play failed:', e));
+            // Safari needs a longer delay when video becomes visible
+            const delay = isIOSSafari ? 300 : 100;
+            setTimeout(() => {
+              phoneVideo.play().catch(e => console.log('Video intersection play failed:', e));
+            }, delay);
           }
         });
-      }, { threshold: 0.3 });
+      }, { threshold: isIOSSafari ? 0.1 : 0.3 }); // Lower threshold for Safari
       
       videoObserver.observe(phoneVideo);
     }

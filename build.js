@@ -18,6 +18,38 @@ const timestamp = Date.now();
 
 console.log('🚀 Starting build process...\n');
 
+// Function to check if files exist
+function checkRequiredFiles() {
+  const requiredFiles = [
+    'index.html',
+    'acoomh.png',
+    'acoomharta.mp4',
+    'acoomharta_noaudio.mp4',
+    'acoomharta_safe.mp4'
+  ];
+  
+  const missingFiles = [];
+  
+  requiredFiles.forEach(file => {
+    if (!fs.existsSync(path.join(__dirname, file))) {
+      missingFiles.push(file);
+    }
+  });
+  
+  if (missingFiles.length > 0) {
+    console.log('❌ Missing required files:');
+    missingFiles.forEach(file => console.log(`   - ${file}`));
+    console.log('\n⚠️  These files must be uploaded to your production server!\n');
+  } else {
+    console.log('✅ All required files present\n');
+  }
+  
+  return missingFiles;
+}
+
+// Check files first
+checkRequiredFiles();
+
 // Function to minify CSS
 function minifyCSS(cssContent) {
   if (!CleanCSS) return cssContent;
@@ -156,14 +188,19 @@ function updateHTML() {
   
   if (useMinified) {
     console.log('\n🎉 Build complete! Minified files are ready for production.');
-    console.log('📦 Files to deploy:');
+    console.log('📦 Files to deploy to /var/www/acoomh/:');
     console.log('   - index.html');
     console.log('   - style.min.css');
     console.log('   - script.min.js');
     console.log('   - acoomh.png');
     console.log('   - acoomharta.mp4');
-    console.log('   - acoomharta_noaudio.mp4');
+    console.log('   - acoomharta_noaudio.mp4  ⭐ CRITICAL FOR SAFARI!');
     console.log('   - acoomharta_safe.mp4');
+    console.log('   - nginx.conf (update server config)');
+    console.log('\n🔧 After uploading files:');
+    console.log('   1. sudo nginx -t (test config)');
+    console.log('   2. sudo systemctl reload nginx');
+    console.log('   3. Check https://acoomh.ro/acoomharta_noaudio.mp4 directly');
   } else {
     console.log('\n💡 Tip: Run "npm install" to enable CSS/JS minification for smaller file sizes.');
   }

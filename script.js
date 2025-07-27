@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let isScrolling = false;
     let currentSectionIndex = 0;
     let handlersInitialized = false;
+    let sectionsWrapper = null; // Store wrapper reference
     
     // Mobile touch variables
     let touchStartY = 0;
@@ -50,6 +51,43 @@ document.addEventListener("DOMContentLoaded", function () {
     const maxSwipeTime = 500;
     const scrollCooldown = 800;
     let lastScrollTime = 0;
+
+    // CRITICAL FIX: Create sections wrapper immediately during initialization
+    function createSectionsWrapper() {
+      if (sectionsWrapper) return sectionsWrapper; // Return existing wrapper if already created
+      
+      sectionsWrapper = document.createElement('div');
+      sectionsWrapper.className = 'sections-wrapper';
+      sectionsWrapper.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: transform;
+        transform: translateY(0px);
+      `;
+      
+      // Move all sections into the wrapper
+      const body = document.body;
+      const navbar = document.querySelector('.navbar');
+      const sectionsToWrap = Array.from(sections);
+      
+      sectionsToWrap.forEach(section => {
+        sectionsWrapper.appendChild(section);
+      });
+      
+      // Insert wrapper after navbar
+      if (navbar && navbar.nextSibling) {
+        body.insertBefore(sectionsWrapper, navbar.nextSibling);
+      } else {
+        body.appendChild(sectionsWrapper);
+      }
+      
+      console.log('✅ Sections wrapper created during initialization');
+      return sectionsWrapper;
+    }
 
     // Smooth scroll function
     function smoothScrollTo(targetY, duration = 1000) {
@@ -115,37 +153,9 @@ document.addEventListener("DOMContentLoaded", function () {
           currentScroll: window.pageYOffset
         });
         
-        // For desktop, we'll use transforms like mobile but without the wrapper
-        // This gives us snap scrolling on desktop too
-        let sectionsWrapper = document.querySelector('.sections-wrapper');
+        // Use the pre-created wrapper instead of creating it here
         if (!sectionsWrapper) {
-          sectionsWrapper = document.createElement('div');
-          sectionsWrapper.className = 'sections-wrapper';
-          sectionsWrapper.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: transform;
-          `;
-          
-          // Move all sections into the wrapper
-          const body = document.body;
-          const navbar = document.querySelector('.navbar');
-          const sectionsToWrap = Array.from(sections);
-          
-          sectionsToWrap.forEach(section => {
-            sectionsWrapper.appendChild(section);
-          });
-          
-          // Insert wrapper after navbar
-          if (navbar && navbar.nextSibling) {
-            body.insertBefore(sectionsWrapper, navbar.nextSibling);
-          } else {
-            body.appendChild(sectionsWrapper);
-          }
+          sectionsWrapper = createSectionsWrapper();
         }
         
         const viewportHeight = window.innerHeight;
@@ -196,37 +206,9 @@ document.addEventListener("DOMContentLoaded", function () {
           calculatedDistance: targetY - window.pageYOffset
         });
         
-        // CRITICAL FIX: Use transforms instead of window.scrollTo for mobile
-        // Create a wrapper for all sections if it doesn't exist
-        let sectionsWrapper = document.querySelector('.sections-wrapper');
+        // Use the pre-created wrapper instead of creating it here
         if (!sectionsWrapper) {
-          sectionsWrapper = document.createElement('div');
-          sectionsWrapper.className = 'sections-wrapper';
-          sectionsWrapper.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: transform;
-          `;
-          
-          // Move all sections into the wrapper
-          const body = document.body;
-          const navbar = document.querySelector('.navbar');
-          const sectionsToWrap = Array.from(sections);
-          
-          sectionsToWrap.forEach(section => {
-            sectionsWrapper.appendChild(section);
-          });
-          
-          // Insert wrapper after navbar
-          if (navbar && navbar.nextSibling) {
-            body.insertBefore(sectionsWrapper, navbar.nextSibling);
-          } else {
-            body.appendChild(sectionsWrapper);
-          }
+          sectionsWrapper = createSectionsWrapper();
         }
         
         // Use transform to move to target section
@@ -327,6 +309,11 @@ document.addEventListener("DOMContentLoaded", function () {
       
       console.log('🔥 INITIALIZING MOBILE SCROLL BEHAVIOR');
       
+      // CRITICAL: Create sections wrapper before adding event listeners
+      if (!sectionsWrapper) {
+        createSectionsWrapper();
+      }
+      
       // Set overflow styles
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
@@ -349,6 +336,11 @@ document.addEventListener("DOMContentLoaded", function () {
       if (desktopEventListenersActive) return;
       
       console.log('🖥️ INITIALIZING DESKTOP SCROLL BEHAVIOR');
+      
+      // CRITICAL: Create sections wrapper before adding event listeners
+      if (!sectionsWrapper) {
+        createSectionsWrapper();
+      }
       
       // FIXED: Use hidden overflow for desktop snap scrolling too
       document.body.style.overflow = 'hidden';
@@ -553,6 +545,25 @@ document.addEventListener("DOMContentLoaded", function () {
     indicators.style.display = 'flex';
     indicators.style.flexDirection = 'column';
     indicators.style.gap = '10px';
+    // CRITICAL FIX: Make indicators less visible when not scrolling
+    indicators.style.opacity = '0.3';
+    indicators.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    indicators.style.transform = 'translateY(-50%) translateX(10px)'; // Slightly hidden to the right
+
+    // Add responsive hiding for smaller screens
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    
+    function handleMediaQuery(e) {
+      if (e.matches) {
+        // Hide on mobile to prevent text cutting
+        indicators.style.display = 'none';
+      } else {
+        indicators.style.display = 'flex';
+      }
+    }
+    
+    handleMediaQuery(mediaQuery);
+    mediaQuery.addListener(handleMediaQuery);
 
     sections.forEach((section, index) => {
       const dot = document.createElement('div');
@@ -580,6 +591,41 @@ document.addEventListener("DOMContentLoaded", function () {
       
       indicators.appendChild(dot);
     });
+
+    // Add hover effects to make indicators more visible when needed
+    indicators.addEventListener('mouseenter', () => {
+      indicators.style.opacity = '1';
+      indicators.style.transform = 'translateY(-50%) translateX(0px)';
+    });
+
+    indicators.addEventListener('mouseleave', () => {
+      indicators.style.opacity = '0.3';
+      indicators.style.transform = 'translateY(-50%) translateX(10px)';
+    });
+
+    // Make indicators more visible during scrolling
+    let scrollingTimeout;
+    let lastScrollingTime = 0;
+
+    // Track scrolling activity
+    function showIndicatorsDuringScroll() {
+      lastScrollingTime = Date.now();
+      indicators.style.opacity = '0.8';
+      indicators.style.transform = 'translateY(-50%) translateX(0px)';
+      
+      clearTimeout(scrollingTimeout);
+      scrollingTimeout = setTimeout(() => {
+        const timeSinceLastScroll = Date.now() - lastScrollingTime;
+        if (timeSinceLastScroll >= 1500) { // Hide after 1.5 seconds of no scrolling
+          indicators.style.opacity = '0.3';
+          indicators.style.transform = 'translateY(-50%) translateX(10px)';
+        }
+      }, 1500);
+    }
+
+    // Listen for wheel events to show indicators during scrolling
+    window.addEventListener('wheel', showIndicatorsDuringScroll, { passive: true });
+    window.addEventListener('touchmove', showIndicatorsDuringScroll, { passive: true });
 
     document.body.appendChild(indicators);
     updateIndicators();

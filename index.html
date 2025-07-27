@@ -37,7 +37,7 @@
     <title>AcoomH - Discover Hidden Experiences</title>
     <link rel="icon" type="image/png" href="acoomh.png" />
     <!-- Load stylesheets with cache busting -->
-    <link rel="stylesheet" href="style.min.css?v=1753631687658" />
+    <link rel="stylesheet" href="style.min.css?v=1753633467903" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -145,16 +145,18 @@
                     class="phone-video"
                     autoplay
                     muted
-                    playsinline webkit-playsinline
+                    playsinline
                     loop
                     preload="metadata"
                     disablePictureInPicture
                   >
-                    <source src="acoomharta.mp4" type="video/mp4">
-                    <div class="video-fallback">
-                      <img src="acoomh.png" alt="AcoomH App Preview">
-                    </div>
+                    <source src="acoomharta_noaudio.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
                   </video>
+                  <!-- Fallback image pentru browsere care nu suportă video -->
+                  <div class="video-fallback" style="display: none;">
+                    <img src="acoomh.png" alt="AcoomH App Preview">
+                  </div>
                 </div>
               </div>
             </div>
@@ -316,6 +318,6 @@
     </footer>
 
     <!-- Load JavaScript -->
-    <script src="script.min.js?v=1753631687658"></script>
+    <script src="script.min.js?v=1753633467903"></script>
   </body>
 </html>

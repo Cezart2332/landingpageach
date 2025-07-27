@@ -162,6 +162,8 @@ function updateHTML() {
     console.log('   - script.min.js');
     console.log('   - acoomh.png');
     console.log('   - acoomharta.mp4');
+    console.log('   - acoomharta_noaudio.mp4');
+    console.log('   - acoomharta_safe.mp4');
   } else {
     console.log('\n💡 Tip: Run "npm install" to enable CSS/JS minification for smaller file sizes.');
   }

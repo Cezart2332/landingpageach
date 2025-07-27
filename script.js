@@ -16,6 +16,65 @@ document.addEventListener("DOMContentLoaded", function () {
       
       console.log('🎥 Starting video initialization...');
       
+      // Enhanced error handling for video loading
+      phoneVideo.addEventListener('loadstart', () => {
+        console.log('🎥 Video loading started');
+      });
+      
+      phoneVideo.addEventListener('loadeddata', () => {
+        console.log('🎥 Video data loaded');
+      });
+      
+      phoneVideo.addEventListener('canplay', () => {
+        console.log('🎥 Video can start playing');
+      });
+      
+      phoneVideo.addEventListener('error', (e) => {
+        console.error('🎥 Video error occurred:', {
+          error: e,
+          networkState: phoneVideo.networkState,
+          readyState: phoneVideo.readyState,
+          src: phoneVideo.currentSrc
+        });
+        
+        // Try alternative video sources if the current one fails
+        if (phoneVideo.src.includes('acoomharta_noaudio.mp4')) {
+          console.log('🎥 Trying fallback video: acoomharta_safe.mp4');
+          phoneVideo.src = 'acoomharta_safe.mp4';
+          phoneVideo.load();
+        } else if (phoneVideo.src.includes('acoomharta_safe.mp4')) {
+          console.log('🎥 Trying fallback video: acoomharta.mp4');
+          phoneVideo.src = 'acoomharta.mp4';
+          phoneVideo.load();
+        } else {
+          // Show fallback image if all videos fail
+          const fallback = document.querySelector('.video-fallback');
+          if (fallback) {
+            fallback.style.display = 'block';
+            phoneVideo.style.display = 'none';
+          }
+        }
+      });
+      
+      phoneVideo.addEventListener('stalled', () => {
+        console.log('⚠️ Video loading stalled - network might be slow');
+        // Force reload after stall
+        setTimeout(() => {
+          if (phoneVideo.readyState < 3) { // If not enough data loaded
+            console.log('🎥 Forcing video reload due to stall');
+            phoneVideo.load();
+          }
+        }, 2000);
+      });
+      
+      phoneVideo.addEventListener('suspend', () => {
+        console.log('⚠️ Video loading suspended');
+      });
+      
+      phoneVideo.addEventListener('abort', () => {
+        console.log('⚠️ Video loading aborted');
+      });
+      
       // Set all required attributes for Safari autoplay
       phoneVideo.muted = true;
       phoneVideo.defaultMuted = true;
@@ -29,16 +88,22 @@ document.addEventListener("DOMContentLoaded", function () {
       phoneVideo.setAttribute('playsinline', '');
       phoneVideo.setAttribute('autoplay', '');
       phoneVideo.setAttribute('loop', '');
-      phoneVideo.setAttribute('preload', 'metadata');
+      phoneVideo.setAttribute('preload', 'auto'); // Change to 'auto' for better loading
       
       console.log('🎥 Video attributes configured for Safari autoplay');
       
       // Track if video has started playing
       let hasStartedPlaying = false;
       
-      // Multiple autoplay strategies
+      // Enhanced autoplay function with better error handling
       const tryAutoplay = (strategy) => {
         console.log(`🎥 Trying autoplay strategy: ${strategy}`);
+        
+        // Check if video is ready to play
+        if (phoneVideo.readyState < 3) {
+          console.log(`🎥 Video not ready for strategy: ${strategy}, readyState: ${phoneVideo.readyState}`);
+          return Promise.resolve(false);
+        }
         
         const playPromise = phoneVideo.play();
         
@@ -50,21 +115,30 @@ document.addEventListener("DOMContentLoaded", function () {
               return true;
             })
             .catch(error => {
-              console.log(`❌ Autoplay failed with strategy: ${strategy} - ${error.name}`);
+              console.log(`❌ Autoplay failed with strategy: ${strategy} - ${error.name}: ${error.message}`);
+              
+              // If it's a NotAllowedError, we need user interaction
+              if (error.name === 'NotAllowedError') {
+                console.log('🎥 Autoplay blocked - user interaction required');
+              }
+              
               return false;
             });
         }
         return Promise.resolve(false);
       };
       
-      // Strategy 1: Immediate play attempt
+      // Strategy 1: Force video load first
+      phoneVideo.load();
+      
+      // Strategy 2: Immediate play attempt after short delay
       setTimeout(() => {
         if (!hasStartedPlaying) {
           tryAutoplay('immediate');
         }
-      }, 100);
+      }, 500);
       
-      // Strategy 2: When video metadata is loaded
+      // Strategy 3: When video metadata is loaded
       phoneVideo.addEventListener('loadedmetadata', () => {
         console.log('🎥 Video metadata loaded');
         if (!hasStartedPlaying) {
@@ -72,7 +146,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
       
-      // Strategy 3: When video can play through
+      // Strategy 4: When video can play through
       phoneVideo.addEventListener('canplaythrough', () => {
         console.log('🎥 Video can play through');
         if (!hasStartedPlaying) {
@@ -80,7 +154,15 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
       
-      // Strategy 4: Intersection Observer (when video becomes visible)
+      // Strategy 5: When enough data is loaded
+      phoneVideo.addEventListener('canplay', () => {
+        console.log('🎥 Video can play (some data loaded)');
+        if (!hasStartedPlaying) {
+          setTimeout(() => tryAutoplay('can-play'), 200);
+        }
+      });
+      
+      // Strategy 6: Intersection Observer (when video becomes visible)
       if ('IntersectionObserver' in window) {
         const videoObserver = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
@@ -110,15 +192,24 @@ document.addEventListener("DOMContentLoaded", function () {
         const playOnInteraction = (eventType) => {
           console.log(`🎥 User ${eventType} detected - attempting video play`);
           
-          tryAutoplay(`user-${eventType}`).then(success => {
-            if (success) {
-              // Remove all interaction listeners after success
-              document.removeEventListener('click', clickHandler);
-              document.removeEventListener('touchstart', touchHandler);
-              document.removeEventListener('scroll', scrollHandler);
-              document.removeEventListener('keydown', keyHandler);
-            }
-          });
+          // Force reload if video seems stuck
+          if (phoneVideo.readyState < 2) {
+            console.log('🎥 Video not ready, forcing reload');
+            phoneVideo.load();
+            setTimeout(() => {
+              tryAutoplay(`user-${eventType}-after-reload`);
+            }, 500);
+          } else {
+            tryAutoplay(`user-${eventType}`).then(success => {
+              if (success) {
+                // Remove all interaction listeners after success
+                document.removeEventListener('click', clickHandler);
+                document.removeEventListener('touchstart', touchHandler);
+                document.removeEventListener('scroll', scrollHandler);
+                document.removeEventListener('keydown', keyHandler);
+              }
+            });
+          }
         };
         
         const clickHandler = () => playOnInteraction('click');
@@ -140,7 +231,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!hasStartedPlaying) {
           setupUserInteractionFallback();
         }
-      }, 2000);
+      }, 3000);
       
       // Success tracking
       phoneVideo.addEventListener('playing', () => {
@@ -150,27 +241,34 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
       
-      // Error handling
-      phoneVideo.addEventListener('error', (e) => {
-        console.error('🎥 Video error:', e);
-        const fallback = document.querySelector('.video-fallback');
-        if (fallback) {
-          fallback.style.display = 'block';
-          phoneVideo.style.display = 'none';
+      phoneVideo.addEventListener('pause', () => {
+        console.log('⏸️ Video paused');
+        // Auto-resume if paused unexpectedly
+        if (hasStartedPlaying && !phoneVideo.ended) {
+          setTimeout(() => {
+            if (!hasStartedPlaying) {
+              tryAutoplay('auto-resume');
+            }
+          }, 1000);
         }
       });
       
       // Network state monitoring
-      phoneVideo.addEventListener('loadstart', () => {
-        console.log('🎥 Video loading started');
-      });
-      
       phoneVideo.addEventListener('progress', () => {
-        console.log('🎥 Video loading progress');
+        const buffered = phoneVideo.buffered;
+        if (buffered.length > 0) {
+          const bufferedEnd = buffered.end(buffered.length - 1);
+          const duration = phoneVideo.duration;
+          if (duration > 0) {
+            const bufferedPercent = (bufferedEnd / duration) * 100;
+            console.log(`🎥 Video loading progress: ${bufferedPercent.toFixed(1)}%`);
+          }
+        }
       });
       
-      phoneVideo.addEventListener('stalled', () => {
-        console.log('⚠️ Video loading stalled');
+      // Monitor network state changes
+      phoneVideo.addEventListener('loadstart', () => {
+        console.log(`🎥 Network state: ${phoneVideo.networkState}, Ready state: ${phoneVideo.readyState}`);
       });
     }
     

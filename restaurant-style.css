@@ -34,6 +34,12 @@ body {
   overflow-x: hidden;
 }
 
+/* Disable any potential barrel roll or unwanted rotation animations */
+body, body * {
+  animation: none !important;
+  transition: none !important;
+}
+
 /* Navigation */
 .navbar {
   position: fixed;
@@ -815,4 +821,39 @@ body {
 .popup-close-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-hover);
+}
+
+/* Re-enable only the animations we want */
+.loading {
+  animation: spin 1s ease-in-out infinite !important;
+}
+
+.animate-in {
+  animation: fadeInUp 0.6s ease-out !important;
+}
+
+.popup-overlay {
+  transition: opacity 0.3s ease !important;
+}
+
+.popup-content {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Restore button hover effects */
+.btn-back:hover,
+.btn-rezerva:hover,
+.btn-menu:hover,
+.popup-close-btn:hover {
+  transition: all 0.3s ease !important;
+}
+
+.form-input:focus {
+  transition: all 0.3s ease !important;
+}
+
+.schedule-item:hover,
+.info-item:hover,
+.feature-item:hover {
+  transition: all 0.3s ease !important;
 }

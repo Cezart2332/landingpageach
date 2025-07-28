@@ -177,30 +177,43 @@ function showError(message) {
 
 // Populate location details
 function populateLocationDetails(location) {
-  // Basic info
-  document.getElementById('restaurantName').textContent = location.name;
-  document.getElementById('restaurantAddress').textContent = location.address;
-  document.getElementById('restaurantCuisine').textContent = location.category;
+  // Basic info with null checking
+  document.getElementById('restaurantName').textContent = location.name || 'Restaurant';
+  document.getElementById('restaurantAddress').textContent = location.address || 'Adresă necunoscută';
+  document.getElementById('restaurantCuisine').textContent = location.category || 'Restaurant';
   
   // Description (use a default if not provided)
   const description = location.description || 
-    `Descoperă ${location.name}, un loc minunat cu o atmosferă unică și o experiență de neuitat. Situat în ${location.address}, oferim servicii de calitate și o experiență plăcută pentru toți vizitatorii.`;
+    `Descoperă ${location.name || 'acest loc'}, un loc minunat cu o atmosferă unică și o experiență de neuitat. Situat în ${location.address || 'oraș'}, oferim servicii de calitate și o experiență plăcută pentru toți vizitatorii.`;
   document.getElementById('restaurantDescription').textContent = description;
   
-  // Restaurant image
+  // Restaurant image with better error handling
   const restaurantImage = document.getElementById('restaurantImage');
-  if (location.photo && location.photo.length > 0) {
+  if (location.photo && Array.isArray(location.photo) && location.photo.length > 0) {
     try {
-      const imageUrl = `data:image/jpeg;base64,${arrayBufferToBase64(location.photo)}`;
+      // Convert array of bytes to base64
+      const base64String = btoa(String.fromCharCode.apply(null, location.photo));
+      const imageUrl = `data:image/jpeg;base64,${base64String}`;
       restaurantImage.src = imageUrl;
+      restaurantImage.onerror = () => setDefaultImage(restaurantImage, location.category);
     } catch (error) {
       console.error('Error processing image:', error);
+      setDefaultImage(restaurantImage, location.category);
+    }
+  } else if (location.photo && typeof location.photo === 'string') {
+    // If photo is already a base64 string
+    try {
+      const imageUrl = location.photo.startsWith('data:') ? location.photo : `data:image/jpeg;base64,${location.photo}`;
+      restaurantImage.src = imageUrl;
+      restaurantImage.onerror = () => setDefaultImage(restaurantImage, location.category);
+    } catch (error) {
+      console.error('Error processing image string:', error);
       setDefaultImage(restaurantImage, location.category);
     }
   } else {
     setDefaultImage(restaurantImage, location.category);
   }
-  restaurantImage.alt = location.name;
+  restaurantImage.alt = location.name || 'Restaurant';
   
   // Tags
   const tagsContainer = document.getElementById('restaurantTags');
@@ -249,7 +262,10 @@ function setDefaultImage(imageElement, category) {
     'club': 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
   };
   
-  const normalizedCategory = category.toLowerCase();
+  // Add null checking for category in setDefaultImage too
+  const normalizedCategory = category && typeof category === 'string' 
+    ? category.toLowerCase() 
+    : 'restaurant';
   imageElement.src = defaultImages[normalizedCategory] || defaultImages['restaurant'];
 }
 
@@ -340,7 +356,10 @@ function populateFeatures(location) {
     ]
   };
   
-  const normalizedCategory = location.category.toLowerCase();
+  // Add null checking for category here too
+  const normalizedCategory = location.category && typeof location.category === 'string' 
+    ? location.category.toLowerCase() 
+    : 'restaurant';
   const features = [...baseFeatures, ...(categoryFeatures[normalizedCategory] || [])];
   
   features.forEach(feature => {
@@ -362,6 +381,11 @@ function getCategoryIcon(category) {
     'club': 'fas fa-music',
     'bar': 'fas fa-cocktail'
   };
+  
+  // Add null checking for category
+  if (!category || typeof category !== 'string') {
+    return 'fas fa-store'; // Default icon
+  }
   
   const normalizedCategory = category.toLowerCase();
   return categoryIcons[normalizedCategory] || 'fas fa-store';

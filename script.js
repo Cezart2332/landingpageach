@@ -1103,10 +1103,16 @@ document.addEventListener("DOMContentLoaded", function () {
       if (heroButtons) {
         const allHeroButtons = heroButtons.querySelectorAll("button");
         if (allHeroButtons.length >= 2) {
-          allHeroButtons[0].addEventListener("click", (e) => {
+          // Remove any existing event listeners to prevent conflicts
+          allHeroButtons[0].replaceWith(allHeroButtons[0].cloneNode(true));
+          const rezervariButton = heroButtons.querySelectorAll("button")[0];
+          
+          rezervariButton.addEventListener("click", (e) => {
             e.preventDefault();
-            showReservationPopup();
+            e.stopPropagation();
+            window.location.href = 'rezervari.html';
           });
+          
           allHeroButtons[1].addEventListener("click", (e) => {
             e.preventDefault();
             showDownloadPopup();
@@ -1135,7 +1141,8 @@ document.addEventListener("DOMContentLoaded", function () {
       handlersInitialized = true;
     }
 
-    setTimeout(initializeButtonHandlers, 2000);
+    // Initialize button handlers immediately instead of waiting 2 seconds
+    initializeButtonHandlers();
 
     // Mystery box interaction
     const mysteryBox = document.querySelector(".mystery-box");

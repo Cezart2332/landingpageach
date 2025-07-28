@@ -212,8 +212,8 @@ function populateLocationDetails(location) {
   categoryTag.innerHTML = `${getCategoryIcon(location.category)} ${location.category}`;
   tagsContainer.appendChild(categoryTag);
   
-  // Add other tags if available
-  if (location.tags) {
+  // Add other tags if available - fix null checking here too
+  if (location.tags && typeof location.tags === 'string') {
     const tags = location.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
     tags.slice(0, 4).forEach(tag => {
       const tagElement = document.createElement('span');

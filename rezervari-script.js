@@ -114,8 +114,10 @@ function createLocationCard(location) {
   card.className = 'location-card';
   card.onclick = () => openLocationDetails(location.id);
   
-  // Process tags
-  const tags = location.tags ? location.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+  // Process tags with proper null checking
+  const tags = location.tags && typeof location.tags === 'string' 
+    ? location.tags.split(',').map(tag => tag.trim()).filter(tag => tag) 
+    : [];
   
   // Create image URL from byte array if available
   const imageUrl = location.photo && location.photo.length > 0 
@@ -333,8 +335,3 @@ window.rezervariPage = {
   loadLocations,
   showNotification
 };
-async function locatii(){
-  const response = await fetch("https://api.acoomh.ro/locations")
-  console.log(response)
-}
-locatii();

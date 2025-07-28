@@ -1,22 +1,37 @@
-// Restaurant Page JavaScript - AcoomH API Integration with CORS Proxy
+// Restaurant Page JavaScript - AcoomH API Integration
 
-// Use CORS proxy for local development
-const API_BASE_URL = window.location.hostname === 'localhost' || 
-                    window.location.hostname === '127.0.0.1' || 
-                    window.location.hostname === '' 
-                    ? 'https://cors-anywhere.herokuapp.com/https://api.acoomh.ro'
-                    : 'https://api.acoomh.ro';
+// CRITICAL: Show loading overlay immediately to prevent page flipping
+document.body.classList.add('loading');
+const immediateOverlay = document.createElement('div');
+immediateOverlay.className = 'page-loading-overlay';
+immediateOverlay.id = 'pageLoadingOverlay';
+immediateOverlay.innerHTML = `
+  <div class="loading-spinner-container">
+    <div class="modern-loading-spinner"></div>
+    <div class="loading-text">
+      Se încarcă<span class="loading-dots"></span>
+    </div>
+  </div>
+`;
+document.body.appendChild(immediateOverlay);
+
+// Direct API endpoint
+const API_BASE_URL = 'https://api.acoomh.ro';
 
 let currentLocation = null;
 
 document.addEventListener("DOMContentLoaded", function () {
   try {
+    // Show loading overlay immediately when DOM is ready
+    showLoadingOverlay();
+
     // Get location ID from URL
     const locationId = getLocationId();
     if (locationId) {
       loadLocationDetails(locationId);
     } else {
       showError('ID-ul locației nu a fost găsit în URL.');
+      hideLoadingOverlay(); // FIXED: Hide loading overlay on error
       return;
     }
 
@@ -33,10 +48,100 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 1000);
     }
     
+    // FIXED: Ensure loading overlay is hidden after initialization
+    setTimeout(() => {
+      hideLoadingOverlay();
+    }, 1500); // Increased timeout to ensure API calls complete
+    
+    // Override navigation links to use loading overlay
+    setTimeout(() => {
+      const navigationLinks = document.querySelectorAll('a[href*=".html"], .btn[href*=".html"], .back-button, .btn-back');
+      
+      navigationLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          const href = this.getAttribute('href');
+          
+          // Only intercept internal navigation (not external links or anchors)
+          if (href && href.includes('.html') && !href.startsWith('http') && !href.startsWith('mailto') && !href.startsWith('tel')) {
+            e.preventDefault();
+            navigateWithLoading(href);
+          }
+        });
+      });
+    }, 100);
+    
   } catch (error) {
     console.error('Restaurant page initialization error:', error);
     showError('A apărut o problemă la încărcarea paginii.');
+    hideLoadingOverlay(); // FIXED: Hide loading overlay on error
   }
+});
+
+// Page Loading Overlay System - Prevents barrel roll animations
+function createLoadingOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'page-loading-overlay';
+  overlay.id = 'pageLoadingOverlay';
+  
+  overlay.innerHTML = `
+    <div class="loading-spinner-container">
+      <div class="modern-loading-spinner"></div>
+      <div class="loading-text">
+        Se încarcă<span class="loading-dots"></span>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function showLoadingOverlay() {
+  // Add loading class to body to disable animations
+  document.body.classList.add('loading');
+  document.body.classList.remove('loaded');
+  
+  // Create overlay if it doesn't exist
+  let overlay = document.getElementById('pageLoadingOverlay');
+  if (!overlay) {
+    overlay = createLoadingOverlay();
+  }
+  
+  // Show overlay
+  overlay.classList.remove('hidden');
+}
+
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('pageLoadingOverlay');
+  if (overlay) {
+    overlay.classList.add('hidden');
+    
+    // Remove overlay after transition
+    setTimeout(() => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    }, 500);
+  }
+  
+  // Re-enable animations
+  document.body.classList.remove('loading');
+  document.body.classList.add('loaded');
+}
+
+// Intercept page navigation to show loading overlay
+function navigateWithLoading(url) {
+  showLoadingOverlay();
+  
+  // Small delay before navigation to show loading state
+  setTimeout(() => {
+    window.location.href = url;
+  }, 100);
+}
+
+// Show loading on page unload (when leaving page)
+window.addEventListener('beforeunload', function() {
+  showLoadingOverlay();
 });
 
 // API Functions
@@ -44,22 +149,12 @@ async function loadLocationDetails(locationId) {
   try {
     showLoadingState();
     
-    // Prepare headers for CORS proxy
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-    
-    // Add special headers for CORS proxy when in development
-    if (window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1' || 
-        window.location.hostname === '') {
-      headers['X-Requested-With'] = 'XMLHttpRequest';
-    }
-    
     const response = await fetch(`${API_BASE_URL}/locations/${locationId}`, {
       method: 'GET',
-      headers: headers
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
     });
     
     if (!response.ok) {
@@ -71,8 +166,9 @@ async function loadLocationDetails(locationId) {
     
     const location = await response.json();
     currentLocation = location;
+    console.log('✅ Successfully loaded location details:', location);
     
-    // Load location hours if available
+    // Load location hours separately
     await loadLocationHours(locationId);
     
     populateLocationDetails(location);
@@ -88,58 +184,66 @@ async function loadLocationDetails(locationId) {
 
 async function loadLocationHours(locationId) {
   try {
-    // Prepare headers for CORS proxy
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-    
-    // Add special headers for CORS proxy when in development
-    if (window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1' || 
-        window.location.hostname === '') {
-      headers['X-Requested-With'] = 'XMLHttpRequest';
-    }
-    
     const response = await fetch(`${API_BASE_URL}/locations/${locationId}/hours`, {
       method: 'GET',
-      headers: headers
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
     });
     
     if (response.ok) {
       const hours = await response.json();
       currentLocation.hours = hours;
+      console.log('✅ Successfully loaded location hours:', hours);
+    } else {
+      console.log('No hours data available for this location');
+      currentLocation.hours = [];
     }
   } catch (error) {
     console.log('Could not load location hours:', error);
-    // Don't show error for hours, it's optional
+    currentLocation.hours = [];
   }
 }
 
 async function createReservation(reservationData) {
   try {
-    // Prepare headers for CORS proxy
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
+    // Prepare form data for the API
+    const formData = new FormData();
+    formData.append('customerName', reservationData.customerName);
+    formData.append('customerEmail', reservationData.customerEmail);
+    formData.append('customerPhone', reservationData.customerPhone);
+    formData.append('reservationDate', reservationData.reservationDate);
+    formData.append('reservationTime', reservationData.reservationTime);
+    formData.append('numberOfPeople', reservationData.numberOfPeople.toString());
+    formData.append('locationId', reservationData.locationId.toString());
+    formData.append('specialRequests', reservationData.specialRequests || '');
     
-    // Add special headers for CORS proxy when in development
-    if (window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1' || 
-        window.location.hostname === '') {
-      headers['X-Requested-With'] = 'XMLHttpRequest';
+    // Add userId if available (for logged-in users)
+    if (reservationData.userId) {
+      formData.append('userId', reservationData.userId.toString());
     }
-    
-    const response = await fetch(`${API_BASE_URL}/reservations`, {
+
+    const response = await fetch(`${API_BASE_URL}/reservation`, {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify(reservationData)
+      body: formData
     });
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = 'A apărut o eroare la crearea rezervării.';
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        // If not JSON, use the text directly if it's meaningful
+        if (errorText.length < 200) {
+          errorMessage = errorText;
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
     
     const reservation = await response.json();
@@ -178,126 +282,180 @@ function showError(message) {
 // Populate location details
 function populateLocationDetails(location) {
   // Basic info with null checking
-  document.getElementById('restaurantName').textContent = location.name || 'Restaurant';
-  document.getElementById('restaurantAddress').textContent = location.address || 'Adresă necunoscută';
-  document.getElementById('restaurantCuisine').textContent = location.category || 'Restaurant';
+  document.getElementById('restaurantName').textContent = location.Name || location.name || 'Restaurant';
+  document.getElementById('restaurantAddress').textContent = location.Address || location.address || 'Adresă necunoscută';
+  document.getElementById('restaurantCuisine').textContent = location.Category || location.category || 'Restaurant';
   
   // Description (use a default if not provided)
-  const description = location.description || 
-    `Descoperă ${location.name || 'acest loc'}, un loc minunat cu o atmosferă unică și o experiență de neuitat. Situat în ${location.address || 'oraș'}, oferim servicii de calitate și o experiență plăcută pentru toți vizitatorii.`;
+  const description = location.Description || location.description || 
+    `Descoperă ${location.Name || location.name || 'acest loc'}, un loc minunat cu o atmosferă unică și o experiență de neuitat. Situat în ${location.Address || location.address || 'oraș'}, oferim servicii de calitate și o experiență plăcută pentru toți vizitatorii.`;
   document.getElementById('restaurantDescription').textContent = description;
   
   // Restaurant image with better error handling
   const restaurantImage = document.getElementById('restaurantImage');
-  if (location.photo && Array.isArray(location.photo) && location.photo.length > 0) {
+  const photoData = location.Photo || location.photo;
+  
+  if (photoData) {
     try {
-      // Convert array of bytes to base64
-      const base64String = btoa(String.fromCharCode.apply(null, location.photo));
-      const imageUrl = `data:image/jpeg;base64,${base64String}`;
-      restaurantImage.src = imageUrl;
-      restaurantImage.onerror = () => setDefaultImage(restaurantImage, location.category);
+      let imageUrl;
+      if (typeof photoData === 'string') {
+        // If photo is already a base64 string
+        imageUrl = photoData.startsWith('data:') ? photoData : `data:image/jpeg;base64,${photoData}`;
+      } else if (Array.isArray(photoData) && photoData.length > 0) {
+        // If photo is an array of bytes
+        const base64String = btoa(String.fromCharCode.apply(null, photoData));
+        imageUrl = `data:image/jpeg;base64,${base64String}`;
+      }
+      
+      if (imageUrl) {
+        restaurantImage.src = imageUrl;
+        restaurantImage.onerror = () => setDefaultImage(restaurantImage, location.Category || location.category);
+      } else {
+        setDefaultImage(restaurantImage, location.Category || location.category);
+      }
     } catch (error) {
       console.error('Error processing image:', error);
-      setDefaultImage(restaurantImage, location.category);
-    }
-  } else if (location.photo && typeof location.photo === 'string') {
-    // If photo is already a base64 string
-    try {
-      const imageUrl = location.photo.startsWith('data:') ? location.photo : `data:image/jpeg;base64,${location.photo}`;
-      restaurantImage.src = imageUrl;
-      restaurantImage.onerror = () => setDefaultImage(restaurantImage, location.category);
-    } catch (error) {
-      console.error('Error processing image string:', error);
-      setDefaultImage(restaurantImage, location.category);
+      setDefaultImage(restaurantImage, location.Category || location.category);
     }
   } else {
-    setDefaultImage(restaurantImage, location.category);
+    setDefaultImage(restaurantImage, location.Category || location.category);
   }
-  restaurantImage.alt = location.name || 'Restaurant';
+  restaurantImage.alt = location.Name || location.name || 'Restaurant';
   
-  // Tags
+  // FIXED: Tags display - properly use location's category
   const tagsContainer = document.getElementById('restaurantTags');
   tagsContainer.innerHTML = '';
   
-  // Add category as first tag
+  // Add category as first tag with icon - use the actual location category
+  const categoryValue = location.category || location.Category || 'Location';
+  console.log(categoryValue + "test")
   const categoryTag = document.createElement('span');
   categoryTag.className = 'restaurant-tag primary';
-  categoryTag.innerHTML = `${getCategoryIcon(location.category)} ${location.category}`;
+  
+  // Create icon element properly
+  const iconClass = getCategoryIcon(categoryValue);
+  const iconElement = document.createElement('i');
+  iconElement.className = iconClass;
+  
+  categoryTag.appendChild(iconElement);
+  categoryTag.appendChild(document.createTextNode(` ${categoryValue}`));
   tagsContainer.appendChild(categoryTag);
   
-  // Add other tags if available - fix null checking here too
-  if (location.tags && typeof location.tags === 'string') {
-    const tags = location.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-    tags.slice(0, 4).forEach(tag => {
+  // Add other tags if available - check API response format
+  const tagsData = location.tags; // API returns lowercase 'tags'
+  if (tagsData && Array.isArray(tagsData) && tagsData.length > 0) {
+    // API returns tags as an array, filter out empty strings
+    const validTags = tagsData.filter(tag => tag && tag.trim().length > 0);
+    
+    // Display up to 4 additional tags
+    validTags.slice(0, 4).forEach(tag => {
       const tagElement = document.createElement('span');
       tagElement.className = 'restaurant-tag';
       tagElement.textContent = tag;
       tagsContainer.appendChild(tagElement);
     });
+    
+    console.log('✅ Tags processed from API:', validTags);
+  } else {
+    console.log('ℹ️ No tags data available for this location');
   }
   
-  // Schedule
+  // FIXED: Schedule display
   populateSchedule(location.hours);
   
   // Features based on category and available info
   populateFeatures(location);
   
   // Set phone if available from company data
-  if (location.company && location.company.email) {
-    // For now, we'll keep the default phone, but you could enhance this
+  if (location.Company && location.Company.phone) {
     const phoneElement = document.getElementById('restaurantPhone');
-    phoneElement.textContent = '0721 234 567'; // Default for now
-    phoneElement.href = 'tel:0721234567';
+    if (phoneElement) {
+      phoneElement.textContent = location.Company.phone;
+      phoneElement.href = `tel:${location.Company.phone.replace(/\s/g, '')}`;
+    }
+  } else if (location.phone) {
+    // Check for phone directly on location
+    const phoneElement = document.getElementById('restaurantPhone');
+    if (phoneElement) {
+      phoneElement.textContent = location.phone;
+      phoneElement.href = `tel:${location.phone.replace(/\s/g, '')}`;
+    }
+  } else {
+    // Hide phone info if not available
+    const phoneElement = document.getElementById('restaurantPhone');
+    if (phoneElement) {
+      const phoneItem = phoneElement.closest('.info-item');
+      if (phoneItem) {
+        phoneItem.style.display = 'none';
+      }
+    }
   }
   
   // Update page title
-  document.title = `${location.name} - AcoomH`;
-}
-
-function setDefaultImage(imageElement, category) {
-  const defaultImages = {
-    'restaurant': 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    'cafe': 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    'pub': 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    'club': 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
-  };
+  document.title = `${location.Name || location.name || 'Restaurant'} - AcoomH`;
   
-  // Add null checking for category in setDefaultImage too
-  const normalizedCategory = category && typeof category === 'string' 
-    ? category.toLowerCase() 
-    : 'restaurant';
-  imageElement.src = defaultImages[normalizedCategory] || defaultImages['restaurant'];
+  console.log('✅ Location details populated successfully:', location);
 }
 
 function populateSchedule(hours) {
   const scheduleContainer = document.getElementById('restaurantSchedule');
+  if (!scheduleContainer) {
+    console.warn('Schedule container not found');
+    return;
+  }
+  
   scheduleContainer.innerHTML = '';
   
-  const today = new Date().toLocaleDateString('ro-RO', { weekday: 'long' });
-  const todayCapitalized = today.charAt(0).toUpperCase() + today.slice(1);
+  const today = new Date();
+  const todayDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
   
-  const dayNames = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+  // Map day numbers to day names (API uses day names)
+  const dayNamesRo = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
+  const dayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   
-  if (hours && hours.length > 0) {
+  console.log('Processing schedule with hours:', hours);
+  
+  if (hours && Array.isArray(hours) && hours.length > 0) {
     // Use actual hours from API
-    dayNames.forEach(day => {
-      const dayHour = hours.find(h => h.dayOfWeek === day);
+    dayNamesRo.forEach((dayRo, index) => {
+      const dayEn = dayNamesEn[index];
+      
+      // Find hours for this day (check both Romanian and English day names)
+      const dayHour = hours.find(h => 
+        h.DayOfWeek === dayRo || 
+        h.DayOfWeek === dayEn ||
+        h.dayOfWeek === dayRo ||
+        h.dayOfWeek === dayEn
+      );
+      
       const scheduleItem = document.createElement('div');
       scheduleItem.className = 'schedule-item';
       
-      const isToday = day === todayCapitalized;
-      const hoursText = dayHour ? 
-        (dayHour.isClosed ? 'Închis' : `${dayHour.openTime} - ${dayHour.closeTime}`) : 
-        'Nedisponibil';
-      const isClosed = !dayHour || dayHour.isClosed;
+      const isToday = index === todayDay;
+      let hoursText = 'Nedisponibil';
+      let isClosed = true;
+      
+      if (dayHour) {
+        if (dayHour.IsClosed || dayHour.isClosed) {
+          hoursText = 'Închis';
+          isClosed = true;
+        } else if (dayHour.OpenTime || dayHour.openTime) {
+          const openTime = dayHour.OpenTime || dayHour.openTime;
+          const closeTime = dayHour.CloseTime || dayHour.closeTime;
+          hoursText = `${openTime} - ${closeTime}`;
+          isClosed = false;
+        }
+      }
       
       scheduleItem.innerHTML = `
-        <span class="schedule-day">${day}</span>
+        <span class="schedule-day">${dayRo}</span>
         <span class="schedule-hours ${isClosed ? 'closed' : ''} ${isToday ? 'current-day' : ''}">${hoursText}</span>
       `;
       
       scheduleContainer.appendChild(scheduleItem);
     });
+    
+    console.log('✅ Schedule populated from API data');
   } else {
     // Use default schedule
     const defaultSchedule = {
@@ -310,19 +468,18 @@ function populateSchedule(hours) {
       'Duminică': '12:00 - 21:00'
     };
     
-    Object.entries(defaultSchedule).forEach(([day, hoursText]) => {
+    Object.entries(defaultSchedule).forEach(([dayRo, hoursText], index) => {
       const scheduleItem = document.createElement('div');
       scheduleItem.className = 'schedule-item';
-      
-      const isToday = day === todayCapitalized;
-      
       scheduleItem.innerHTML = `
-        <span class="schedule-day">${day}</span>
-        <span class="schedule-hours ${isToday ? 'current-day' : ''}">${hoursText}</span>
+        <span class="schedule-day">${dayRo}</span>
+        <span class="schedule-hours">${hoursText}</span>
       `;
       
       scheduleContainer.appendChild(scheduleItem);
     });
+    
+    console.log('✅ Default schedule populated');
   }
 }
 
@@ -343,6 +500,10 @@ function populateFeatures(location) {
       { icon: 'fas fa-users', name: 'Pentru grupuri' }
     ],
     'cafe': [
+      { icon: 'fas fa-wifi', name: 'WiFi gratuit' },
+      { icon: 'fas fa-coffee', name: 'Cafea proaspătă' }
+    ],
+    'cafenea': [
       { icon: 'fas fa-wifi', name: 'WiFi gratuit' },
       { icon: 'fas fa-coffee', name: 'Cafea proaspătă' }
     ],
@@ -377,6 +538,7 @@ function getCategoryIcon(category) {
   const categoryIcons = {
     'restaurant': 'fas fa-utensils',
     'cafe': 'fas fa-coffee',
+    'cafenea': 'fas fa-coffee',
     'pub': 'fas fa-beer',
     'club': 'fas fa-music',
     'bar': 'fas fa-cocktail'
@@ -663,15 +825,114 @@ window.shareRestaurant = function() {
   }
 };
 
-// View menu function
-window.viewMenu = function() {
+// View menu function - FIXED to use actual API endpoint
+window.viewMenu = async function() {
+  if (!currentLocation) {
+    showPopup(
+      'Eroare',
+      'Datele locației nu sunt disponibile. Te rugăm să reîmprospătezi pagina.',
+      'fas fa-exclamation-triangle'
+    );
+    return;
+  }
+
   const restaurant = getCurrentRestaurant();
   
+  // Show loading state
   showPopup(
-    'Meniu Restaurant',
-    `Meniul pentru <strong>${restaurant.name}</strong> va fi disponibil în curând! <br><br>Pentru moment, poți suna la restaurant pentru a afla mai multe detalii despre preparatele disponibile.`,
+    'Se încarcă meniul...',
+    '<div class="loading" style="margin: 20px auto;"></div>',
     'fas fa-utensils'
   );
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/locations/${currentLocation.id}/menu`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/pdf,*/*'
+      }
+    });
+
+    // Close loading popup
+    const existingPopups = document.querySelectorAll('.popup-overlay');
+    existingPopups.forEach(popup => popup.remove());
+
+    if (response.ok) {
+      // Get the PDF blob
+      const blob = await response.blob();
+      
+      if (blob.size > 0) {
+        // Create a URL for the PDF blob
+        const pdfUrl = URL.createObjectURL(blob);
+        
+        // Open PDF in a new tab/window
+        const newWindow = window.open(pdfUrl, '_blank');
+        
+        if (newWindow) {
+          newWindow.document.title = `Meniu - ${restaurant.name}`;
+          
+          showPopup(
+            'Meniu deschis!',
+            `Meniul pentru <strong>${restaurant.name}</strong> s-a deschis într-o fereastră nouă.`,
+            'fas fa-check-circle',
+            true
+          );
+        } else {
+          // Fallback: create download link
+          const downloadLink = document.createElement('a');
+          downloadLink.href = pdfUrl;
+          downloadLink.download = `Meniu-${restaurant.name.replace(/\s+/g, '-')}.pdf`;
+          downloadLink.click();
+          
+          showPopup(
+            'Meniu descărcat!',
+            `Meniul pentru <strong>${restaurant.name}</strong> a fost descărcat pe dispozitivul tău.`,
+            'fas fa-download',
+            true
+          );
+        }
+        
+        // Clean up the blob URL after a delay
+        setTimeout(() => {
+          URL.revokeObjectURL(pdfUrl);
+        }, 60000);
+        
+      } else {
+        throw new Error('Fișierul meniu este gol');
+      }
+    } else if (response.status === 404) {
+      const currentPhone = getCurrentRestaurant().phone;
+      const phoneDisplay = currentPhone && currentPhone !== 'N/A' 
+        ? `<strong><a href="tel:${currentPhone.replace(/\s/g, '')}" style="color: var(--primary-color);">📞 ${currentPhone}</a></strong>`
+        : 'restaurant direct';
+        
+      showPopup(
+        'Meniu indisponibil',
+        `Meniul pentru <strong>${restaurant.name}</strong> nu este disponibil momentan.<br><br>Te rugăm să contactezi ${phoneDisplay} pentru informații despre preparatele disponibile.`,
+        'fas fa-info-circle'
+      );
+    } else {
+      throw new Error(`Eroare server: ${response.status}`);
+    }
+    
+  } catch (error) {
+    console.error('Error loading menu:', error);
+    
+    // Close any existing popups
+    const existingPopups = document.querySelectorAll('.popup-overlay');
+    existingPopups.forEach(popup => popup.remove());
+    
+    const currentPhone = getCurrentRestaurant().phone;
+    const phoneDisplay = currentPhone && currentPhone !== 'N/A'
+      ? `<strong><a href="tel:${currentPhone.replace(/\s/g, '')}" style="color: var(--primary-color);">📞 ${currentPhone}</a></strong>`
+      : 'restaurant direct';
+    
+    showPopup(
+      'Eroare la încărcarea meniului',
+      `Nu am putut încărca meniul pentru <strong>${restaurant.name}</strong>.<br><br>Te rugăm să încerci din nou mai târziu sau să contactezi ${phoneDisplay} pentru informații despre preparate.`,
+      'fas fa-exclamation-triangle'
+    );
+  }
 };
 
 // Go back function
@@ -746,17 +1007,25 @@ function validateInput(input) {
 // Helper function to get current restaurant data
 function getCurrentRestaurant() {
   if (currentLocation) {
+    // Get phone from company data or location data
+    let phone = 'N/A';
+    if (currentLocation.Company && currentLocation.Company.phone) {
+      phone = currentLocation.Company.phone;
+    } else if (currentLocation.phone) {
+      phone = currentLocation.phone;
+    }
+    
     return {
-      name: currentLocation.name,
-      address: currentLocation.address,
-      phone: '0721 234 567', // Default phone for now
-      cuisine: currentLocation.category
+      name: currentLocation.name || currentLocation.Name || 'Restaurant',
+      address: currentLocation.address || currentLocation.Address || '',
+      phone: phone,
+      cuisine: currentLocation.category || currentLocation.Category || 'Restaurant'
     };
   }
   return {
     name: 'Restaurant',
     address: '',
-    phone: '0721 234 567',
+    phone: 'N/A',
     cuisine: 'Restaurant'
   };
 }

@@ -1171,6 +1171,106 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
+    // Page Loading Overlay System - Prevents barrel roll animations
+    function createLoadingOverlay() {
+      const overlay = document.createElement('div');
+      overlay.className = 'page-loading-overlay';
+      overlay.id = 'pageLoadingOverlay';
+      
+      overlay.innerHTML = `
+        <div class="loading-spinner-container">
+          <div class="modern-loading-spinner"></div>
+          <div class="loading-text">
+            Se încarcă<span class="loading-dots"></span>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function showLoadingOverlay() {
+      // Add loading class to body to disable animations
+      document.body.classList.add('loading');
+      document.body.classList.remove('loaded');
+      
+      // Create overlay if it doesn't exist
+      let overlay = document.getElementById('pageLoadingOverlay');
+      if (!overlay) {
+        overlay = createLoadingOverlay();
+      }
+      
+      // Show overlay
+      overlay.classList.remove('hidden');
+    }
+
+    function hideLoadingOverlay() {
+      const overlay = document.getElementById('pageLoadingOverlay');
+      if (overlay) {
+        overlay.classList.add('hidden');
+        
+        // Remove overlay after transition
+        setTimeout(() => {
+          if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+          }
+        }, 500);
+      }
+      
+      // Re-enable animations
+      document.body.classList.remove('loading');
+      document.body.classList.add('loaded');
+    }
+
+    // Initialize loading system on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Show loading overlay immediately when DOM is ready
+      showLoadingOverlay();
+      
+      // ...existing DOMContentLoaded code...
+      
+      // Hide loading overlay after everything is ready
+      setTimeout(() => {
+        hideLoadingOverlay();
+      }, 800); // Small delay to ensure smooth transition
+    });
+
+    // Intercept page navigation to show loading overlay
+    function navigateWithLoading(url) {
+      showLoadingOverlay();
+      
+      // Small delay before navigation to show loading state
+      setTimeout(() => {
+        window.location.href = url;
+      }, 100);
+    }
+
+    // Override all navigation links to use loading overlay
+    document.addEventListener('DOMContentLoaded', function() {
+      // Wait for elements to be available
+      setTimeout(() => {
+        const navigationLinks = document.querySelectorAll('a[href*=".html"], .btn[href*=".html"], .nav-link[href*=".html"]');
+        
+        navigationLinks.forEach(link => {
+          link.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            
+            // Only intercept internal navigation (not external links or anchors)
+            if (href && href.includes('.html') && !href.startsWith('http') && !href.startsWith('mailto') && !href.startsWith('tel')) {
+              e.preventDefault();
+              navigateWithLoading(href);
+            }
+          });
+        });
+      }, 100);
+    });
+
+    // Show loading on page unload (when leaving page)
+    window.addEventListener('beforeunload', function() {
+      showLoadingOverlay();
+    });
+
   } catch (error) {
     console.error('Script error:', error);
   }

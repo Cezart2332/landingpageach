@@ -2490,3 +2490,121 @@ section {
     width: calc(25% - 22.5px);
   }
 }
+
+/* Page Transition Loading Overlay - CRITICAL for preventing barrel rolls */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-dark);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.modern-loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(139, 92, 246, 0.1);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: modernSpin 1s linear infinite;
+  position: relative;
+}
+
+.modern-loading-spinner::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border: 3px solid transparent;
+  border-top: 3px solid var(--secondary-color);
+  border-radius: 50%;
+  animation: modernSpin 2s linear infinite reverse;
+}
+
+.loading-text {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  animation: loadingPulse 2s ease-in-out infinite;
+}
+
+.loading-dots {
+  display: inline-block;
+  animation: loadingDots 1.5s ease-in-out infinite;
+}
+
+@keyframes modernSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes loadingPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes loadingDots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+
+/* CRITICAL: Disable ALL animations during page load to prevent barrel rolls */
+body.loading * {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Re-enable animations after page load */
+body.loaded * {
+  animation: initial;
+  transition: initial;
+  transform: initial;
+}
+
+/* Specific overrides for known problematic animations */
+body.loading .hero::before,
+body.loading .features::before,
+body.loading .about::before,
+body.loading .cta::before,
+body.loading .cta::after,
+body.loading .contact::before,
+body.loading .footer::before,
+body.loading .footer::after {
+  animation: none !important;
+}
+
+body.loading .floating-cards .card,
+body.loading .feature-card,
+body.loading .phone-mockup,
+body.loading .app-showcase {
+  animation: none !important;
+  transform: none !important;
+}

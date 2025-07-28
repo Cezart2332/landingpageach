@@ -1,11 +1,7 @@
-// Rezervari Page JavaScript - API Integration with CORS Proxy
+// Rezervari Page JavaScript - AcoomH API Integration
 
-// Use CORS proxy for local development
-const API_BASE_URL = window.location.hostname === 'localhost' || 
-                    window.location.hostname === '127.0.0.1' || 
-                    window.location.hostname === '' 
-                    ? 'https://cors-anywhere.herokuapp.com/https://api.acoomh.ro'
-                    : 'https://api.acoomh.ro';
+// Direct API endpoint
+const API_BASE_URL = 'https://api.acoomh.ro';
 
 let allLocations = [];
 let filteredLocations = [];
@@ -27,22 +23,12 @@ async function loadLocations() {
   showLoadingState();
   
   try {
-    // Prepare headers for CORS proxy
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-    
-    // Add special headers for CORS proxy when in development
-    if (window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1' || 
-        window.location.hostname === '') {
-      headers['X-Requested-With'] = 'XMLHttpRequest';
-    }
-    
     const response = await fetch(`${API_BASE_URL}/locations`, {
       method: 'GET',
-      headers: headers
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
     });
     
     if (!response.ok) {
@@ -112,17 +98,41 @@ function displayLocations(locations) {
 function createLocationCard(location) {
   const card = document.createElement('div');
   card.className = 'location-card';
-  card.onclick = () => openLocationDetails(location.id);
   
   // Process tags with proper null checking
   const tags = location.tags && typeof location.tags === 'string' 
     ? location.tags.split(',').map(tag => tag.trim()).filter(tag => tag) 
     : [];
   
-  // Create image URL from byte array if available
-  const imageUrl = location.photo && location.photo.length > 0 
-    ? `data:image/jpeg;base64,${arrayBufferToBase64(location.photo)}`
-    : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+  // FIXED: Better image handling for different data formats
+  let imageUrl = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+  
+  if (location.photo) {
+    try {
+      if (typeof location.photo === 'string') {
+        // If it's already a base64 string or URL
+        if (location.photo.startsWith('data:image/')) {
+          imageUrl = location.photo;
+        } else if (location.photo.startsWith('http')) {
+          imageUrl = location.photo;
+        } else {
+          // Assume it's a base64 string without the data URL prefix
+          imageUrl = `data:image/jpeg;base64,${location.photo}`;
+        }
+      } else if (Array.isArray(location.photo) && location.photo.length > 0) {
+        // If it's an array of bytes
+        const base64String = arrayBufferToBase64(location.photo);
+        imageUrl = `data:image/jpeg;base64,${base64String}`;
+      } else if (location.photo.constructor === ArrayBuffer || location.photo.buffer) {
+        // If it's an ArrayBuffer
+        const base64String = arrayBufferToBase64(new Uint8Array(location.photo));
+        imageUrl = `data:image/jpeg;base64,${base64String}`;
+      }
+    } catch (error) {
+      console.error('Error processing image for location:', location.id, error);
+      // Keep default image URL
+    }
+  }
   
   card.innerHTML = `
     <div class="location-image">
@@ -142,17 +152,41 @@ function createLocationCard(location) {
         </div>
       ` : ''}
       <div class="location-actions">
-        <button class="btn-view-details">
+        <button class="btn-view-details" data-location-id="${location.id}">
           <i class="fas fa-eye"></i>
           Vezi detalii
         </button>
-        <button class="btn-reserve" onclick="event.stopPropagation(); quickReserve(${location.id})">
+        <button class="btn-reserve" data-location-id="${location.id}">
           <i class="fas fa-calendar-check"></i>
           Rezervă
         </button>
       </div>
     </div>
   `;
+  
+  // FIXED: Add proper event listeners instead of inline onclick
+  const viewDetailsBtn = card.querySelector('.btn-view-details');
+  const reserveBtn = card.querySelector('.btn-reserve');
+  
+  viewDetailsBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    navigateWithLoading(`restaurant.html?id=${location.id}`);
+  });
+  
+  reserveBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    navigateWithLoading(`restaurant.html?id=${location.id}#reservation`);
+  });
+  
+  // Also add click to the card itself
+  card.addEventListener('click', function(e) {
+    // Only trigger if not clicking on buttons
+    if (!e.target.closest('.btn-view-details') && !e.target.closest('.btn-reserve')) {
+      navigateWithLoading(`restaurant.html?id=${location.id}`);
+    }
+  });
   
   return card;
 }
@@ -305,33 +339,111 @@ function initializeInteractions() {
   }
 }
 
-// Utility Functions
-function showNotification(message, type = 'info') {
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.innerHTML = `
-    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-    <span>${message}</span>
+// Page Loading Overlay System - Prevents barrel roll animations
+function createLoadingOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'page-loading-overlay';
+  overlay.id = 'pageLoadingOverlay';
+  
+  overlay.innerHTML = `
+    <div class="loading-spinner-container">
+      <div class="modern-loading-spinner"></div>
+      <div class="loading-text">
+        Se încarcă<span class="loading-dots"></span>
+      </div>
+    </div>
   `;
   
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    notification.classList.add('show');
-  }, 100);
-  
-  setTimeout(() => {
-    notification.classList.remove('show');
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
-        document.body.removeChild(notification);
-      }
-    }, 300);
-  }, 3000);
+  document.body.appendChild(overlay);
+  return overlay;
 }
 
-// Export utilities for potential future use
-window.rezervariPage = {
-  loadLocations,
-  showNotification
-};
+function showLoadingOverlay() {
+  // Add loading class to body to disable animations
+  document.body.classList.add('loading');
+  document.body.classList.remove('loaded');
+  
+  // Create overlay if it doesn't exist
+  let overlay = document.getElementById('pageLoadingOverlay');
+  if (!overlay) {
+    overlay = createLoadingOverlay();
+  }
+  
+  // Show overlay
+  overlay.classList.remove('hidden');
+}
+
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('pageLoadingOverlay');
+  if (overlay) {
+    overlay.classList.add('hidden');
+    
+    // Remove overlay after transition
+    setTimeout(() => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    }, 500);
+  }
+  
+  // Re-enable animations
+  document.body.classList.remove('loading');
+  document.body.classList.add('loaded');
+}
+
+// Intercept page navigation to show loading overlay
+function navigateWithLoading(url) {
+  showLoadingOverlay();
+  
+  // Small delay before navigation to show loading state
+  setTimeout(() => {
+    window.location.href = url;
+  }, 100);
+}
+
+// Show loading on page unload (when leaving page)
+window.addEventListener('beforeunload', function() {
+  showLoadingOverlay();
+});
+
+// Initialize everything when DOM is loaded
+document.addEventListener("DOMContentLoaded", function() {
+  try {
+    // Show loading overlay immediately when DOM is ready
+    showLoadingOverlay();
+    
+    // Initialize all components
+    initializeFiltering();
+    initializeSearch();
+    initializeInteractions();
+    
+    // Load locations from API
+    loadLocations();
+    
+    // Hide loading overlay after content is ready
+    setTimeout(() => {
+      hideLoadingOverlay();
+    }, 800);
+    
+    // Override navigation links to use loading overlay
+    setTimeout(() => {
+      const navigationLinks = document.querySelectorAll('a[href*=".html"], .btn[href*=".html"], .back-button');
+      
+      navigationLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          const href = this.getAttribute('href');
+          
+          // Only intercept internal navigation (not external links or anchors)
+          if (href && href.includes('.html') && !href.startsWith('http') && !href.startsWith('mailto') && !href.startsWith('tel')) {
+            e.preventDefault();
+            navigateWithLoading(href);
+          }
+        });
+      });
+    }, 100);
+    
+  } catch (error) {
+    console.error('Rezervari page initialization error:', error);
+    hideLoadingOverlay();
+  }
+});

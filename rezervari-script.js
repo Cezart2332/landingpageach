@@ -428,29 +428,57 @@ function hideLoadingOverlay() {
 
 // Intercept page navigation to show loading overlay - FIXED for instant overlay
 function navigateWithLoading(url) {
-  // CRITICAL: Show overlay immediately and synchronously
+  // CRITICAL: Create a full-screen blocking overlay immediately
+  const blockingOverlay = document.createElement('div');
+  blockingOverlay.style.cssText = `
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: #0f0f0f !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: all !important;
+  `;
+  
+  blockingOverlay.innerHTML = `
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+      <div style="width: 60px; height: 60px; border: 3px solid rgba(139, 92, 246, 0.1); border-top: 3px solid #6b46c1; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <div style="color: #ffffff; font-size: 1.1rem; font-weight: 600; text-align: center;">Se încarcă...</div>
+    </div>
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  `;
+  
+  // Add to body immediately
+  document.body.appendChild(blockingOverlay);
+  
+  // Force layout calculation to ensure overlay is rendered
+  blockingOverlay.offsetHeight;
+  
+  // Add loading state
   document.body.classList.add('loading');
   document.body.classList.remove('loaded');
   
-  // Create and show overlay immediately without any delays
-  let overlay = document.getElementById('pageLoadingOverlay');
-  if (!overlay) {
-    overlay = createLoadingOverlay();
-  }
-  
-  // Force immediate display
-  overlay.classList.remove('hidden');
-  overlay.style.opacity = '1';
-  overlay.style.visibility = 'visible';
-  
-  // Force a synchronous layout calculation to ensure overlay is rendered
-  overlay.offsetHeight;
-  
-  // Clear any existing timeouts that might hide the overlay
+  // Clear any existing timeouts
   clearTimeout(window.loadingTimeout);
   
-  // Navigate immediately after overlay is guaranteed to be visible
-  window.location.href = url;
+  // Use requestAnimationFrame to ensure overlay is fully rendered before navigation
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      // Navigate after overlay is guaranteed to be visible
+      window.location.href = url;
+    });
+  });
 }
 
 // FIXED: Ensure loading overlay is hidden when page becomes visible again

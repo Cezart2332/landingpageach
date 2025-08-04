@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- CRITICAL: Load CSS first to prevent FOUC -->
-    <link rel="stylesheet" href="restaurant-style.min.css?v=1754325614889" />
+    <link rel="stylesheet" href="restaurant-style.min.css?v=1754325972011" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -26,13 +26,21 @@
         font-family: "Inter", sans-serif !important;
       }
       
-      /* Hide content immediately */
+      /* Hide content immediately and more aggressively */
       body:not(.loading):not(.loaded) {
         visibility: hidden !important;
         opacity: 0 !important;
       }
       
-      /* Show loading overlay immediately */
+      /* Hide all main content until loaded */
+      body:not(.loaded) .restaurant-main,
+      body:not(.loaded) .navbar {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        display: none !important;
+      }
+      
+      /* Show loading overlay immediately with maximum priority */
       .page-loading-overlay {
         position: fixed !important;
         top: 0 !important;
@@ -40,7 +48,7 @@
         width: 100% !important;
         height: 100% !important;
         background: #0f0f0f !important;
-        z-index: 99999 !important;
+        z-index: 999999 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -262,6 +270,6 @@
     </main>
 
     <!-- Load JavaScript -->
-    <script src="restaurant-script.min.js?v=1754325614889"></script>
+    <script src="restaurant-script.min.js?v=1754325972011"></script>
 </body>
 </html>

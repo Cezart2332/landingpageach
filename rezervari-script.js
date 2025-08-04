@@ -199,27 +199,47 @@ function createLocationCard(location) {
     </div>
   `;
   
-  // FIXED: Add proper event listeners instead of inline onclick
+  // FIXED: Add proper event listeners with IMMEDIATE overlay
   const viewDetailsBtn = card.querySelector('.btn-view-details');
   const reserveBtn = card.querySelector('.btn-reserve');
   
   viewDetailsBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    navigateWithLoading(`restaurant.html?id=${location.id}`);
+    
+    // CRITICAL: Show overlay immediately and synchronously
+    showLoadingOverlayImmediately();
+    
+    // Navigate with tiny delay to ensure overlay is rendered
+    setTimeout(() => {
+      window.location.href = `restaurant.html?id=${location.id}`;
+    }, 10);
   });
   
   reserveBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    navigateWithLoading(`restaurant.html?id=${location.id}#reservation`);
+    
+    // CRITICAL: Show overlay immediately and synchronously
+    showLoadingOverlayImmediately();
+    
+    // Navigate with tiny delay to ensure overlay is rendered
+    setTimeout(() => {
+      window.location.href = `restaurant.html?id=${location.id}#reservation`;
+    }, 10);
   });
   
   // Also add click to the card itself
   card.addEventListener('click', function(e) {
     // Only trigger if not clicking on buttons
     if (!e.target.closest('.btn-view-details') && !e.target.closest('.btn-reserve')) {
-      navigateWithLoading(`restaurant.html?id=${location.id}`);
+      // CRITICAL: Show overlay immediately and synchronously
+      showLoadingOverlayImmediately();
+      
+      // Navigate with tiny delay to ensure overlay is rendered
+      setTimeout(() => {
+        window.location.href = `restaurant.html?id=${location.id}`;
+      }, 10);
     }
   });
   
@@ -462,3 +482,19 @@ window.addEventListener('pageshow', function(event) {
 window.addEventListener('beforeunload', function() {
   showLoadingOverlay();
 });
+
+// Immediately show loading overlay without delay
+function showLoadingOverlayImmediately() {
+  // Add loading class to body to disable animations
+  document.body.classList.add('loading');
+  document.body.classList.remove('loaded');
+  
+  // Create overlay if it doesn't exist
+  let overlay = document.getElementById('pageLoadingOverlay');
+  if (!overlay) {
+    overlay = createLoadingOverlay();
+  }
+  
+  // Show overlay
+  overlay.classList.remove('hidden');
+}

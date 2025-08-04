@@ -1,30 +1,17 @@
 // Restaurant Page JavaScript - AcoomH API Integration
 
-// CRITICAL: Show loading overlay immediately to prevent page flipping
-document.body.classList.add('loading');
-const immediateOverlay = document.createElement('div');
-immediateOverlay.className = 'page-loading-overlay';
-immediateOverlay.id = 'pageLoadingOverlay';
-immediateOverlay.innerHTML = `
-  <div class="loading-spinner-container">
-    <div class="modern-loading-spinner"></div>
-    <div class="loading-text">
-      Se încarcă<span class="loading-dots"></span>
-    </div>
-  </div>
-`;
-document.body.appendChild(immediateOverlay);
-
 // Direct API endpoint
 const API_BASE_URL = 'https://api.acoomh.ro';
 
 let currentLocation = null;
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', function() {
   try {
-    // CRITICAL: Immediately show loading state to prevent content flash
-    document.body.classList.add('loading');
-    document.body.classList.remove('loaded');
+    // Use the existing loading overlay from HTML instead of creating a new one
+    const existingOverlay = document.getElementById('immediateLoadingOverlay');
+    if (existingOverlay) {
+      existingOverlay.id = 'pageLoadingOverlay'; // Rename to match our functions
+    }
     
     // Get location ID from URL
     const locationId = getLocationId();
@@ -32,17 +19,12 @@ document.addEventListener("DOMContentLoaded", function () {
       loadLocationDetails(locationId);
     } else {
       showError('ID-ul locației nu a fost găsit în URL.');
-      hideLoadingOverlay(); // FIXED: Hide loading overlay on error
+      hideLoadingOverlay();
       return;
     }
 
     // Initialize form and other components
     initializeAll();
-    
-    // CRITICAL: Hide loading overlay after content is ready
-    setTimeout(() => {
-      hideLoadingOverlay();
-    }, 500); // Reduced timeout for faster perceived loading
     
     // Check if should scroll to reservation section
     if (window.location.hash === '#reservation') {
@@ -74,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
   } catch (error) {
     console.error('Restaurant page initialization error:', error);
     showError('A apărut o problemă la încărcarea paginii.');
-    hideLoadingOverlay(); // FIXED: Hide loading overlay on error
+    hideLoadingOverlay();
   }
 });
 

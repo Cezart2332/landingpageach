@@ -1,20 +1,5 @@
 // Rezervari Page JavaScript - AcoomH API Integration
 
-// CRITICAL: Show loading overlay immediately to prevent content flashing
-document.body.classList.add('loading');
-const immediateOverlay = document.createElement('div');
-immediateOverlay.className = 'page-loading-overlay';
-immediateOverlay.id = 'pageLoadingOverlay';
-immediateOverlay.innerHTML = `
-  <div class="loading-spinner-container">
-    <div class="modern-loading-spinner"></div>
-    <div class="loading-text">
-      Se încarcă<span class="loading-dots"></span>
-    </div>
-  </div>
-`;
-document.body.appendChild(immediateOverlay);
-
 // Direct API endpoint
 const API_BASE_URL = 'https://api.acoomh.ro';
 
@@ -25,9 +10,11 @@ let currentSearchTerm = '';
 
 document.addEventListener('DOMContentLoaded', function() {
   try {
-    // CRITICAL: Immediately show loading state to prevent content flash
-    document.body.classList.add('loading');
-    document.body.classList.remove('loaded');
+    // Use the existing loading overlay from HTML instead of creating a new one
+    const existingOverlay = document.getElementById('immediateLoadingOverlay');
+    if (existingOverlay) {
+      existingOverlay.id = 'pageLoadingOverlay'; // Rename to match our functions
+    }
     
     // Initialize all components
     initializeFiltering();
@@ -36,11 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load locations from API
     loadLocations();
-    
-    // CRITICAL: Hide loading overlay after initial setup
-    setTimeout(() => {
-      hideLoadingOverlay();
-    }, 800); // Slightly longer for data loading
     
     // Override navigation links to use loading overlay
     setTimeout(() => {
@@ -92,7 +74,7 @@ async function loadLocations() {
     // FIXED: Hide the page loading overlay after content is loaded
     setTimeout(() => {
       hideLoadingOverlay();
-    }, 500);
+    }, 800);
     
     console.log('✅ Successfully loaded locations from API:', locations.length);
     

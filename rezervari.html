@@ -19,9 +19,19 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="rezervari-style.min.css?v=1754324103814" />
+    <link rel="stylesheet" href="rezervari-style.min.css?v=1754324379615" />
   </head>
-  <body>
+  <body class="loading">
+    <!-- CRITICAL: Immediate loading overlay to prevent any content flash -->
+    <div class="page-loading-overlay" id="immediateLoadingOverlay">
+      <div class="loading-spinner-container">
+        <div class="modern-loading-spinner"></div>
+        <div class="loading-text">
+          Se încarcă<span class="loading-dots"></span>
+        </div>
+      </div>
+    </div>
+    
     <!-- Back Button -->
     <a href="index.html" class="back-button">
       <i class="fas fa-arrow-left"></i>
@@ -108,6 +118,6 @@
       </div>
     </section>
 
-    <script src="rezervari-script.min.js?v=1754324103814"></script>
+    <script src="rezervari-script.min.js?v=1754324379615"></script>
   </body>
 </html>

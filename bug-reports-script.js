@@ -15,7 +15,7 @@ immediateOverlay.innerHTML = `
 `;
 document.body.appendChild(immediateOverlay);
 
-// API Configuration
+// API Configuration - Updated to match backend
 const API_BASE_URL = 'https://api.acoomh.ro';
 
 // Global variables
@@ -48,13 +48,13 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// API Functions
+// API Functions - Updated to match backend endpoints
 async function loadBugReports() {
   showLoadingState();
   
   try {
-    // Simulate API call for now - replace with actual endpoint
-    const response = await fetch(`${API_BASE_URL}/bug-reports`, {
+    // Use actual backend endpoint
+    const response = await fetch(`${API_BASE_URL}/api/BugReport?pageSize=100`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -66,15 +66,33 @@ async function loadBugReports() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const bugReports = await response.json();
-    allBugReports = bugReports;
-    filteredBugReports = bugReports;
+    const result = await response.json();
+    const bugReports = result.data || result; // Handle both paginated and direct response
+    
+    // Transform backend data to frontend format
+    allBugReports = bugReports.map(report => ({
+      id: report.id,
+      title: report.title,
+      description: report.description,
+      status: report.isResolved ? 'resolved' : 'open',
+      priority: determinePriority(report.title, report.description), // Derive priority from content
+      userEmail: 'N/A', // Backend doesn't store email
+      userName: report.username,
+      createdAt: report.createdAt,
+      updatedAt: report.createdAt, // Backend doesn't track updates separately
+      deviceInfo: report.deviceInfo || 'N/A',
+      appVersion: extractAppVersion(report.deviceInfo), // Try to extract from deviceInfo
+      deviceType: report.deviceType,
+      adminNotes: report.adminNotes
+    }));
+    
+    filteredBugReports = allBugReports;
     
     updateStatistics();
     displayBugReports(filteredBugReports);
     hideLoadingState();
     
-    console.log('✅ Successfully loaded bug reports:', bugReports.length);
+    console.log('✅ Successfully loaded bug reports:', allBugReports.length);
     
   } catch (error) {
     console.error('Error loading bug reports:', error);
@@ -84,7 +102,31 @@ async function loadBugReports() {
   }
 }
 
-// Mock data for development
+// Helper function to determine priority based on content
+function determinePriority(title, description) {
+  const content = (title + ' ' + description).toLowerCase();
+  
+  if (content.includes('crash') || content.includes('închide') || content.includes('eroare critică')) {
+    return 'critical';
+  } else if (content.includes('nu funcționează') || content.includes('problema') || content.includes('bug')) {
+    return 'high';
+  } else if (content.includes('lent') || content.includes('încărcare')) {
+    return 'medium';
+  } else {
+    return 'low';
+  }
+}
+
+// Helper function to extract app version from device info
+function extractAppVersion(deviceInfo) {
+  if (!deviceInfo) return 'N/A';
+  
+  // Try to find version patterns like "1.2.0" or "v1.2.0"
+  const versionMatch = deviceInfo.match(/v?(\d+\.\d+\.\d+)/);
+  return versionMatch ? versionMatch[1] : 'N/A';
+}
+
+// Mock data for development - keeping for fallback
 function loadMockData() {
   const mockBugReports = [
     {
@@ -92,65 +134,28 @@ function loadMockData() {
       title: 'Aplicația se închide când încerc să fac rezervare',
       description: 'De fiecare dată când încerc să completez formularul de rezervare, aplicația se închide brusc. Acest lucru se întâmplă pe iPhone 12 Pro cu iOS 15.6.',
       status: 'open',
-      priority: 'high',
+      priority: 'critical',
       userEmail: 'user1@example.com',
       userName: 'Alexandru Popescu',
       createdAt: '2025-08-03T10:30:00Z',
       updatedAt: '2025-08-03T10:30:00Z',
       deviceInfo: 'iPhone 12 Pro, iOS 15.6',
-      appVersion: '1.2.0'
+      appVersion: '1.2.0',
+      deviceType: 'ios'
     },
     {
       id: 2,
       title: 'Imaginile restaurantelor nu se încarcă',
       description: 'Pe pagina de rezervări, imaginile restaurantelor apar ca fiind rupte. Am încercat să reîncarc pagina dar problema persistă.',
-      status: 'in-progress',
+      status: 'open',
       priority: 'medium',
       userEmail: 'maria.ionescu@gmail.com',
       userName: 'Maria Ionescu',
       createdAt: '2025-08-02T14:15:00Z',
       updatedAt: '2025-08-03T09:20:00Z',
       deviceInfo: 'Samsung Galaxy S21, Android 12',
-      appVersion: '1.2.0'
-    },
-    {
-      id: 3,
-      title: 'Notification-urile nu funcționează',
-      description: 'Nu primesc notificări pentru confirmarea rezervărilor. Am verificat setările telefonului și sunt activate.',
-      status: 'resolved',
-      priority: 'low',
-      userEmail: 'dan.mihail@yahoo.com',
-      userName: 'Dan Mihail',
-      createdAt: '2025-08-01T16:45:00Z',
-      updatedAt: '2025-08-02T11:30:00Z',
-      deviceInfo: 'iPhone 13, iOS 16.1',
-      appVersion: '1.1.9'
-    },
-    {
-      id: 4,
-      title: 'Timpul de încărcare foarte lent',
-      description: 'Aplicația se încarcă foarte greu, în special pagina principală. Durează peste 10 secunde să se deschidă.',
-      status: 'open',
-      priority: 'critical',
-      userEmail: 'ana.verde@hotmail.com',
-      userName: 'Ana Verde',
-      createdAt: '2025-08-03T08:20:00Z',
-      updatedAt: '2025-08-03T08:20:00Z',
-      deviceInfo: 'Huawei P30, Android 10',
-      appVersion: '1.2.0'
-    },
-    {
-      id: 5,
-      title: 'Eroare la login cu Google',
-      description: 'Nu pot să mă loghez folosind contul de Google. Apare eroarea "Authentication failed".',
-      status: 'in-progress',
-      priority: 'high',
-      userEmail: 'radu.stan@gmail.com',
-      userName: 'Radu Stan',
-      createdAt: '2025-08-02T12:10:00Z',
-      updatedAt: '2025-08-03T10:15:00Z',
-      deviceInfo: 'OnePlus 9, Android 13',
-      appVersion: '1.2.0'
+      appVersion: '1.2.0',
+      deviceType: 'android'
     }
   ];
   
@@ -246,7 +251,6 @@ function createBugReportCard(report) {
 function getStatusText(status) {
   const statusMap = {
     'open': 'Deschis',
-    'in-progress': 'În progres',
     'resolved': 'Rezolvat'
   };
   return statusMap[status] || status;
@@ -262,18 +266,17 @@ function getPriorityText(priority) {
   return priorityMap[priority] || priority;
 }
 
-// Statistics
+// Statistics - Updated for backend data structure
 function updateStatistics() {
   const openCount = allBugReports.filter(report => report.status === 'open').length;
-  const inProgressCount = allBugReports.filter(report => report.status === 'in-progress').length;
   const resolvedCount = allBugReports.filter(report => report.status === 'resolved').length;
   
   document.getElementById('openBugsCount').textContent = openCount;
-  document.getElementById('inProgressBugsCount').textContent = inProgressCount;
+  document.getElementById('inProgressBugsCount').textContent = 0; // Backend doesn't have in-progress
   document.getElementById('resolvedBugsCount').textContent = resolvedCount;
 }
 
-// Filtering and Search
+// Filtering and Search - Updated for simplified status
 function initializeFilters() {
   const statusFilter = document.getElementById('statusFilter');
   const priorityFilter = document.getElementById('priorityFilter');
@@ -324,7 +327,6 @@ function applyFilters() {
     filtered = filtered.filter(report =>
       report.title.toLowerCase().includes(currentSearchTerm) ||
       report.description.toLowerCase().includes(currentSearchTerm) ||
-      report.userEmail.toLowerCase().includes(currentSearchTerm) ||
       report.userName.toLowerCase().includes(currentSearchTerm)
     );
   }
@@ -340,7 +342,7 @@ function applyFilters() {
         const priorityOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
         return priorityOrder[b.priority] - priorityOrder[a.priority];
       case 'status':
-        const statusOrder = { 'open': 3, 'in-progress': 2, 'resolved': 1 };
+        const statusOrder = { 'open': 2, 'resolved': 1 };
         return statusOrder[b.status] - statusOrder[a.status];
       default:
         return 0;
@@ -351,7 +353,7 @@ function applyFilters() {
   displayBugReports(filteredBugReports);
 }
 
-// Modal Functions
+// Modal Functions - Updated for backend data
 function openBugModal(report) {
   selectedBugReport = report;
   const modal = document.getElementById('bugModal');
@@ -361,7 +363,6 @@ function openBugModal(report) {
   modalTitle.textContent = `Bug Report #${report.id}`;
   
   const formattedDate = new Date(report.createdAt).toLocaleString('ro-RO');
-  const updatedDate = new Date(report.updatedAt).toLocaleString('ro-RO');
   
   modalBody.innerHTML = `
     <div style="margin-bottom: 20px;">
@@ -383,31 +384,33 @@ function openBugModal(report) {
       <div>
         <h4 style="color: var(--text-primary); margin-bottom: 8px;">Utilizator:</h4>
         <p style="color: var(--text-secondary);">${report.userName}</p>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">${report.userEmail}</p>
       </div>
       <div>
         <h4 style="color: var(--text-primary); margin-bottom: 8px;">Detalii tehnice:</h4>
         <p style="color: var(--text-secondary); font-size: 0.9rem;">Dispozitiv: ${report.deviceInfo || 'N/A'}</p>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">Tip: ${report.deviceType || 'N/A'}</p>
         <p style="color: var(--text-secondary); font-size: 0.9rem;">Versiune app: ${report.appVersion || 'N/A'}</p>
       </div>
     </div>
     
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
       <div>
         <h4 style="color: var(--text-primary); margin-bottom: 8px;">Creat la:</h4>
         <p style="color: var(--text-secondary); font-size: 0.9rem;">${formattedDate}</p>
       </div>
-      <div>
-        <h4 style="color: var(--text-primary); margin-bottom: 8px;">Ultima actualizare:</h4>
-        <p style="color: var(--text-secondary); font-size: 0.9rem;">${updatedDate}</p>
-      </div>
     </div>
+    
+    ${report.adminNotes ? `
+      <div style="margin-top: 20px;">
+        <h4 style="color: var(--text-primary); margin-bottom: 8px;">Note admin:</h4>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">${report.adminNotes}</p>
+      </div>
+    ` : ''}
     
     <div style="margin-top: 20px;">
       <h4 style="color: var(--text-primary); margin-bottom: 8px;">Actualizează status:</h4>
       <select id="modalStatusSelect" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
         <option value="open" ${report.status === 'open' ? 'selected' : ''}>Deschis</option>
-        <option value="in-progress" ${report.status === 'in-progress' ? 'selected' : ''}>În progres</option>
         <option value="resolved" ${report.status === 'resolved' ? 'selected' : ''}>Rezolvat</option>
       </select>
     </div>
@@ -426,6 +429,7 @@ function closeBugModal() {
   }, 300);
 }
 
+// Note: Backend doesn't support status updates, so this is a placeholder
 async function updateBugStatus() {
   if (!selectedBugReport) return;
   
@@ -437,47 +441,25 @@ async function updateBugStatus() {
   updateBtn.textContent = 'Se actualizează...';
   
   try {
-    // Simulate API call - replace with actual endpoint
-    const response = await fetch(`${API_BASE_URL}/bug-reports/${selectedBugReport.id}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status: newStatus })
-    });
+    // Backend doesn't have status update endpoint yet
+    // This would be the API call when backend supports it:
+    // await fetch(`${API_BASE_URL}/api/BugReport/${selectedBugReport.id}/status`, {...})
     
-    if (!response.ok) {
-      throw new Error('Failed to update status');
-    }
-    
-    // Update local data
+    // For now, update locally
     const reportIndex = allBugReports.findIndex(r => r.id === selectedBugReport.id);
     if (reportIndex !== -1) {
       allBugReports[reportIndex].status = newStatus;
-      allBugReports[reportIndex].updatedAt = new Date().toISOString();
     }
     
     updateStatistics();
     applyFilters();
     closeBugModal();
     
-    showNotification('Status actualizat cu succes!', 'success');
+    showNotification('Status actualizat local (backend nu suportă încă)', 'info');
     
   } catch (error) {
     console.error('Error updating bug status:', error);
-    
-    // For development, update locally anyway
-    const reportIndex = allBugReports.findIndex(r => r.id === selectedBugReport.id);
-    if (reportIndex !== -1) {
-      allBugReports[reportIndex].status = newStatus;
-      allBugReports[reportIndex].updatedAt = new Date().toISOString();
-    }
-    
-    updateStatistics();
-    applyFilters();
-    closeBugModal();
-    
-    showNotification('Status actualizat (mod dezvoltare)', 'info');
+    showNotification('Eroare la actualizarea statusului', 'error');
   } finally {
     updateBtn.disabled = false;
     updateBtn.textContent = originalText;

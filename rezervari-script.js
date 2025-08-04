@@ -24,13 +24,45 @@ let currentFilter = 'all';
 let currentSearchTerm = '';
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize all components
-  initializeFiltering();
-  initializeSearch();
-  initializeInteractions();
-  
-  // Load locations from API
-  loadLocations();
+  try {
+    // CRITICAL: Immediately show loading state to prevent content flash
+    document.body.classList.add('loading');
+    document.body.classList.remove('loaded');
+    
+    // Initialize all components
+    initializeFiltering();
+    initializeSearch();
+    initializeInteractions();
+    
+    // Load locations from API
+    loadLocations();
+    
+    // CRITICAL: Hide loading overlay after initial setup
+    setTimeout(() => {
+      hideLoadingOverlay();
+    }, 800); // Slightly longer for data loading
+    
+    // Override navigation links to use loading overlay
+    setTimeout(() => {
+      const navigationLinks = document.querySelectorAll('a[href*=".html"], .btn[href*=".html"], .back-button');
+      
+      navigationLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          const href = this.getAttribute('href');
+          
+          // Only intercept internal navigation (not external links or anchors)
+          if (href && href.includes('.html') && !href.startsWith('http') && !href.startsWith('mailto') && !href.startsWith('tel')) {
+            e.preventDefault();
+            navigateWithLoading(href);
+          }
+        });
+      });
+    }, 100);
+    
+  } catch (error) {
+    console.error('Rezervari page initialization error:', error);
+    hideLoadingOverlay();
+  }
 });
 
 // API Functions
@@ -447,38 +479,4 @@ window.addEventListener('pageshow', function(event) {
 // Show loading on page unload (when leaving page)
 window.addEventListener('beforeunload', function() {
   showLoadingOverlay();
-});
-
-// Initialize everything when DOM is loaded
-document.addEventListener("DOMContentLoaded", function() {
-  try {
-    // Initialize all components
-    initializeFiltering();
-    initializeSearch();
-    initializeInteractions();
-    
-    // Load locations from API
-    loadLocations();
-    
-    // Override navigation links to use loading overlay
-    setTimeout(() => {
-      const navigationLinks = document.querySelectorAll('a[href*=".html"], .btn[href*=".html"], .back-button');
-      
-      navigationLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-          const href = this.getAttribute('href');
-          
-          // Only intercept internal navigation (not external links or anchors)
-          if (href && href.includes('.html') && !href.startsWith('http') && !href.startsWith('mailto') && !href.startsWith('tel')) {
-            e.preventDefault();
-            navigateWithLoading(href);
-          }
-        });
-      });
-    }, 100);
-    
-  } catch (error) {
-    console.error('Rezervari page initialization error:', error);
-    hideLoadingOverlay();
-  }
 });

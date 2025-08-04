@@ -22,6 +22,10 @@ let currentLocation = null;
 
 document.addEventListener("DOMContentLoaded", function () {
   try {
+    // CRITICAL: Immediately show loading state to prevent content flash
+    document.body.classList.add('loading');
+    document.body.classList.remove('loaded');
+    
     // Get location ID from URL
     const locationId = getLocationId();
     if (locationId) {
@@ -34,6 +38,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Initialize form and other components
     initializeAll();
+    
+    // CRITICAL: Hide loading overlay after content is ready
+    setTimeout(() => {
+      hideLoadingOverlay();
+    }, 500); // Reduced timeout for faster perceived loading
     
     // Check if should scroll to reservation section
     if (window.location.hash === '#reservation') {

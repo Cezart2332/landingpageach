@@ -12,17 +12,21 @@ body {
   transform: none !important;
   /* CRITICAL: Hide all content until loading state is properly set */
   visibility: hidden !important;
+  /* Prevent any flickering */
+  opacity: 0 !important;
 }
 
 /* Show content ONLY when loading class is applied (immediate) or page is loaded */
 body.loading,
 body.loaded {
   visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Hide ALL content until JavaScript takes control */
 body:not(.loading):not(.loaded) {
   visibility: hidden !important;
+  opacity: 0 !important;
 }
 
 /* Disable ALL animations and transitions during page load */

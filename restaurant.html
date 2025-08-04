@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- CRITICAL: Load CSS first to prevent FOUC -->
-    <link rel="stylesheet" href="restaurant-style.min.css?v=1754327631005" />
+    <link rel="stylesheet" href="restaurant-style.min.css?v=1754329084169" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -24,9 +24,16 @@
         background: #0f0f0f !important; 
         color: #ffffff !important; 
         font-family: "Inter", sans-serif !important;
+        overflow-x: hidden !important;
       }
       
-      /* Show ONLY the loading overlay immediately */
+      /* CRITICAL: Hide ALL content until loading is properly handled */
+      body:not(.loading):not(.loaded) {
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+      
+      /* Show loading overlay immediately and center it properly */
       .page-loading-overlay {
         position: fixed !important;
         top: 0 !important;
@@ -36,10 +43,76 @@
         background: #0f0f0f !important;
         z-index: 999999 !important;
         display: flex !important;
-        align-items: center !important;
+        flex-direction: column !important;
         justify-content: center !important;
+        align-items: center !important;
         opacity: 1 !important;
         visibility: visible !important;
+        transition: opacity 0.5s ease, visibility 0.5s ease !important;
+      }
+      
+      /* Loading spinner container */
+      .loading-spinner-container {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 20px !important;
+      }
+      
+      /* Modern loading spinner */
+      .modern-loading-spinner {
+        width: 60px !important;
+        height: 60px !important;
+        border: 3px solid rgba(139, 92, 246, 0.1) !important;
+        border-top: 3px solid #6b46c1 !important;
+        border-radius: 50% !important;
+        animation: modernSpin 1s linear infinite !important;
+        position: relative !important;
+      }
+      
+      .modern-loading-spinner::before {
+        content: '' !important;
+        position: absolute !important;
+        top: -3px !important;
+        left: -3px !important;
+        right: -3px !important;
+        bottom: -3px !important;
+        border: 3px solid transparent !important;
+        border-top: 3px solid #7c3aed !important;
+        border-radius: 50% !important;
+        animation: modernSpin 2s linear infinite reverse !important;
+      }
+      
+      /* Loading text */
+      .loading-text {
+        color: #ffffff !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        text-align: center !important;
+        animation: loadingPulse 2s ease-in-out infinite !important;
+      }
+      
+      .loading-dots {
+        display: inline-block !important;
+        animation: loadingDots 1.5s ease-in-out infinite !important;
+      }
+      
+      /* Keyframes for animations */
+      @keyframes modernSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      @keyframes loadingPulse {
+        0%, 100% { opacity: 0.7; }
+        50% { opacity: 1; }
+      }
+      
+      @keyframes loadingDots {
+        0%, 20% { content: ''; }
+        40% { content: '.'; }
+        60% { content: '..'; }
+        80%, 100% { content: '...'; }
       }
       
       /* Hide main content until loaded */
@@ -68,6 +141,23 @@
         animation: none !important;
         transition: none !important;
         transform: none !important;
+      }
+      
+      /* Re-enable specific animations only */
+      body:not(.loaded) .modern-loading-spinner {
+        animation: modernSpin 1s linear infinite !important;
+      }
+      
+      body:not(.loaded) .modern-loading-spinner::before {
+        animation: modernSpin 2s linear infinite reverse !important;
+      }
+      
+      body:not(.loaded) .loading-text {
+        animation: loadingPulse 2s ease-in-out infinite !important;
+      }
+      
+      body:not(.loaded) .loading-dots {
+        animation: loadingDots 1.5s ease-in-out infinite !important;
       }
     </style>
     
@@ -277,6 +367,6 @@
     </main>
 
     <!-- Load JavaScript -->
-    <script src="restaurant-script.min.js?v=1754327631005"></script>
+    <script src="restaurant-script.min.js?v=1754329084169"></script>
 </body>
 </html>

@@ -7,10 +7,17 @@ let currentLocation = null;
 
 document.addEventListener('DOMContentLoaded', function() {
   try {
+    // CRITICAL: Immediately set body to loading state to prevent content flash
+    document.body.classList.add('loading');
+    document.body.classList.remove('loaded');
+    
     // Use the existing loading overlay from HTML instead of creating a new one
     const existingOverlay = document.getElementById('immediateLoadingOverlay');
     if (existingOverlay) {
       existingOverlay.id = 'pageLoadingOverlay'; // Rename to match our functions
+      // Ensure overlay is visible immediately
+      existingOverlay.style.opacity = '1';
+      existingOverlay.style.visibility = 'visible';
     }
     
     // Get location ID from URL
@@ -33,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (reservationSection) {
           reservationSection.scrollIntoView({ behavior: 'smooth' });
         }
-      }, 1000);
+      }, 1500); // Increased delay to ensure page is fully loaded
     }
     
     // Override navigation links to use loading overlay
@@ -42,7 +49,17 @@ document.addEventListener('DOMContentLoaded', function() {
       
       navigationLinks.forEach(link => {
         link.addEventListener('click', function(e) {
-          const href = this.getAttribute('href');
+          const href = this.getAttribute('href') || this.getAttribute('onclick');
+          
+          // Handle onclick navigation
+          if (this.hasAttribute('onclick')) {
+            const onclickValue = this.getAttribute('onclick');
+            if (onclickValue.includes('goBack()')) {
+              e.preventDefault();
+              navigateWithLoading('rezervari.html');
+              return;
+            }
+          }
           
           // Only intercept internal navigation (not external links or anchors)
           if (href && href.includes('.html') && !href.startsWith('http') && !href.startsWith('mailto') && !href.startsWith('tel')) {
@@ -97,7 +114,11 @@ function showLoadingOverlay() {
 function hideLoadingOverlay() {
   const overlay = document.getElementById('pageLoadingOverlay');
   if (overlay) {
-    overlay.classList.add('hidden');
+    // Smoothly fade out the overlay
+    overlay.style.transition = 'opacity 0.5s ease, visibility 0.5s ease';
+    overlay.style.opacity = '0';
+    overlay.style.visibility = 'hidden';
+    overlay.style.pointerEvents = 'none';
     
     // Remove overlay after transition
     setTimeout(() => {
@@ -107,7 +128,7 @@ function hideLoadingOverlay() {
     }, 500);
   }
   
-  // Re-enable animations
+  // Re-enable animations and show content
   document.body.classList.remove('loading');
   document.body.classList.add('loaded');
 }

@@ -1,5 +1,20 @@
 // Rezervari Page JavaScript - AcoomH API Integration
 
+// CRITICAL: Show loading overlay immediately to prevent content flashing
+document.body.classList.add('loading');
+const immediateOverlay = document.createElement('div');
+immediateOverlay.className = 'page-loading-overlay';
+immediateOverlay.id = 'pageLoadingOverlay';
+immediateOverlay.innerHTML = `
+  <div class="loading-spinner-container">
+    <div class="modern-loading-spinner"></div>
+    <div class="loading-text">
+      Se încarcă<span class="loading-dots"></span>
+    </div>
+  </div>
+`;
+document.body.appendChild(immediateOverlay);
+
 // Direct API endpoint
 const API_BASE_URL = 'https://api.acoomh.ro';
 
@@ -42,13 +57,19 @@ async function loadLocations() {
     displayLocations(filteredLocations);
     hideLoadingState();
     
+    // FIXED: Hide the page loading overlay after content is loaded
+    setTimeout(() => {
+      hideLoadingOverlay();
+    }, 500);
+    
     console.log('✅ Successfully loaded locations from API:', locations.length);
     
   } catch (error) {
     console.error('Error loading locations from API:', error);
     
-    // Show user-friendly error message
+    // Show user-friendly error message and hide loading overlay
     showErrorState(`Nu am putut încărca locațiile. ${error.message}`);
+    hideLoadingOverlay();
   }
 }
 
@@ -386,20 +407,42 @@ function hideLoadingOverlay() {
     }, 500);
   }
   
-  // Re-enable animations
+  // Re-enable animations and mark page as loaded
   document.body.classList.remove('loading');
   document.body.classList.add('loaded');
 }
 
 // Intercept page navigation to show loading overlay
 function navigateWithLoading(url) {
+  // Clear any existing timeouts that might hide the overlay
+  clearTimeout(window.loadingTimeout);
+  
   showLoadingOverlay();
   
-  // Small delay before navigation to show loading state
-  setTimeout(() => {
-    window.location.href = url;
-  }, 100);
+  // Navigate immediately - no delay needed
+  window.location.href = url;
 }
+
+// FIXED: Ensure loading overlay is hidden when page becomes visible again
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    // Page became visible again - ensure loading overlay is hidden
+    setTimeout(() => {
+      const overlay = document.getElementById('pageLoadingOverlay');
+      if (overlay && !overlay.classList.contains('hidden')) {
+        hideLoadingOverlay();
+      }
+    }, 100);
+  }
+});
+
+// FIXED: Handle back/forward navigation properly
+window.addEventListener('pageshow', function(event) {
+  if (event.persisted) {
+    // Page was restored from cache - hide loading overlay
+    hideLoadingOverlay();
+  }
+});
 
 // Show loading on page unload (when leaving page)
 window.addEventListener('beforeunload', function() {
@@ -409,9 +452,6 @@ window.addEventListener('beforeunload', function() {
 // Initialize everything when DOM is loaded
 document.addEventListener("DOMContentLoaded", function() {
   try {
-    // Show loading overlay immediately when DOM is ready
-    showLoadingOverlay();
-    
     // Initialize all components
     initializeFiltering();
     initializeSearch();
@@ -419,11 +459,6 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Load locations from API
     loadLocations();
-    
-    // Hide loading overlay after content is ready
-    setTimeout(() => {
-      hideLoadingOverlay();
-    }, 800);
     
     // Override navigation links to use loading overlay
     setTimeout(() => {

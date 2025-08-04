@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="AcoomH Bug Reports - Administrarea și gestionarea rapoartelor de probleme tehnice" />
+    <meta name="keywords" content="AcoomH, bug reports, administrare, probleme tehnice" />
+    <meta name="author" content="AcoomH Team" />
+    
+    <title>AcoomH - Rapoarte Bug-uri</title>
+    <link rel="icon" type="image/png" href="acoomh.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="bug-reports-style.min.css?v=1754312112594" />
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="admin-navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="acoomh.png" alt="AcoomH" class="nav-logo">
+                <span>AcoomH Admin</span>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    Acasă
+                </a>
+                <a href="bug-reports.html" class="nav-link active">
+                    <i class="fas fa-bug"></i>
+                    Bug Reports
+                </a>
+                <a href="merchant-requests.html" class="nav-link">
+                    <i class="fas fa-store"></i>
+                    Cereri Comercianți
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header Section -->
+        <section class="page-header">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-bug"></i>
+                    Rapoarte Bug-uri
+                </h1>
+                <p>Gestionează și rezolvă problemele raportate de utilizatori</p>
+                <div class="header-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon open">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="openBugsCount">-</span>
+                            <span class="stat-label">Deschise</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon in-progress">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="inProgressBugsCount">-</span>
+                            <span class="stat-label">În Progres</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon resolved">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="resolvedBugsCount">-</span>
+                            <span class="stat-label">Rezolvate</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filters and Search -->
+        <section class="filters-section">
+            <div class="filters-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Caută după titlu, descriere sau email...">
+                </div>
+                <div class="filter-controls">
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Toate statusurile</option>
+                        <option value="open">Deschise</option>
+                        <option value="in-progress">În Progres</option>
+                        <option value="resolved">Rezolvate</option>
+                    </select>
+                    <select id="priorityFilter" class="filter-select">
+                        <option value="all">Toate prioritățile</option>
+                        <option value="low">Scăzută</option>
+                        <option value="medium">Medie</option>
+                        <option value="high">Înaltă</option>
+                        <option value="critical">Critică</option>
+                    </select>
+                    <select id="sortBy" class="filter-select">
+                        <option value="newest">Cele mai noi</option>
+                        <option value="oldest">Cele mai vechi</option>
+                        <option value="priority">Prioritate</option>
+                        <option value="status">Status</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bug Reports List -->
+        <section class="reports-section">
+            <div class="loading-state" id="loadingState">
+                <div class="loading-spinner"></div>
+                <p>Se încarcă rapoartele...</p>
+            </div>
+
+            <div class="error-state" id="errorState" style="display: none;">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Eroare la încărcarea datelor</h3>
+                <p id="errorMessage">Nu am putut încărca rapoartele de bug-uri.</p>
+                <button class="retry-button" onclick="loadBugReports()">
+                    <i class="fas fa-refresh"></i>
+                    Încearcă din nou
+                </button>
+            </div>
+
+            <div class="reports-container" id="reportsContainer" style="display: none;">
+                <div class="reports-grid" id="reportsGrid">
+                    <!-- Bug reports will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">
+                    <i class="fas fa-bug"></i>
+                </div>
+                <h3>Nu există rapoarte</h3>
+                <p>Nu au fost găsite rapoarte de bug-uri care să corespundă criteriilor de căutare.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bug Report Modal -->
+    <div class="modal-overlay" id="bugModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Detalii Raport Bug</h2>
+                <button class="modal-close" onclick="closeBugModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeBugModal()">Închide</button>
+                <button class="btn-primary" id="updateStatusBtn" onclick="updateBugStatus()">
+                    Actualizează Status
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="bug-reports-script.min.js?v=1754312112594"></script>
+</body>
+</html>

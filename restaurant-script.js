@@ -22,9 +22,6 @@ let currentLocation = null;
 
 document.addEventListener("DOMContentLoaded", function () {
   try {
-    // Show loading overlay immediately when DOM is ready
-    showLoadingOverlay();
-
     // Get location ID from URL
     const locationId = getLocationId();
     if (locationId) {
@@ -47,11 +44,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }, 1000);
     }
-    
-    // FIXED: Ensure loading overlay is hidden after initialization
-    setTimeout(() => {
-      hideLoadingOverlay();
-    }, 1500); // Increased timeout to ensure API calls complete
     
     // Override navigation links to use loading overlay
     setTimeout(() => {
@@ -131,13 +123,35 @@ function hideLoadingOverlay() {
 
 // Intercept page navigation to show loading overlay
 function navigateWithLoading(url) {
+  // Clear any existing timeouts that might hide the overlay
+  clearTimeout(window.loadingTimeout);
+  
   showLoadingOverlay();
   
-  // Small delay before navigation to show loading state
-  setTimeout(() => {
-    window.location.href = url;
-  }, 100);
+  // Navigate immediately - no delay needed
+  window.location.href = url;
 }
+
+// FIXED: Ensure loading overlay is hidden when page becomes visible again
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    // Page became visible again - ensure loading overlay is hidden
+    setTimeout(() => {
+      const overlay = document.getElementById('pageLoadingOverlay');
+      if (overlay && !overlay.classList.contains('hidden')) {
+        hideLoadingOverlay();
+      }
+    }, 100);
+  }
+});
+
+// FIXED: Handle back/forward navigation properly
+window.addEventListener('pageshow', function(event) {
+  if (event.persisted) {
+    // Page was restored from cache - hide loading overlay
+    hideLoadingOverlay();
+  }
+});
 
 // Show loading on page unload (when leaving page)
 window.addEventListener('beforeunload', function() {
@@ -147,8 +161,6 @@ window.addEventListener('beforeunload', function() {
 // API Functions
 async function loadLocationDetails(locationId) {
   try {
-    showLoadingState();
-    
     const response = await fetch(`${API_BASE_URL}/locations/${locationId}`, {
       method: 'GET',
       headers: {
@@ -156,29 +168,31 @@ async function loadLocationDetails(locationId) {
         'Accept': 'application/json'
       }
     });
-    
+
     if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Locația nu a fost găsită.');
-      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const location = await response.json();
     currentLocation = location;
-    console.log('✅ Successfully loaded location details:', location);
-    
-    // Load location hours separately
+
+    // Populate the page with location data
+    populateLocationData(location);
+
+    // Load additional data
     await loadLocationHours(locationId);
-    
-    populateLocationDetails(location);
-    hideLoadingState();
-    
+
     console.log('✅ Successfully loaded location details:', location);
     
+    // FIXED: Hide loading overlay after everything is loaded
+    setTimeout(() => {
+      hideLoadingOverlay();
+    }, 500);
+
   } catch (error) {
     console.error('Error loading location details:', error);
-    showError(error.message || 'Nu am putut încărca detaliile locației.');
+    showError(`Nu am putut încărca datele restaurantului. ${error.message}`);
+    hideLoadingOverlay(); // FIXED: Hide loading overlay on error
   }
 }
 

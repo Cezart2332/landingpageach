@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="AcoomH Merchant Requests - Administrarea și gestionarea cererilor de înscriere comercianți" />
+    <meta name="keywords" content="AcoomH, merchant requests, administrare, comercianți, înscriere" />
+    <meta name="author" content="AcoomH Team" />
+    
+    <title>AcoomH - Cereri Comercianți</title>
+    <link rel="icon" type="image/png" href="acoomh.png" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="merchant-requests-style.min.css?v=1754312112594" />
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="admin-navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="acoomh.png" alt="AcoomH" class="nav-logo">
+                <span>AcoomH Admin</span>
+            </div>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i>
+                    Acasă
+                </a>
+                <a href="bug-reports.html" class="nav-link">
+                    <i class="fas fa-bug"></i>
+                    Bug Reports
+                </a>
+                <a href="merchant-requests.html" class="nav-link active">
+                    <i class="fas fa-store"></i>
+                    Cereri Comercianți
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header Section -->
+        <section class="page-header">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-store"></i>
+                    Cereri Comercianți
+                </h1>
+                <p>Gestionează și aprobă cererile de înscriere ale comercianților pe platformă</p>
+                <div class="header-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon pending">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="pendingRequestsCount">-</span>
+                            <span class="stat-label">În Așteptare</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon approved">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="approvedRequestsCount">-</span>
+                            <span class="stat-label">Aprobate</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon rejected">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="rejectedRequestsCount">-</span>
+                            <span class="stat-label">Respinse</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon total">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="totalRequestsCount">-</span>
+                            <span class="stat-label">Total</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filters and Search -->
+        <section class="filters-section">
+            <div class="filters-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Caută după nume business, email sau telefon...">
+                </div>
+                <div class="filter-controls">
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Toate statusurile</option>
+                        <option value="pending">În Așteptare</option>
+                        <option value="approved">Aprobate</option>
+                        <option value="rejected">Respinse</option>
+                    </select>
+                    <select id="businessTypeFilter" class="filter-select">
+                        <option value="all">Toate tipurile</option>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="cafe">Cafenea</option>
+                        <option value="pub">Pub</option>
+                        <option value="club">Club</option>
+                        <option value="bar">Bar</option>
+                    </select>
+                    <select id="sortBy" class="filter-select">
+                        <option value="newest">Cele mai noi</option>
+                        <option value="oldest">Cele mai vechi</option>
+                        <option value="name">Nume A-Z</option>
+                        <option value="status">Status</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Requests List -->
+        <section class="requests-section">
+            <div class="loading-state" id="loadingState">
+                <div class="loading-spinner"></div>
+                <p>Se încarcă cererile...</p>
+            </div>
+
+            <div class="error-state" id="errorState" style="display: none;">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Eroare la încărcarea datelor</h3>
+                <p id="errorMessage">Nu am putut încărca cererile comercianților.</p>
+                <button class="retry-button" onclick="loadMerchantRequests()">
+                    <i class="fas fa-refresh"></i>
+                    Încearcă din nou
+                </button>
+            </div>
+
+            <div class="requests-container" id="requestsContainer" style="display: none;">
+                <div class="requests-grid" id="requestsGrid">
+                    <!-- Merchant requests will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">
+                    <i class="fas fa-store"></i>
+                </div>
+                <h3>Nu există cereri</h3>
+                <p>Nu au fost găsite cereri de comercianți care să corespundă criteriilor de căutare.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Merchant Request Modal -->
+    <div class="modal-overlay" id="merchantModal" style="display: none;">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2 id="modalTitle">Detalii Cerere Comerciant</h2>
+                <button class="modal-close" onclick="closeMerchantModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeMerchantModal()">Închide</button>
+                <div class="action-buttons" id="actionButtons">
+                    <button class="btn-danger" id="rejectBtn" onclick="updateRequestStatus('rejected')">
+                        <i class="fas fa-times"></i>
+                        Respinge
+                    </button>
+                    <button class="btn-success" id="approveBtn" onclick="updateRequestStatus('approved')">
+                        <i class="fas fa-check"></i>
+                        Aprobă
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Reason Modal -->
+    <div class="modal-overlay" id="rejectionModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Motiv Respingere</h2>
+                <button class="modal-close" onclick="closeRejectionModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Te rugăm să specifici motivul pentru care respingi această cerere:
+                </p>
+                <textarea 
+                    id="rejectionReason" 
+                    placeholder="Scrie motivul respingerii..."
+                    style="width: 100%; height: 120px; padding: 12px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); resize: vertical; font-family: inherit;"
+                ></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeRejectionModal()">Anulează</button>
+                <button class="btn-danger" onclick="confirmRejection()">
+                    <i class="fas fa-times"></i>
+                    Confirmă Respingerea
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="merchant-requests-script.min.js?v=1754312112594"></script>
+</body>
+</html>

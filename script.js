@@ -1223,32 +1223,46 @@ document.addEventListener("DOMContentLoaded", function () {
       document.body.classList.add('loaded');
     }
 
-    // Initialize loading system on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      // Show loading overlay immediately when DOM is ready
-      showLoadingOverlay();
-      
-      // ...existing DOMContentLoaded code...
-      
-      // Hide loading overlay after everything is ready
-      setTimeout(() => {
-        hideLoadingOverlay();
-      }, 800); // Small delay to ensure smooth transition
-    });
-
     // Intercept page navigation to show loading overlay
     function navigateWithLoading(url) {
+      // Clear any existing timeouts that might hide the overlay
+      clearTimeout(window.loadingTimeout);
+      
       showLoadingOverlay();
       
-      // Small delay before navigation to show loading state
-      setTimeout(() => {
-        window.location.href = url;
-      }, 100);
+      // Navigate immediately - no delay needed
+      window.location.href = url;
     }
 
-    // Override all navigation links to use loading overlay
+    // FIXED: Ensure loading overlay is hidden when page becomes visible again
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        // Page became visible again - ensure loading overlay is hidden
+        setTimeout(() => {
+          const overlay = document.getElementById('pageLoadingOverlay');
+          if (overlay && !overlay.classList.contains('hidden')) {
+            hideLoadingOverlay();
+          }
+        }, 100);
+      }
+    });
+
+    // FIXED: Handle back/forward navigation properly
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) {
+        // Page was restored from cache - hide loading overlay
+        hideLoadingOverlay();
+      }
+    });
+
+    // Initialize loading overlay system when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
-      // Wait for elements to be available
+      // Hide loading overlay after page content is ready
+      setTimeout(() => {
+        hideLoadingOverlay();
+      }, 800);
+      
+      // Override navigation links to use loading overlay
       setTimeout(() => {
         const navigationLinks = document.querySelectorAll('a[href*=".html"], .btn[href*=".html"], .nav-link[href*=".html"]');
         

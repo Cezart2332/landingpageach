@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- CRITICAL: Load CSS first to prevent FOUC -->
-    <link rel="stylesheet" href="restaurant-style.min.css?v=1754326909647" />
+    <link rel="stylesheet" href="restaurant-style.min.css?v=1754327480160" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -15,24 +15,21 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
     
-    <!-- CRITICAL: Inline styles to prevent any flash -->
+    <!-- CRITICAL: Inline styles to prevent any flash - ENHANCED -->
     <style>
-      /* Immediate hiding of content until loaded */
+      /* CRITICAL: Hide page completely until JavaScript takes control */
       html, body { 
         margin: 0; 
         padding: 0; 
         background: #0f0f0f !important; 
         color: #ffffff !important; 
         font-family: "Inter", sans-serif !important;
-      }
-      
-      /* Hide content immediately */
-      body:not(.loading):not(.loaded) {
+        /* CRITICAL: Hide everything immediately */
         visibility: hidden !important;
         opacity: 0 !important;
       }
       
-      /* Show loading overlay immediately */
+      /* Show ONLY the loading overlay immediately */
       .page-loading-overlay {
         position: fixed !important;
         top: 0 !important;
@@ -40,7 +37,7 @@
         width: 100% !important;
         height: 100% !important;
         background: #0f0f0f !important;
-        z-index: 99999 !important;
+        z-index: 999999 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -48,8 +45,40 @@
         visibility: visible !important;
       }
       
-      /* Disable animations until loaded */
-      body.loading *, body:not(.loaded) * {
+      /* CRITICAL: Absolutely hide all main content until loaded */
+      .restaurant-main,
+      .navbar,
+      main,
+      nav,
+      section,
+      header,
+      footer {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+      
+      /* Only show body when it has the loaded class */
+      body.loaded {
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+      
+      /* Only show content when page is loaded */
+      body.loaded .restaurant-main,
+      body.loaded .navbar,
+      body.loaded main,
+      body.loaded nav,
+      body.loaded section,
+      body.loaded header,
+      body.loaded footer {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+      
+      /* Disable all animations until loaded */
+      * {
         animation: none !important;
         transition: none !important;
         transform: none !important;
@@ -262,6 +291,6 @@
     </main>
 
     <!-- Load JavaScript -->
-    <script src="restaurant-script.min.js?v=1754326909647"></script>
+    <script src="restaurant-script.min.js?v=1754327480160"></script>
 </body>
 </html>

@@ -178,6 +178,10 @@ async function loadLocationDetails(locationId) {
     // FIXED: Hide loading overlay after everything is loaded
     setTimeout(() => {
       hideLoadingOverlay();
+      // CRITICAL: Show content only after overlay is hidden
+      setTimeout(() => {
+        document.body.classList.add('loaded');
+      }, 100);
     }, 500);
 
   } catch (error) {

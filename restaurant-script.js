@@ -168,7 +168,7 @@ async function loadLocationDetails(locationId) {
     currentLocation = location;
 
     // Populate the page with location data
-    populateLocationData(location);
+    populateLocationDetails(location);
 
     // Load additional data
     await loadLocationHours(locationId);
@@ -556,6 +556,23 @@ function getCategoryIcon(category) {
   
   const normalizedCategory = category.toLowerCase();
   return categoryIcons[normalizedCategory] || 'fas fa-store';
+}
+
+function setDefaultImage(imageElement, category) {
+  const categoryImages = {
+    'restaurant': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    'cafe': 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    'cafenea': 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    'pub': 'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    'club': 'https://images.unsplash.com/photo-1571266028243-d220c9f3e821?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    'bar': 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+  };
+  
+  const normalizedCategory = category && typeof category === 'string' 
+    ? category.toLowerCase() 
+    : 'restaurant';
+  
+  imageElement.src = categoryImages[normalizedCategory] || categoryImages['restaurant'];
 }
 
 function arrayBufferToBase64(buffer) {

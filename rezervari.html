@@ -4,13 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- SEO Meta Tags -->
-    <meta name="description" content="AcoomH Rezervări - Caută și rezervă la restaurante, cafenele, puburi și cluburi din orașul tău!" />
-    <meta name="keywords" content="AcoomH, rezervări, restaurante, cafenele, puburi, cluburi, căutare" />
-    <meta name="author" content="AcoomH Team" />
-    
-    <title>AcoomH - Rezervări</title>
-    <link rel="icon" type="image/png" href="acoomh.png" />
+    <!-- CRITICAL: Load CSS first to prevent FOUC -->
+    <link rel="stylesheet" href="rezervari-style.min.css?v=1754325389368" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -19,7 +14,56 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="rezervari-style.min.css?v=1754325139738" />
+    
+    <!-- CRITICAL: Inline styles to prevent any flash -->
+    <style>
+      /* Immediate hiding of content until loaded */
+      html, body { 
+        margin: 0; 
+        padding: 0; 
+        background: #0f0f0f !important; 
+        color: #ffffff !important; 
+        font-family: "Inter", sans-serif !important;
+        overflow: hidden !important;
+      }
+      
+      /* Hide content immediately */
+      body:not(.loading):not(.loaded) {
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+      
+      /* Show loading overlay immediately */
+      .page-loading-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: #0f0f0f !important;
+        z-index: 99999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+      
+      /* Disable animations until loaded */
+      body.loading *, body:not(.loaded) * {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+      }
+    </style>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="AcoomH Rezervări - Caută și rezervă la restaurante, cafenele, puburi și cluburi din orașul tău!" />
+    <meta name="keywords" content="AcoomH, rezervări, restaurante, cafenele, puburi, cluburi, căutare" />
+    <meta name="author" content="AcoomH Team" />
+    
+    <title>AcoomH - Rezervări</title>
+    <link rel="icon" type="image/png" href="acoomh.png" />
   </head>
   <body class="loading">
     <!-- CRITICAL: Immediate loading overlay to prevent any content flash -->
@@ -118,6 +162,6 @@
       </div>
     </section>
 
-    <script src="rezervari-script.min.js?v=1754325139738"></script>
+    <script src="rezervari-script.min.js?v=1754325389368"></script>
   </body>
 </html>

@@ -203,43 +203,62 @@ function createLocationCard(location) {
   const viewDetailsBtn = card.querySelector('.btn-view-details');
   const reserveBtn = card.querySelector('.btn-reserve');
   
+  // CRITICAL: Zero-delay, completely synchronous navigation with full blocking
   viewDetailsBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
     
-    // CRITICAL: Show overlay immediately and synchronously
+    // Block any other events from firing
+    document.body.style.pointerEvents = 'none';
+    
+    // Show overlay completely synchronously
     showLoadingOverlayImmediately();
     
-    // Navigate with tiny delay to ensure overlay is rendered
-    setTimeout(() => {
-      window.location.href = `restaurant.html?id=${location.id}`;
-    }, 10);
+    // Force synchronous rendering
+    document.body.offsetHeight;
+    
+    // Navigate immediately without any delay
+    window.location.href = `restaurant.html?id=${location.id}`;
   });
   
   reserveBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
     
-    // CRITICAL: Show overlay immediately and synchronously
+    // Block any other events from firing
+    document.body.style.pointerEvents = 'none';
+    
+    // Show overlay completely synchronously
     showLoadingOverlayImmediately();
     
-    // Navigate with tiny delay to ensure overlay is rendered
-    setTimeout(() => {
-      window.location.href = `restaurant.html?id=${location.id}#reservation`;
-    }, 10);
+    // Force synchronous rendering
+    document.body.offsetHeight;
+    
+    // Navigate immediately without any delay
+    window.location.href = `restaurant.html?id=${location.id}#reservation`;
   });
   
   // Also add click to the card itself
   card.addEventListener('click', function(e) {
     // Only trigger if not clicking on buttons
     if (!e.target.closest('.btn-view-details') && !e.target.closest('.btn-reserve')) {
-      // CRITICAL: Show overlay immediately and synchronously
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      // Block any other events from firing
+      document.body.style.pointerEvents = 'none';
+      
+      // Show overlay completely synchronously
       showLoadingOverlayImmediately();
       
-      // Navigate with tiny delay to ensure overlay is rendered
-      setTimeout(() => {
-        window.location.href = `restaurant.html?id=${location.id}`;
-      }, 10);
+      // Force synchronous rendering
+      document.body.offsetHeight;
+      
+      // Navigate immediately without any delay
+      window.location.href = `restaurant.html?id=${location.id}`;
     }
   });
   

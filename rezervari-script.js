@@ -426,14 +426,30 @@ function hideLoadingOverlay() {
   document.body.classList.add('loaded');
 }
 
-// Intercept page navigation to show loading overlay
+// Intercept page navigation to show loading overlay - FIXED for instant overlay
 function navigateWithLoading(url) {
+  // CRITICAL: Show overlay immediately and synchronously
+  document.body.classList.add('loading');
+  document.body.classList.remove('loaded');
+  
+  // Create and show overlay immediately without any delays
+  let overlay = document.getElementById('pageLoadingOverlay');
+  if (!overlay) {
+    overlay = createLoadingOverlay();
+  }
+  
+  // Force immediate display
+  overlay.classList.remove('hidden');
+  overlay.style.opacity = '1';
+  overlay.style.visibility = 'visible';
+  
+  // Force a synchronous layout calculation to ensure overlay is rendered
+  overlay.offsetHeight;
+  
   // Clear any existing timeouts that might hide the overlay
   clearTimeout(window.loadingTimeout);
   
-  showLoadingOverlay();
-  
-  // Navigate immediately - no delay needed
+  // Navigate immediately after overlay is guaranteed to be visible
   window.location.href = url;
 }
 

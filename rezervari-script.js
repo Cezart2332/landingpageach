@@ -10,6 +10,9 @@ let currentSearchTerm = '';
 
 document.addEventListener('DOMContentLoaded', function() {
   try {
+    // CRITICAL: Ensure pointer events are enabled when page loads
+    document.body.style.pointerEvents = 'auto';
+    
     // Use the existing loading overlay from HTML instead of creating a new one
     const existingOverlay = document.getElementById('immediateLoadingOverlay');
     if (existingOverlay) {
@@ -207,36 +210,22 @@ function createLocationCard(location) {
   viewDetailsBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    e.stopImmediatePropagation();
     
-    // Block any other events from firing
-    document.body.style.pointerEvents = 'none';
-    
-    // Show overlay completely synchronously
+    // Show overlay immediately
     showLoadingOverlayImmediately();
     
-    // Force synchronous rendering
-    document.body.offsetHeight;
-    
-    // Navigate immediately without any delay
+    // Navigate without any delay
     window.location.href = `restaurant.html?id=${location.id}`;
   });
   
   reserveBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    e.stopImmediatePropagation();
     
-    // Block any other events from firing
-    document.body.style.pointerEvents = 'none';
-    
-    // Show overlay completely synchronously
+    // Show overlay immediately
     showLoadingOverlayImmediately();
     
-    // Force synchronous rendering
-    document.body.offsetHeight;
-    
-    // Navigate immediately without any delay
+    // Navigate without any delay
     window.location.href = `restaurant.html?id=${location.id}#reservation`;
   });
   
@@ -246,18 +235,11 @@ function createLocationCard(location) {
     if (!e.target.closest('.btn-view-details') && !e.target.closest('.btn-reserve')) {
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
       
-      // Block any other events from firing
-      document.body.style.pointerEvents = 'none';
-      
-      // Show overlay completely synchronously
+      // Show overlay immediately
       showLoadingOverlayImmediately();
       
-      // Force synchronous rendering
-      document.body.offsetHeight;
-      
-      // Navigate immediately without any delay
+      // Navigate without any delay
       window.location.href = `restaurant.html?id=${location.id}`;
     }
   });
@@ -463,6 +445,9 @@ function hideLoadingOverlay() {
   // Re-enable animations and mark page as loaded
   document.body.classList.remove('loading');
   document.body.classList.add('loaded');
+  
+  // CRITICAL: Always ensure pointer events are enabled
+  document.body.style.pointerEvents = 'auto';
 }
 
 // Intercept page navigation to show loading overlay - COPIED FROM HOMEPAGE

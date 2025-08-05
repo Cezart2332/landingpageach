@@ -329,9 +329,19 @@ function updateStatistics() {
   const openCount = allBugReports.filter(report => report.status === 'open').length;
   const resolvedCount = allBugReports.filter(report => report.status === 'resolved').length;
   
-  document.getElementById('openBugsCount').textContent = openCount;
-  document.getElementById('inProgressBugsCount').textContent = 0; // Backend doesn't have in-progress
-  document.getElementById('resolvedBugsCount').textContent = resolvedCount;
+  // Only update elements that actually exist in the HTML
+  const openElement = document.getElementById('openBugsCount');
+  const resolvedElement = document.getElementById('resolvedBugsCount');
+  
+  if (openElement) {
+    openElement.textContent = openCount;
+  }
+  
+  if (resolvedElement) {
+    resolvedElement.textContent = resolvedCount;
+  }
+  
+  console.log(`📊 Statistics updated: ${openCount} open, ${resolvedCount} resolved`);
 }
 
 // Filtering and Search - Updated for simplified status

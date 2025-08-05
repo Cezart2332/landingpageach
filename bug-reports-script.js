@@ -30,6 +30,7 @@ let selectedBugReport = null;
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
   try {
+    console.log('🚀 Initializing bug reports page...');
     initializeFilters();
     initializeSearch();
     loadBugReports();
@@ -45,22 +46,31 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch (error) {
     console.error('Bug reports page initialization error:', error);
     hideLoadingOverlay();
+    showErrorState('Eroare la inițializarea paginii');
   }
 });
 
 // API Functions - Updated to match backend endpoints
 async function loadBugReports() {
+  console.log('📡 Loading bug reports from API...');
   showLoadingState();
   
   try {
+    // Add timeout to prevent infinite loading
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     // Use actual backend endpoint
     const response = await fetch(`${API_BASE_URL}/api/BugReport?pageSize=100`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -69,19 +79,21 @@ async function loadBugReports() {
     const result = await response.json();
     const bugReports = result.data || result; // Handle both paginated and direct response
     
+    console.log('✅ Successfully loaded bug reports from API:', bugReports.length);
+    
     // Transform backend data to frontend format
     allBugReports = bugReports.map(report => ({
       id: report.id,
       title: report.title,
       description: report.description,
       status: report.isResolved ? 'resolved' : 'open',
-      priority: determinePriority(report.title, report.description), // Derive priority from content
-      userEmail: 'N/A', // Backend doesn't store email
+      priority: determinePriority(report.title, report.description),
+      userEmail: 'N/A',
       userName: report.username,
       createdAt: report.createdAt,
-      updatedAt: report.createdAt, // Backend doesn't track updates separately
+      updatedAt: report.createdAt,
       deviceInfo: report.deviceInfo || 'N/A',
-      appVersion: extractAppVersion(report.deviceInfo), // Try to extract from deviceInfo
+      appVersion: extractAppVersion(report.deviceInfo),
       deviceType: report.deviceType,
       adminNotes: report.adminNotes
     }));
@@ -92,12 +104,11 @@ async function loadBugReports() {
     displayBugReports(filteredBugReports);
     hideLoadingState();
     
-    console.log('✅ Successfully loaded bug reports:', allBugReports.length);
-    
   } catch (error) {
-    console.error('Error loading bug reports:', error);
+    console.error('❌ Error loading bug reports from API:', error);
+    console.log('🔄 Falling back to mock data...');
     
-    // Show mock data for development
+    // Always fall back to mock data if API fails
     loadMockData();
   }
 }
@@ -128,6 +139,8 @@ function extractAppVersion(deviceInfo) {
 
 // Mock data for development - keeping for fallback
 function loadMockData() {
+  console.log('📋 Loading mock bug reports data...');
+  
   const mockBugReports = [
     {
       id: 1,
@@ -156,6 +169,48 @@ function loadMockData() {
       deviceInfo: 'Samsung Galaxy S21, Android 12',
       appVersion: '1.2.0',
       deviceType: 'android'
+    },
+    {
+      id: 3,
+      title: 'Problema cu autentificarea',
+      description: 'Nu pot să mă loghez în aplicație. Îmi spune că parola este greșită, dar sunt sigur că este corectă.',
+      status: 'resolved',
+      priority: 'high',
+      userEmail: 'ion.vasile@example.com',
+      userName: 'Ion Vasile',
+      createdAt: '2025-08-01T16:45:00Z',
+      updatedAt: '2025-08-02T10:30:00Z',
+      deviceInfo: 'Huawei P30, Android 10',
+      appVersion: '1.1.9',
+      deviceType: 'android'
+    },
+    {
+      id: 4,
+      title: 'Încărcare lentă a paginii principale',
+      description: 'Pagina principală se încarcă foarte lent, durează peste 10 secunde să apară conținutul.',
+      status: 'open',
+      priority: 'low',
+      userEmail: 'ana.popescu@gmail.com',
+      userName: 'Ana Popescu',
+      createdAt: '2025-07-30T11:20:00Z',
+      updatedAt: '2025-07-30T11:20:00Z',
+      deviceInfo: 'iPhone 13, iOS 16.1',
+      appVersion: '1.2.0',
+      deviceType: 'ios'
+    },
+    {
+      id: 5,
+      title: 'Notificările nu funcționează',
+      description: 'Nu primesc notificări pentru confirmările de rezervare, deși am activat notificările în setări.',
+      status: 'open',
+      priority: 'medium',
+      userEmail: 'george.stan@example.com',
+      userName: 'George Stan',
+      createdAt: '2025-07-28T09:15:00Z',
+      updatedAt: '2025-07-29T14:20:00Z',
+      deviceInfo: 'OnePlus 9, Android 11',
+      appVersion: '1.1.8',
+      deviceType: 'android'
     }
   ];
   
@@ -166,11 +221,12 @@ function loadMockData() {
   displayBugReports(filteredBugReports);
   hideLoadingState();
   
-  console.log('✅ Loaded mock bug reports for development');
+  console.log('✅ Successfully loaded mock bug reports:', mockBugReports.length);
 }
 
 // Display Functions
 function showLoadingState() {
+  console.log('⏳ Showing loading state...');
   document.getElementById('loadingState').style.display = 'flex';
   document.getElementById('errorState').style.display = 'none';
   document.getElementById('reportsContainer').style.display = 'none';
@@ -178,6 +234,7 @@ function showLoadingState() {
 }
 
 function showErrorState(message) {
+  console.log('❌ Showing error state:', message);
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('errorState').style.display = 'flex';
   document.getElementById('reportsContainer').style.display = 'none';
@@ -186,6 +243,7 @@ function showErrorState(message) {
 }
 
 function hideLoadingState() {
+  console.log('✅ Hiding loading state...');
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('errorState').style.display = 'none';
 }

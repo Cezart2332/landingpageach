@@ -629,12 +629,12 @@ document.addEventListener("DOMContentLoaded", function () {
             const span = document.createElement("span");
             span.className = "char";
             span.textContent = char === " " ? "\u00A0" : char;
-            span.style.animationDelay = `${totalDelay + (charIndex * 40)}ms`;
+            span.style.animationDelay = `${totalDelay + (charIndex * 20)}ms`; // Reduced from 40ms to 20ms
             return span;
           });
           
           chars.forEach(char => element.appendChild(char));
-          totalDelay += (text.length * 40) + 200;
+          totalDelay += (text.length * 20) + 100; // Reduced from 40ms and 200ms to 20ms and 100ms
         });
       }
     }
@@ -642,7 +642,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Initialize animations
     setTimeout(() => {
       initCharacterRevealAnimation();
-    }, 400);
+    }, 200); // Reduced from 400ms to 200ms
 
     // Subtitle and button animations
     const heroSubtitle = document.querySelector(".hero-subtitle");
@@ -650,23 +650,23 @@ document.addEventListener("DOMContentLoaded", function () {
     if (heroSubtitle) {
       heroSubtitle.style.opacity = "0";
       heroSubtitle.style.transform = "translateY(30px)";
-      heroSubtitle.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+      heroSubtitle.style.transition = "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"; // Reduced from 0.8s to 0.6s
       
       setTimeout(() => {
         heroSubtitle.style.opacity = "1";
         heroSubtitle.style.transform = "translateY(0)";
-      }, 2200);
+      }, 1200); // Reduced from 2200ms to 1200ms
     }
 
     if (heroButtons) {
       heroButtons.style.opacity = "0";
       heroButtons.style.transform = "translateY(30px)";
-      heroButtons.style.transition = "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
+      heroButtons.style.transition = "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"; // Reduced from 0.8s to 0.6s
       
       setTimeout(() => {
         heroButtons.style.opacity = "1";
         heroButtons.style.transform = "translateY(0)";
-      }, 2600);
+      }, 1400); // Reduced from 2600ms to 1400ms
     }
 
     // Create section indicators

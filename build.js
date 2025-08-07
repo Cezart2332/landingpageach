@@ -59,9 +59,6 @@ function checkRequiredFiles() {
   return missingFiles;
 }
 
-// Check files first
-checkRequiredFiles();
-
 // Function to minify CSS
 function minifyCSS(cssContent) {
   if (!CleanCSS) return cssContent;
@@ -107,51 +104,51 @@ async function minifyJS(jsContent) {
   }
 }
 
-// CSS files to process
-const cssFiles = [
-  { name: 'style.css', output: 'style.min.css', label: 'CSS' },
-  { name: 'rezervari-style.css', output: 'rezervari-style.min.css', label: 'Rezervari CSS' },
-  { name: 'restaurant-style.css', output: 'restaurant-style.min.css', label: 'Restaurant CSS' },
-  { name: 'bug-reports-style.css', output: 'bug-reports-style.min.css', label: 'Bug Reports CSS' },
-  { name: 'merchant-requests-style.css', output: 'merchant-requests-style.min.css', label: 'Merchant Requests CSS' }
-];
+// Function to process CSS files
+function processCSS() {
+  const cssFiles = [
+    { name: 'style.css', output: 'style.min.css', label: 'CSS' },
+    { name: 'rezervari-style.css', output: 'rezervari-style.min.css', label: 'Rezervari CSS' },
+    { name: 'restaurant-style.css', output: 'restaurant-style.min.css', label: 'Restaurant CSS' },
+    { name: 'bug-reports-style.css', output: 'bug-reports-style.min.css', label: 'Bug Reports CSS' },
+    { name: 'merchant-requests-style.css', output: 'merchant-requests-style.min.css', label: 'Merchant Requests CSS' }
+  ];
 
-// Process all CSS files
-cssFiles.forEach(cssFile => {
-  const cssPath = path.join(__dirname, cssFile.name);
-  if (fs.existsSync(cssPath)) {
-    try {
-      const originalCSS = fs.readFileSync(cssPath, 'utf8');
-      const minifiedCSS = minifyCSS(originalCSS);
-      
-      if (CleanCSS) {
-        // Create minified version
-        const minifiedPath = path.join(__dirname, cssFile.output);
-        fs.writeFileSync(minifiedPath, minifiedCSS);
+  cssFiles.forEach(cssFile => {
+    const cssPath = path.join(__dirname, cssFile.name);
+    if (fs.existsSync(cssPath)) {
+      try {
+        const originalCSS = fs.readFileSync(cssPath, 'utf8');
+        const minifiedCSS = minifyCSS(originalCSS);
         
-        const originalSize = (originalCSS.length / 1024).toFixed(2);
-        const minifiedSize = (minifiedCSS.length / 1024).toFixed(2);
-        const savings = (((originalCSS.length - minifiedCSS.length) / originalCSS.length) * 100).toFixed(1);
-        
-        console.log(`✅ ${cssFile.label} minified: ${originalSize}KB → ${minifiedSize}KB (${savings}% smaller)`);
+        if (CleanCSS) {
+          // Create minified version
+          const minifiedPath = path.join(__dirname, cssFile.output);
+          fs.writeFileSync(minifiedPath, minifiedCSS);
+          
+          const originalSize = (originalCSS.length / 1024).toFixed(2);
+          const minifiedSize = (minifiedCSS.length / 1024).toFixed(2);
+          const savings = (((originalCSS.length - minifiedCSS.length) / originalCSS.length) * 100).toFixed(1);
+          
+          console.log(`✅ ${cssFile.label} minified: ${originalSize}KB → ${minifiedSize}KB (${savings}% smaller)`);
+        }
+      } catch (error) {
+        console.log(`⚠️  Error processing ${cssFile.label}:`, error.message);
       }
-    } catch (error) {
-      console.log(`⚠️  Error processing ${cssFile.label}:`, error.message);
     }
-  }
-});
+  });
+}
 
-// JavaScript files to process
-const jsFiles = [
-  { name: 'script.js', output: 'script.min.js', label: 'JavaScript' },
-  { name: 'rezervari-script.js', output: 'rezervari-script.min.js', label: 'Rezervari JavaScript' },
-  { name: 'restaurant-script.js', output: 'restaurant-script.min.js', label: 'Restaurant JavaScript' },
-  { name: 'bug-reports-script.js', output: 'bug-reports-script.min.js', label: 'Bug Reports JavaScript' },
-  { name: 'merchant-requests-script.js', output: 'merchant-requests-script.min.js', label: 'Merchant Requests JavaScript' }
-];
+// Function to process JavaScript files
+async function processJS() {
+  const jsFiles = [
+    { name: 'script.js', output: 'script.min.js', label: 'JavaScript' },
+    { name: 'rezervari-script.js', output: 'rezervari-script.min.js', label: 'Rezervari JavaScript' },
+    { name: 'restaurant-script.js', output: 'restaurant-script.min.js', label: 'Restaurant JavaScript' },
+    { name: 'bug-reports-script.js', output: 'bug-reports-script.min.js', label: 'Bug Reports JavaScript' },
+    { name: 'merchant-requests-script.js', output: 'merchant-requests-script.min.js', label: 'Merchant Requests JavaScript' }
+  ];
 
-// Process all JavaScript files
-(async () => {
   for (const jsFile of jsFiles) {
     const jsPath = path.join(__dirname, jsFile.name);
     if (fs.existsSync(jsPath)) {
@@ -175,10 +172,7 @@ const jsFiles = [
       }
     }
   }
-  
-  // Update HTML files after processing all JS files
-  updateHTML();
-})();
+}
 
 function updateHTML() {
   const useMinified = CleanCSS && minify;
@@ -232,8 +226,6 @@ function updateHTML() {
       );
       
       fs.writeFileSync(htmlPath, htmlContent);
-      console.log(`   - ${htmlFile.css}?v=${timestamp}`);
-      console.log(`   - ${htmlFile.js}?v=${timestamp}`);
     }
   });
   
@@ -320,3 +312,29 @@ function updateHTML() {
     console.log('   - All video files');
   }
 }
+
+// Main function to run the build process
+async function main() {
+  try {
+    // Check files first
+    checkRequiredFiles();
+    
+    // Process CSS files (synchronous)
+    processCSS();
+    
+    // Process JavaScript files (asynchronous)
+    await processJS();
+    
+    // Update HTML files
+    updateHTML();
+    
+    console.log('\n✨ Build process completed successfully!');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Build process failed:', error.message);
+    process.exit(1);
+  }
+}
+
+// Run the main function
+main();

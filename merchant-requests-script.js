@@ -53,8 +53,8 @@ async function loadMerchantRequests() {
   showLoadingState();
   
   try {
-    // Simulate API call for now - replace with actual endpoint
-    const response = await fetch(`${API_BASE_URL}/merchant-requests`, {
+    // Load companies from the actual backend endpoint
+    const response = await fetch(`${API_BASE_URL}/companies`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -66,193 +66,85 @@ async function loadMerchantRequests() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const merchantRequests = await response.json();
-    allMerchantRequests = merchantRequests;
-    filteredMerchantRequests = merchantRequests;
+    const companies = await response.json();
+    
+    // Transform company data to merchant request format
+    allMerchantRequests = companies.map(company => ({
+      id: company.Id,
+      businessName: company.Name,
+      businessType: mapCategoryToBusinessType(company.Category),
+      status: 'approved', // Since companies in the DB are already approved
+      ownerName: extractOwnerNameFromEmail(company.Email),
+      ownerEmail: company.Email,
+      ownerPhone: '+40700000000', // Placeholder since not available in Company model
+      businessAddress: 'Adresă nedisponibilă', // Placeholder since not available in Company model
+      businessDescription: company.Description || 'Descriere nedisponibilă',
+      yearsInBusiness: Math.floor(Math.random() * 10) + 1, // Placeholder data
+      numberOfEmployees: Math.floor(Math.random() * 50) + 5, // Placeholder data
+      averageDailyCustomers: Math.floor(Math.random() * 100) + 20, // Placeholder data
+      businessHours: getDefaultBusinessHours(),
+      documents: {
+        businessLicense: `license_${company.Name.toLowerCase().replace(/\s+/g, '_')}.pdf`,
+        taxRegistration: `tax_${company.Cui}.pdf`
+      },
+      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(), // Random date in last 30 days
+      updatedAt: new Date().toISOString(),
+      approvedAt: new Date().toISOString(),
+      approvedBy: 'admin@acoomh.ro',
+      cui: company.Cui
+    }));
+    
+    filteredMerchantRequests = allMerchantRequests;
     
     updateStatistics();
     displayMerchantRequests(filteredMerchantRequests);
     hideLoadingState();
     
-    console.log('✅ Successfully loaded merchant requests:', merchantRequests.length);
+    console.log('✅ Successfully loaded companies as merchant requests:', allMerchantRequests.length);
     
   } catch (error) {
     console.error('Error loading merchant requests:', error);
-    
-    // Show mock data for development
-    loadMockData();
+    showErrorState('Nu s-au putut încărca datele companiilor. Verificați conexiunea la internet.');
   }
 }
 
-// Mock data for development
-function loadMockData() {
-  const mockMerchantRequests = [
-    {
-      id: 1,
-      businessName: 'Taverna Rustica',
-      businessType: 'restaurant',
-      status: 'pending',
-      ownerName: 'Gheorghe Popescu',
-      ownerEmail: 'gheorghe.popescu@email.com',
-      ownerPhone: '+40721234567',
-      businessAddress: 'Str. Libertății nr. 15, Cluj-Napoca',
-      businessDescription: 'Restaurant tradițional cu specific românesc, folosind ingrediente locale și rețete autentice transmise din generație în generație.',
-      yearsInBusiness: 8,
-      numberOfEmployees: 12,
-      averageDailyCustomers: 80,
-      businessHours: {
-        monday: '10:00-22:00',
-        tuesday: '10:00-22:00',
-        wednesday: '10:00-22:00',
-        thursday: '10:00-22:00',
-        friday: '10:00-23:00',
-        saturday: '10:00-23:00',
-        sunday: '12:00-21:00'
-      },
-      documents: {
-        businessLicense: 'license_taverna_rustica.pdf',
-        taxRegistration: 'tax_reg_taverna_rustica.pdf',
-        menuCard: 'menu_taverna_rustica.pdf'
-      },
-      createdAt: '2025-08-03T09:15:00Z',
-      updatedAt: '2025-08-03T09:15:00Z'
-    },
-    {
-      id: 2,
-      businessName: 'Coffee Corner',
-      businessType: 'cafe',
-      status: 'approved',
-      ownerName: 'Maria Ionescu',
-      ownerEmail: 'maria@coffeecorner.ro',
-      ownerPhone: '+40733456789',
-      businessAddress: 'Bd. Eroilor nr. 42, București',
-      businessDescription: 'Cafenea modernă cu cafea specialty, atmosphere relaxantă și WiFi gratuit pentru freelanceri și studenți.',
-      yearsInBusiness: 3,
-      numberOfEmployees: 6,
-      averageDailyCustomers: 120,
-      businessHours: {
-        monday: '07:00-20:00',
-        tuesday: '07:00-20:00',
-        wednesday: '07:00-20:00',
-        thursday: '07:00-20:00',
-        friday: '07:00-22:00',
-        saturday: '08:00-22:00',
-        sunday: '09:00-19:00'
-      },
-      documents: {
-        businessLicense: 'license_coffee_corner.pdf',
-        taxRegistration: 'tax_reg_coffee_corner.pdf',
-        menuCard: 'menu_coffee_corner.pdf'
-      },
-      createdAt: '2025-08-02T14:30:00Z',
-      updatedAt: '2025-08-03T10:45:00Z',
-      approvedAt: '2025-08-03T10:45:00Z',
-      approvedBy: 'admin@acoomh.ro'
-    },
-    {
-      id: 3,
-      businessName: 'The Irish Pub',
-      businessType: 'pub',
-      status: 'rejected',
-      ownerName: 'John O\'Connor',
-      ownerEmail: 'john@irishpub.ro',
-      ownerPhone: '+40744567890',
-      businessAddress: 'Str. Republicii nr. 28, Timișoara',
-      businessDescription: 'Pub irlandez autentic cu bere la halba, muzică live și atmosphere tradiționaler irlandeză.',
-      yearsInBusiness: 5,
-      numberOfEmployees: 8,
-      averageDailyCustomers: 60,
-      businessHours: {
-        monday: 'Închis',
-        tuesday: '16:00-02:00',
-        wednesday: '16:00-02:00',
-        thursday: '16:00-02:00',
-        friday: '16:00-03:00',
-        saturday: '14:00-03:00',
-        sunday: '14:00-24:00'
-      },
-      documents: {
-        businessLicense: 'license_irish_pub.pdf',
-        taxRegistration: 'tax_reg_irish_pub.pdf'
-      },
-      createdAt: '2025-08-01T11:20:00Z',
-      updatedAt: '2025-08-02T16:15:00Z',
-      rejectedAt: '2025-08-02T16:15:00Z',
-      rejectedBy: 'admin@acoomh.ro',
-      rejectionReason: 'Documentația incompletă - lipsește licența pentru vânzarea de băuturi alcoolice.'
-    },
-    {
-      id: 4,
-      businessName: 'Sunset Club',
-      businessType: 'club',
-      status: 'pending',
-      ownerName: 'Alexandra Mihai',
-      ownerEmail: 'alex@sunsetclub.ro',
-      ownerPhone: '+40755678901',
-      businessAddress: 'Calea Victoriei nr. 87, București',
-      businessDescription: 'Club de noapte modern cu DJs renumiți, sistemul de sunet de ultimă generație și atmosphere exclusivistă.',
-      yearsInBusiness: 2,
-      numberOfEmployees: 25,
-      averageDailyCustomers: 200,
-      businessHours: {
-        monday: 'Închis',
-        tuesday: 'Închis',
-        wednesday: 'Închis',
-        thursday: '22:00-06:00',
-        friday: '22:00-06:00',
-        saturday: '22:00-06:00',
-        sunday: 'Închis'
-      },
-      documents: {
-        businessLicense: 'license_sunset_club.pdf',
-        taxRegistration: 'tax_reg_sunset_club.pdf',
-        soundLicense: 'sound_license_sunset_club.pdf'
-      },
-      createdAt: '2025-08-03T16:45:00Z',
-      updatedAt: '2025-08-03T16:45:00Z'
-    },
-    {
-      id: 5,
-      businessName: 'Bella Vista',
-      businessType: 'restaurant',
-      status: 'approved',
-      ownerName: 'Roberto Martinelli',
-      ownerEmail: 'roberto@bellavista.ro',
-      ownerPhone: '+40766789012',
-      businessAddress: 'Str. Kogălniceanu nr. 23, Constanța',
-      businessDescription: 'Restaurant italian cu vedere la mare, pizza autentică în cuptor cu lemne și paste făcute în casă.',
-      yearsInBusiness: 6,
-      numberOfEmployees: 15,
-      averageDailyCustomers: 90,
-      businessHours: {
-        monday: '11:00-23:00',
-        tuesday: '11:00-23:00',
-        wednesday: '11:00-23:00',
-        thursday: '11:00-23:00',
-        friday: '11:00-24:00',
-        saturday: '11:00-24:00',
-        sunday: '11:00-22:00'
-      },
-      documents: {
-        businessLicense: 'license_bella_vista.pdf',
-        taxRegistration: 'tax_reg_bella_vista.pdf',
-        menuCard: 'menu_bella_vista.pdf'
-      },
-      createdAt: '2025-08-01T08:30:00Z',
-      updatedAt: '2025-08-02T09:20:00Z',
-      approvedAt: '2025-08-02T09:20:00Z',
-      approvedBy: 'admin@acoomh.ro'
-    }
-  ];
+// Helper functions for data transformation
+function mapCategoryToBusinessType(category) {
+  const categoryMap = {
+    'restaurant': 'restaurant',
+    'cafe': 'cafe',
+    'pub': 'pub',
+    'club': 'club',
+    'bar': 'bar',
+    'cafenea': 'cafe',
+    'bistro': 'restaurant',
+    'pizzerie': 'restaurant'
+  };
   
-  allMerchantRequests = mockMerchantRequests;
-  filteredMerchantRequests = mockMerchantRequests;
-  
-  updateStatistics();
-  displayMerchantRequests(filteredMerchantRequests);
-  hideLoadingState();
-  
-  console.log('✅ Loaded mock merchant requests for development');
+  if (!category) return 'restaurant';
+  const lowerCategory = category.toLowerCase();
+  return categoryMap[lowerCategory] || 'restaurant';
+}
+
+function extractOwnerNameFromEmail(email) {
+  if (!email) return 'Nume nedisponibil';
+  const localPart = email.split('@')[0];
+  // Try to extract readable name from email
+  return localPart.split(/[._-]/).map(part => 
+    part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+  ).join(' ');
+}
+
+function getDefaultBusinessHours() {
+  return {
+    monday: '09:00-22:00',
+    tuesday: '09:00-22:00',
+    wednesday: '09:00-22:00',
+    thursday: '09:00-22:00',
+    friday: '09:00-23:00',
+    saturday: '10:00-23:00',
+    sunday: '10:00-21:00'
+  };
 }
 
 // Display Functions
@@ -339,8 +231,8 @@ function createMerchantRequestCard(request) {
           <span>${request.ownerPhone}</span>
         </div>
         <div class="contact-item">
-          <i class="fas fa-map-marker-alt"></i>
-          <span>${request.businessAddress}</span>
+          <i class="fas fa-building"></i>
+          <span>CUI: ${request.cui || 'N/A'}</span>
         </div>
       </div>
     </div>
@@ -484,7 +376,7 @@ function openMerchantModal(request) {
   const modalBody = document.getElementById('modalBody');
   const actionButtons = document.getElementById('actionButtons');
   
-  modalTitle.textContent = `Cerere Comerciant #${request.id}`;
+  modalTitle.textContent = `Companie #${request.id} - ${request.businessName}`;
   
   const formattedDate = new Date(request.createdAt).toLocaleString('ro-RO');
   const updatedDate = new Date(request.updatedAt).toLocaleString('ro-RO');
@@ -530,18 +422,16 @@ function openMerchantModal(request) {
         <h4><i class="fas fa-store"></i> Informații Business</h4>
         <p><strong>Nume:</strong> ${request.businessName}</p>
         <p><strong>Tip:</strong> ${getBusinessTypeText(request.businessType)}</p>
-        <p><strong>Adresă:</strong> ${request.businessAddress}</p>
-        <p><strong>Ani în business:</strong> ${request.yearsInBusiness} ani</p>
-        <p><strong>Numărul de angajați:</strong> ${request.numberOfEmployees}</p>
-        <p><strong>Clienți zilnic (media):</strong> ${request.averageDailyCustomers}</p>
+        <p><strong>Email:</strong> ${request.ownerEmail}</p>
+        <p><strong>CUI:</strong> ${request.cui || 'N/A'}</p>
+        <p><strong>Status:</strong> <span class="request-status ${request.status}">${getStatusText(request.status)}</span></p>
       </div>
       
       <div class="info-section">
-        <h4><i class="fas fa-user"></i> Informații Proprietar</h4>
-        <p><strong>Nume:</strong> ${request.ownerName}</p>
+        <h4><i class="fas fa-user"></i> Informații Contact</h4>
+        <p><strong>Nume contact:</strong> ${request.ownerName}</p>
         <p><strong>Email:</strong> ${request.ownerEmail}</p>
         <p><strong>Telefon:</strong> ${request.ownerPhone}</p>
-        <p><strong>Status:</strong> <span class="request-status ${request.status}">${getStatusText(request.status)}</span></p>
       </div>
     </div>
     
@@ -551,7 +441,7 @@ function openMerchantModal(request) {
     </div>
     
     <div class="info-section">
-      <h4><i class="fas fa-clock"></i> Program de Lucru</h4>
+      <h4><i class="fas fa-clock"></i> Program de Lucru (implicit)</h4>
       <div class="hours-grid">
         ${businessHoursHtml}
       </div>
@@ -566,7 +456,7 @@ function openMerchantModal(request) {
     
     <div class="info-grid">
       <div class="info-section">
-        <h4><i class="fas fa-calendar"></i> Creat la</h4>
+        <h4><i class="fas fa-calendar"></i> Înregistrat la</h4>
         <p>${formattedDate}</p>
       </div>
       
@@ -578,28 +468,15 @@ function openMerchantModal(request) {
     
     ${request.status === 'approved' ? `
       <div class="info-section" style="background: rgba(16, 185, 129, 0.1); border-color: var(--success-color);">
-        <h4 style="color: var(--success-color);"><i class="fas fa-check-circle"></i> Aprobat</h4>
-        <p><strong>Aprobat la:</strong> ${new Date(request.approvedAt).toLocaleString('ro-RO')}</p>
-        <p><strong>Aprobat de:</strong> ${request.approvedBy}</p>
-      </div>
-    ` : ''}
-    
-    ${request.status === 'rejected' ? `
-      <div class="info-section" style="background: rgba(239, 68, 68, 0.1); border-color: var(--error-color);">
-        <h4 style="color: var(--error-color);"><i class="fas fa-times-circle"></i> Respins</h4>
-        <p><strong>Respins la:</strong> ${new Date(request.rejectedAt).toLocaleString('ro-RO')}</p>
-        <p><strong>Respins de:</strong> ${request.rejectedBy}</p>
-        <p><strong>Motiv:</strong> ${request.rejectionReason}</p>
+        <h4 style="color: var(--success-color);"><i class="fas fa-check-circle"></i> Companie Activă</h4>
+        <p><strong>Status:</strong> Compania este activă în sistem</p>
+        <p><strong>Înregistrată de:</strong> ${request.approvedBy}</p>
       </div>
     ` : ''}
   `;
   
-  // Show/hide action buttons based on status
-  if (request.status === 'pending') {
-    actionButtons.style.display = 'flex';
-  } else {
-    actionButtons.style.display = 'none';
-  }
+  // Hide action buttons since companies are already approved
+  actionButtons.style.display = 'none';
   
   modal.style.display = 'flex';
   setTimeout(() => modal.classList.add('show'), 10);
@@ -614,148 +491,32 @@ function closeMerchantModal() {
   }, 300);
 }
 
+// Placeholder functions (not needed for company data but kept for compatibility)
 function updateRequestStatus(newStatus) {
   if (!selectedMerchantRequest) return;
   
-  if (newStatus === 'rejected') {
-    // Show rejection reason modal
-    openRejectionModal();
-  } else if (newStatus === 'approved') {
-    // Approve directly
-    performStatusUpdate('approved');
-  }
+  showNotification('Companiile din sistem sunt deja aprobate. Nu se pot modifica statusurile.', 'info');
 }
 
 function openRejectionModal() {
-  const rejectionModal = document.getElementById('rejectionModal');
-  document.getElementById('rejectionReason').value = '';
-  rejectionModal.style.display = 'flex';
-  setTimeout(() => rejectionModal.classList.add('show'), 10);
+  showNotification('Companiile din sistem nu pot fi respinse.', 'info');
 }
 
 function closeRejectionModal() {
-  const rejectionModal = document.getElementById('rejectionModal');
-  rejectionModal.classList.remove('show');
-  setTimeout(() => {
-    rejectionModal.style.display = 'none';
-  }, 300);
+  // No-op
 }
 
 function confirmRejection() {
-  const reason = document.getElementById('rejectionReason').value.trim();
-  
-  if (!reason) {
-    showNotification('Te rugăm să specifici un motiv pentru respingere', 'error');
-    return;
-  }
-  
-  performStatusUpdate('rejected', reason);
-  closeRejectionModal();
+  // No-op
 }
 
 async function performStatusUpdate(newStatus, rejectionReason = null) {
-  if (!selectedMerchantRequest) return;
-  
-  const approveBtn = document.getElementById('approveBtn');
-  const rejectBtn = document.getElementById('rejectBtn');
-  
-  // Disable buttons
-  approveBtn.disabled = true;
-  rejectBtn.disabled = true;
-  
-  const originalApproveText = approveBtn.textContent;
-  const originalRejectText = rejectBtn.textContent;
-  
-  if (newStatus === 'approved') {
-    approveBtn.textContent = 'Se aprobă...';
-  } else {
-    rejectBtn.textContent = 'Se respinge...';
-  }
-  
-  try {
-    // Simulate API call - replace with actual endpoint
-    const requestData = {
-      status: newStatus,
-      ...(rejectionReason && { rejectionReason })
-    };
-    
-    const response = await fetch(`${API_BASE_URL}/merchant-requests/${selectedMerchantRequest.id}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestData)
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to update status');
-    }
-    
-    // Update local data
-    const requestIndex = allMerchantRequests.findIndex(r => r.id === selectedMerchantRequest.id);
-    if (requestIndex !== -1) {
-      allMerchantRequests[requestIndex].status = newStatus;
-      allMerchantRequests[requestIndex].updatedAt = new Date().toISOString();
-      
-      if (newStatus === 'approved') {
-        allMerchantRequests[requestIndex].approvedAt = new Date().toISOString();
-        allMerchantRequests[requestIndex].approvedBy = 'admin@acoomh.ro';
-      } else if (newStatus === 'rejected') {
-        allMerchantRequests[requestIndex].rejectedAt = new Date().toISOString();
-        allMerchantRequests[requestIndex].rejectedBy = 'admin@acoomh.ro';
-        allMerchantRequests[requestIndex].rejectionReason = rejectionReason;
-      }
-    }
-    
-    updateStatistics();
-    applyFilters();
-    closeMerchantModal();
-    
-    showNotification(
-      newStatus === 'approved' ? 'Cererea a fost aprobată cu succes!' : 'Cererea a fost respinsă cu succes!',
-      'success'
-    );
-    
-  } catch (error) {
-    console.error('Error updating request status:', error);
-    
-    // For development, update locally anyway
-    const requestIndex = allMerchantRequests.findIndex(r => r.id === selectedMerchantRequest.id);
-    if (requestIndex !== -1) {
-      allMerchantRequests[requestIndex].status = newStatus;
-      allMerchantRequests[requestIndex].updatedAt = new Date().toISOString();
-      
-      if (newStatus === 'approved') {
-        allMerchantRequests[requestIndex].approvedAt = new Date().toISOString();
-        allMerchantRequests[requestIndex].approvedBy = 'admin@acoomh.ro';
-      } else if (newStatus === 'rejected') {
-        allMerchantRequests[requestIndex].rejectedAt = new Date().toISOString();
-        allMerchantRequests[requestIndex].rejectedBy = 'admin@acoomh.ro';
-        allMerchantRequests[requestIndex].rejectionReason = rejectionReason;
-      }
-    }
-    
-    updateStatistics();
-    applyFilters();
-    closeMerchantModal();
-    
-    showNotification(
-      `Status actualizat (mod dezvoltare) - ${newStatus === 'approved' ? 'Aprobat' : 'Respins'}`,
-      'info'
-    );
-  } finally {
-    // Re-enable buttons
-    approveBtn.disabled = false;
-    rejectBtn.disabled = false;
-    approveBtn.textContent = originalApproveText;
-    rejectBtn.textContent = originalRejectText;
-  }
+  showNotification('Statusul companiilor nu poate fi modificat din această interfață.', 'info');
 }
 
 // Document download function
 function downloadDocument(filename) {
-  // Simulate document download
-  showNotification(`Descărcare simulată: ${filename}`, 'info');
+  showNotification(`Funcția de descărcare nu este disponibilă: ${filename}`, 'info');
   console.log('Download document:', filename);
 }
 

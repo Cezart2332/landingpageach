@@ -89,7 +89,7 @@ async function loadMerchantRequests() {
     allMerchantRequests = companies
       .filter(company => {
         // Filter out invalid companies
-        if (!company || !company.Id || !company.Name) {
+        if (!company || !company.id || !company.name) {
           console.warn('Skipping invalid company:', company);
           return false;
         }
@@ -97,17 +97,17 @@ async function loadMerchantRequests() {
       })
       .map(company => {
         // Extract additional info from company data
-        const businessAddress = company.Address || 'Adresă nedisponibilă';
-        const businessPhone = company.Phone || '+40700000000';
-        const businessDescription = company.Description || 'Descriere nedisponibilă';
+        const businessAddress = company.address || 'Adresă nedisponibilă';
+        const businessPhone = company.phone || '+40700000000';
+        const businessDescription = company.description || 'Descriere nedisponibilă';
         
         return {
-          id: company.Id,
-          businessName: company.Name,
-          businessType: mapCategoryToBusinessType(company.Category),
+          id: company.id,
+          businessName: company.name,
+          businessType: mapCategoryToBusinessType(company.category),
           status: 'approved', // Since companies in the DB are already approved
-          ownerName: extractOwnerNameFromEmail(company.Email),
-          ownerEmail: company.Email,
+          ownerName: extractOwnerNameFromEmail(company.email),
+          ownerEmail: company.email,
           ownerPhone: businessPhone,
           businessAddress: businessAddress,
           businessDescription: businessDescription,
@@ -116,14 +116,14 @@ async function loadMerchantRequests() {
           averageDailyCustomers: Math.floor(Math.random() * 100) + 20, // Placeholder data
           businessHours: getDefaultBusinessHours(),
           documents: {
-            businessLicense: `license_${company.Name.toLowerCase().replace(/\s+/g, '_')}.pdf`,
-            taxRegistration: `tax_${company.Cui || 'unknown'}.pdf`
+            businessLicense: `license_${company.name.toLowerCase().replace(/\s+/g, '_')}.pdf`,
+            taxRegistration: `tax_${company.cui || 'unknown'}.pdf`
           },
           createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(), // Random date in last 30 days
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
           approvedBy: 'admin@acoomh.ro',
-          cui: company.Cui || 'N/A'
+          cui: company.cui || 'N/A'
         };
       });
     

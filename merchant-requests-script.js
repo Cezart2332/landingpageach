@@ -105,7 +105,7 @@ async function loadMerchantRequests() {
           id: company.id,
           businessName: company.name,
           businessType: mapCategoryToBusinessType(company.category),
-          status: 'approved', // Since companies in the DB are already approved
+          status: company.isActive === false ? 'pending' : 'approved', // Check isActive status
           ownerName: extractOwnerNameFromEmail(company.email),
           ownerEmail: company.email,
           ownerPhone: businessPhone,
@@ -121,9 +121,10 @@ async function loadMerchantRequests() {
           },
           createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(), // Random date in last 30 days
           updatedAt: new Date().toISOString(),
-          approvedAt: new Date().toISOString(),
-          approvedBy: 'admin@acoomh.ro',
-          cui: company.cui || 'N/A'
+          approvedAt: company.isActive === false ? null : new Date().toISOString(),
+          approvedBy: company.isActive === false ? null : 'admin@acoomh.ro',
+          cui: company.cui || 'N/A',
+          isActive: company.isActive // Store the original isActive value
         };
       });
     
@@ -521,8 +522,12 @@ function openMerchantModal(request) {
     ` : ''}
   `;
   
-  // Hide action buttons since companies are already approved
-  actionButtons.style.display = 'none';
+  // Show/hide action buttons based on status
+  if (request.status === 'pending') {
+    actionButtons.style.display = 'flex';
+  } else {
+    actionButtons.style.display = 'none';
+  }
   
   modal.style.display = 'flex';
   setTimeout(() => modal.classList.add('show'), 10);
@@ -537,27 +542,119 @@ function closeMerchantModal() {
   }, 300);
 }
 
-// Placeholder functions (not needed for company data but kept for compatibility)
-function updateRequestStatus(newStatus) {
+// Update request status functionality
+async function updateRequestStatus(newStatus) {
   if (!selectedMerchantRequest) return;
   
-  showNotification('Companiile din sistem sunt deja aprobate. Nu se pot modifica statusurile.', 'info');
+  if (selectedMerchantRequest.status !== 'pending') {
+    showNotification('Doar companiile în așteptare pot fi modificate.', 'info');
+    return;
+  }
+  
+  if (newStatus === 'rejected') {
+    openRejectionModal();
+    return;
+  }
+  
+  await performStatusUpdate(newStatus);
 }
 
 function openRejectionModal() {
-  showNotification('Companiile din sistem nu pot fi respinse.', 'info');
+  if (!selectedMerchantRequest || selectedMerchantRequest.status !== 'pending') {
+    showNotification('Doar companiile în așteptare pot fi respinse.', 'info');
+    return;
+  }
+  
+  const rejectionModal = document.getElementById('rejectionModal');
+  rejectionModal.style.display = 'flex';
+  setTimeout(() => rejectionModal.classList.add('show'), 10);
 }
 
 function closeRejectionModal() {
-  // No-op
+  const rejectionModal = document.getElementById('rejectionModal');
+  rejectionModal.classList.remove('show');
+  setTimeout(() => {
+    rejectionModal.style.display = 'none';
+    document.getElementById('rejectionReason').value = '';
+  }, 300);
 }
 
 function confirmRejection() {
-  // No-op
+  const rejectionReason = document.getElementById('rejectionReason').value.trim();
+  if (!rejectionReason) {
+    showNotification('Te rugăm să specifici motivul respingerii.', 'error');
+    return;
+  }
+  
+  performStatusUpdate('rejected', rejectionReason);
+  closeRejectionModal();
 }
 
 async function performStatusUpdate(newStatus, rejectionReason = null) {
-  showNotification('Statusul companiilor nu poate fi modificat din această interfață.', 'info');
+  if (!selectedMerchantRequest) return;
+  
+  try {
+    // Show loading state
+    const approveBtn = document.getElementById('approveBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+    
+    if (approveBtn) approveBtn.disabled = true;
+    if (rejectBtn) rejectBtn.disabled = true;
+    
+    // Prepare the update data
+    const updateData = {
+      isActive: newStatus === 'approved'
+    };
+    
+    // Make API call to update company status
+    const response = await fetch(`${API_BASE_URL}/companies/${selectedMerchantRequest.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(updateData)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // Update the local data
+    selectedMerchantRequest.status = newStatus;
+    selectedMerchantRequest.isActive = newStatus === 'approved';
+    
+    if (newStatus === 'approved') {
+      selectedMerchantRequest.approvedAt = new Date().toISOString();
+      selectedMerchantRequest.approvedBy = 'admin@acoomh.ro';
+    }
+    
+    // Update the request in the global arrays
+    const requestIndex = allMerchantRequests.findIndex(r => r.id === selectedMerchantRequest.id);
+    if (requestIndex !== -1) {
+      allMerchantRequests[requestIndex] = { ...selectedMerchantRequest };
+    }
+    
+    // Refresh displays
+    updateStatistics();
+    applyFilters();
+    closeMerchantModal();
+    
+    // Show success message
+    const statusText = newStatus === 'approved' ? 'aprobată' : 'respinsă';
+    showNotification(`Compania a fost ${statusText} cu succes.`, 'success');
+    
+  } catch (error) {
+    console.error('Error updating company status:', error);
+    showNotification('Eroare la actualizarea statusului companiei.', 'error');
+    
+    // Re-enable buttons
+    const approveBtn = document.getElementById('approveBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+    
+    if (approveBtn) approveBtn.disabled = false;
+    if (rejectBtn) rejectBtn.disabled = false;
+  }
 }
 
 // Document download function

@@ -63,36 +63,69 @@ async function loadMerchantRequests() {
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
     }
     
     const companies = await response.json();
+    console.log('Raw API response:', companies);
     
-    // Transform company data to merchant request format
-    allMerchantRequests = companies.map(company => ({
-      id: company.Id,
-      businessName: company.Name,
-      businessType: mapCategoryToBusinessType(company.Category),
-      status: 'approved', // Since companies in the DB are already approved
-      ownerName: extractOwnerNameFromEmail(company.Email),
-      ownerEmail: company.Email,
-      ownerPhone: '+40700000000', // Placeholder since not available in Company model
-      businessAddress: 'Adresă nedisponibilă', // Placeholder since not available in Company model
-      businessDescription: company.Description || 'Descriere nedisponibilă',
-      yearsInBusiness: Math.floor(Math.random() * 10) + 1, // Placeholder data
-      numberOfEmployees: Math.floor(Math.random() * 50) + 5, // Placeholder data
-      averageDailyCustomers: Math.floor(Math.random() * 100) + 20, // Placeholder data
-      businessHours: getDefaultBusinessHours(),
-      documents: {
-        businessLicense: `license_${company.Name.toLowerCase().replace(/\s+/g, '_')}.pdf`,
-        taxRegistration: `tax_${company.Cui}.pdf`
-      },
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(), // Random date in last 30 days
-      updatedAt: new Date().toISOString(),
-      approvedAt: new Date().toISOString(),
-      approvedBy: 'admin@acoomh.ro',
-      cui: company.Cui
-    }));
+    // Ensure companies is an array
+    if (!Array.isArray(companies)) {
+      console.error('Invalid API response format:', companies);
+      throw new Error('API returned invalid data format. Expected an array of companies.');
+    }
+    
+    if (companies.length === 0) {
+      console.log('No companies found in API response');
+      allMerchantRequests = [];
+      filteredMerchantRequests = [];
+      updateStatistics();
+      displayMerchantRequests(filteredMerchantRequests);
+      hideLoadingState();
+      return;
+    }
+    
+    // Transform company data to merchant request format with validation
+    allMerchantRequests = companies
+      .filter(company => {
+        // Filter out invalid companies
+        if (!company || !company.Id || !company.Name) {
+          console.warn('Skipping invalid company:', company);
+          return false;
+        }
+        return true;
+      })
+      .map(company => {
+        // Extract additional info from company data
+        const businessAddress = company.Address || 'Adresă nedisponibilă';
+        const businessPhone = company.Phone || '+40700000000';
+        const businessDescription = company.Description || 'Descriere nedisponibilă';
+        
+        return {
+          id: company.Id,
+          businessName: company.Name,
+          businessType: mapCategoryToBusinessType(company.Category),
+          status: 'approved', // Since companies in the DB are already approved
+          ownerName: extractOwnerNameFromEmail(company.Email),
+          ownerEmail: company.Email,
+          ownerPhone: businessPhone,
+          businessAddress: businessAddress,
+          businessDescription: businessDescription,
+          yearsInBusiness: Math.floor(Math.random() * 10) + 1, // Placeholder data
+          numberOfEmployees: Math.floor(Math.random() * 50) + 5, // Placeholder data
+          averageDailyCustomers: Math.floor(Math.random() * 100) + 20, // Placeholder data
+          businessHours: getDefaultBusinessHours(),
+          documents: {
+            businessLicense: `license_${company.Name.toLowerCase().replace(/\s+/g, '_')}.pdf`,
+            taxRegistration: `tax_${company.Cui || 'unknown'}.pdf`
+          },
+          createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(), // Random date in last 30 days
+          updatedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+          approvedBy: 'admin@acoomh.ro',
+          cui: company.Cui || 'N/A'
+        };
+      });
     
     filteredMerchantRequests = allMerchantRequests;
     
@@ -100,11 +133,24 @@ async function loadMerchantRequests() {
     displayMerchantRequests(filteredMerchantRequests);
     hideLoadingState();
     
-    console.log('✅ Successfully loaded companies as merchant requests:', allMerchantRequests.length);
+    console.log(`✅ Successfully loaded ${allMerchantRequests.length} companies as merchant requests`);
     
   } catch (error) {
     console.error('Error loading merchant requests:', error);
-    showErrorState('Nu s-au putut încărca datele companiilor. Verificați conexiunea la internet.');
+    
+    let errorMessage = 'Nu s-au putut încărca datele companiilor.';
+    
+    if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'Nu s-a putut conecta la server. Verificați conexiunea la internet.';
+    } else if (error.message.includes('500')) {
+      errorMessage = 'Eroare de server. Încercați din nou mai târziu.';
+    } else if (error.message.includes('404')) {
+      errorMessage = 'Endpoint-ul API nu a fost găsit.';
+    } else if (error.message.includes('invalid data format')) {
+      errorMessage = 'Datele primite de la server sunt în format incorect.';
+    }
+    
+    showErrorState(errorMessage);
   }
 }
 

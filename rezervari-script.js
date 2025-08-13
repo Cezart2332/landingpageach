@@ -8,8 +8,33 @@ let filteredLocations = [];
 let currentFilter = 'all';
 let currentSearchTerm = '';
 
+// Cache DOM elements for better performance
+const DOM = {
+  loadingState: null,
+  errorState: null,
+  locationsContainer: null,
+  emptyResults: null,
+  locationsGrid: null,
+  errorMessage: null,
+  searchInput: null
+};
+
+// Initialize DOM cache
+function initializeDOM() {
+  DOM.loadingState = document.getElementById('loadingState');
+  DOM.errorState = document.getElementById('errorState');
+  DOM.locationsContainer = document.getElementById('locationsContainer');
+  DOM.emptyResults = document.getElementById('emptyResults');
+  DOM.locationsGrid = document.getElementById('locationsGrid');
+  DOM.errorMessage = document.getElementById('errorMessage');
+  DOM.searchInput = document.getElementById('searchInput');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   try {
+    // CRITICAL: Initialize DOM cache first
+    initializeDOM();
+    
     // CRITICAL: Ensure pointer events are enabled when page loads
     document.body.style.pointerEvents = 'auto';
     
@@ -27,22 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load locations from API
     loadLocations();
     
-    // Override navigation links to use loading overlay
-    setTimeout(() => {
-      const navigationLinks = document.querySelectorAll('a[href*=".html"], .btn[href*=".html"], .back-button');
-      
-      navigationLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-          const href = this.getAttribute('href');
-          
-          // Only intercept internal navigation (not external links or anchors)
-          if (href && href.includes('.html') && !href.startsWith('http') && !href.startsWith('mailto') && !href.startsWith('tel')) {
-            e.preventDefault();
-            navigateWithLoading(href);
-          }
-        });
-      });
-    }, 100);
+    // Setup navigation handlers with requestAnimationFrame for better performance
+    requestAnimationFrame(setupNavigationHandlers);
     
   } catch (error) {
     console.error('Rezervari page initialization error:', error);
@@ -83,10 +94,8 @@ async function loadLocations() {
     displayLocations(filteredLocations);
     hideLoadingState();
     
-    // FIXED: Hide the page loading overlay after content is loaded
-    setTimeout(() => {
-      hideLoadingOverlay();
-    }, 800);
+    // OPTIMIZED: Remove artificial 800ms delay - hide immediately
+    hideLoadingOverlay();
     
     console.log('✅ Successfully loaded locations from API:', locations.length);
     
@@ -99,91 +108,82 @@ async function loadLocations() {
   }
 }
 
-// Display Functions
+// Display Functions - Optimized with DOM cache
 function showLoadingState() {
-  document.getElementById('loadingState').style.display = 'block';
-  document.getElementById('errorState').style.display = 'none';
-  document.getElementById('locationsContainer').style.display = 'none';
-  document.getElementById('emptyResults').style.display = 'none';
+  DOM.loadingState.style.display = 'block';
+  DOM.errorState.style.display = 'none';
+  DOM.locationsContainer.style.display = 'none';
+  DOM.emptyResults.style.display = 'none';
 }
 
 function showErrorState(message) {
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('errorState').style.display = 'block';
-  document.getElementById('locationsContainer').style.display = 'none';
-  document.getElementById('emptyResults').style.display = 'none';
-  document.getElementById('errorMessage').textContent = message || 'Nu am putut încărca locațiile disponibile.';
+  DOM.loadingState.style.display = 'none';
+  DOM.errorState.style.display = 'block';
+  DOM.locationsContainer.style.display = 'none';
+  DOM.emptyResults.style.display = 'none';
+  DOM.errorMessage.textContent = message || 'Nu am putut încărca locațiile disponibile.';
 }
 
 function hideLoadingState() {
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('errorState').style.display = 'none';
+  DOM.loadingState.style.display = 'none';
+  DOM.errorState.style.display = 'none';
 }
 
 function displayLocations(locations) {
-  const locationsGrid = document.getElementById('locationsGrid');
-  const locationsContainer = document.getElementById('locationsContainer');
-  const emptyResults = document.getElementById('emptyResults');
-  
   if (!locations || locations.length === 0) {
-    locationsContainer.style.display = 'none';
-    emptyResults.style.display = 'block';
+    DOM.locationsContainer.style.display = 'none';
+    DOM.emptyResults.style.display = 'block';
     return;
   }
   
-  locationsContainer.style.display = 'block';
-  emptyResults.style.display = 'none';
+  DOM.locationsContainer.style.display = 'block';
+  DOM.emptyResults.style.display = 'none';
   
-  locationsGrid.innerHTML = '';
+  // Use DocumentFragment for better performance when adding multiple elements
+  const fragment = document.createDocumentFragment();
   
   locations.forEach(location => {
     const locationCard = createLocationCard(location);
-    locationsGrid.appendChild(locationCard);
+    fragment.appendChild(locationCard);
   });
+  
+  // Clear and append all at once
+  DOM.locationsGrid.innerHTML = '';
+  DOM.locationsGrid.appendChild(fragment);
+}
+
+// Optimized image processing function
+function getOptimizedImageUrl(location) {
+  const defaultImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+  
+  if (!location.photo) return defaultImage;
+  
+  try {
+    if (typeof location.photo === 'string') {
+      if (location.photo.startsWith('data:image/') || location.photo.startsWith('http')) {
+        return location.photo;
+      }
+      return `data:image/jpeg;base64,${location.photo}`;
+    }
+    // For other types, use default
+    return defaultImage;
+  } catch (error) {
+    console.warn('Error processing image for location:', location.id);
+    return defaultImage;
+  }
 }
 
 function createLocationCard(location) {
   const card = document.createElement('div');
   card.className = 'location-card';
   
-  // Process tags with proper null checking
-  const tags = location.tags && typeof location.tags === 'string' 
-    ? location.tags.split(',').map(tag => tag.trim()).filter(tag => tag) 
-    : [];
-  
-  // FIXED: Better image handling for different data formats
-  let imageUrl = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
-  
-  if (location.photo) {
-    try {
-      if (typeof location.photo === 'string') {
-        // If it's already a base64 string or URL
-        if (location.photo.startsWith('data:image/')) {
-          imageUrl = location.photo;
-        } else if (location.photo.startsWith('http')) {
-          imageUrl = location.photo;
-        } else {
-          // Assume it's a base64 string without the data URL prefix
-          imageUrl = `data:image/jpeg;base64,${location.photo}`;
-        }
-      } else if (Array.isArray(location.photo) && location.photo.length > 0) {
-        // If it's an array of bytes
-        const base64String = arrayBufferToBase64(location.photo);
-        imageUrl = `data:image/jpeg;base64,${base64String}`;
-      } else if (location.photo.constructor === ArrayBuffer || location.photo.buffer) {
-        // If it's an ArrayBuffer
-        const base64String = arrayBufferToBase64(new Uint8Array(location.photo));
-        imageUrl = `data:image/jpeg;base64,${base64String}`;
-      }
-    } catch (error) {
-      console.error('Error processing image for location:', location.id, error);
-      // Keep default image URL
-    }
-  }
+  // Optimized tag processing
+  const tags = location.tags?.split(',').map(tag => tag.trim()).filter(Boolean) || [];
+  const imageUrl = getOptimizedImageUrl(location);
   
   card.innerHTML = `
     <div class="location-image">
-      <img src="${imageUrl}" alt="${location.name}" onerror="this.src='https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'">
+      <img src="${imageUrl}" alt="${location.name}" loading="lazy" onerror="this.src='${getOptimizedImageUrl({})}'" />
       <div class="location-category">${getCategoryIcon(location.category)} ${location.category}</div>
     </div>
     <div class="location-content">
@@ -211,49 +211,40 @@ function createLocationCard(location) {
     </div>
   `;
   
-  // FIXED: Add proper event listeners with IMMEDIATE overlay
-  const viewDetailsBtn = card.querySelector('.btn-view-details');
-  const reserveBtn = card.querySelector('.btn-reserve');
-  
-  // CRITICAL: Zero-delay, completely synchronous navigation with full blocking
-  viewDetailsBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Show overlay immediately
-    showLoadingOverlayImmediately();
-    
-    // Navigate without any delay
-    window.location.href = `restaurant.html?id=${location.id}`;
-  });
-  
-  reserveBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Show overlay immediately
-    showLoadingOverlayImmediately();
-    
-    // Navigate without any delay
-    window.location.href = `restaurant.html?id=${location.id}#reservation`;
-  });
-  
-  // Also add click to the card itself
-  card.addEventListener('click', function(e) {
-    // Only trigger if not clicking on buttons
-    if (!e.target.closest('.btn-view-details') && !e.target.closest('.btn-reserve')) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Show overlay immediately
-      showLoadingOverlayImmediately();
-      
-      // Navigate without any delay
-      window.location.href = `restaurant.html?id=${location.id}`;
-    }
-  });
+  // Event delegation for better performance
+  card.addEventListener('click', handleCardClick);
   
   return card;
+}
+
+// Optimized event handling with delegation
+function handleCardClick(e) {
+  const locationId = e.target.closest('[data-location-id]')?.dataset.locationId;
+  if (!locationId) return;
+  
+  if (e.target.closest('.btn-view-details')) {
+    e.preventDefault();
+    e.stopPropagation();
+    navigateToLocation(locationId);
+  } else if (e.target.closest('.btn-reserve')) {
+    e.preventDefault();
+    e.stopPropagation();
+    navigateToReservation(locationId);
+  } else if (!e.target.closest('button')) {
+    e.preventDefault();
+    e.stopPropagation();
+    navigateToLocation(locationId);
+  }
+}
+
+function navigateToLocation(locationId) {
+  showLoadingOverlayImmediately();
+  window.location.href = `restaurant.html?id=${locationId}`;
+}
+
+function navigateToReservation(locationId) {
+  showLoadingOverlayImmediately();
+  window.location.href = `restaurant.html?id=${locationId}#reservation`;
 }
 
 function getCategoryIcon(category) {
@@ -267,16 +258,6 @@ function getCategoryIcon(category) {
   
   const normalizedCategory = category.toLowerCase();
   return `<i class="${categoryIcons[normalizedCategory] || 'fas fa-store'}"></i>`;
-}
-
-function arrayBufferToBase64(buffer) {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
 }
 
 // Navigation Functions

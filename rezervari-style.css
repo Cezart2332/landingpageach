@@ -249,13 +249,13 @@ body {
   margin-top: 30px;
 }
 
-/* Enhanced Restaurant Card Design */
+/* Enhanced Restaurant Card Design - Optimized for performance */
 .location-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 20px;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s ease, border-color 0.2s ease; /* Reduced from 0.4s */
   cursor: pointer;
   position: relative;
   height: 420px;
@@ -265,9 +265,9 @@ body {
 }
 
 .location-card:hover {
-  transform: translateY(-8px) scale(1.02);
+  transform: translateY(-4px) scale(1.01); /* Reduced from -8px and 1.02 */
   border-color: var(--primary-color);
-  box-shadow: 0 20px 40px rgba(139, 92, 246, 0.15);
+  box-shadow: 0 15px 35px rgba(139, 92, 246, 0.12); /* Reduced shadow complexity */
 }
 
 .location-card::before {
@@ -279,7 +279,7 @@ body {
   bottom: 0;
   background: linear-gradient(135deg, transparent 0%, rgba(139, 92, 246, 0.05) 100%);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease; /* Reduced from 0.3s */
   pointer-events: none;
   z-index: 1;
 }
@@ -288,7 +288,7 @@ body {
   opacity: 1;
 }
 
-/* Card Image Section */
+/* Card Image Section - Optimized */
 .location-image {
   position: relative;
   height: 200px;
@@ -301,11 +301,12 @@ body {
   height: 100%;
   object-fit: cover;
   object-position: center;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none; /* Remove transition for faster loading */
+  will-change: auto; /* Let browser optimize */
 }
 
 .location-card:hover .location-image img {
-  transform: scale(1.1);
+  transform: scale(1.05); /* Reduced from 1.1 */
 }
 
 .location-category {
@@ -349,6 +350,7 @@ body {
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2; /* Added standard property for compatibility */
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

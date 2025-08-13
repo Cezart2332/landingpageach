@@ -177,8 +177,18 @@ function createLocationCard(location) {
   const card = document.createElement('div');
   card.className = 'location-card';
   
-  // Optimized tag processing
-  const tags = location.tags?.split(',').map(tag => tag.trim()).filter(Boolean) || [];
+  // FIXED: Safe tag processing with proper type checking
+  let tags = [];
+  if (location.tags) {
+    if (typeof location.tags === 'string') {
+      // If tags is a string, split it
+      tags = location.tags.split(',').map(tag => tag.trim()).filter(Boolean);
+    } else if (Array.isArray(location.tags)) {
+      // If tags is already an array, use it directly
+      tags = location.tags.map(tag => String(tag).trim()).filter(Boolean);
+    }
+  }
+  
   const imageUrl = getOptimizedImageUrl(location);
   
   card.innerHTML = `
@@ -301,19 +311,36 @@ function applyFilters() {
     const validCategories = categoryMap[currentFilter] || [currentFilter];
     filtered = filtered.filter(location => 
       validCategories.some(cat => 
-        location.category.toLowerCase().includes(cat.toLowerCase())
+        location.category && location.category.toLowerCase().includes(cat.toLowerCase())
       )
     );
   }
   
-  // Apply search filter
+  // Apply search filter with safe tag checking
   if (currentSearchTerm) {
-    filtered = filtered.filter(location =>
-      location.name.toLowerCase().includes(currentSearchTerm.toLowerCase()) ||
-      location.address.toLowerCase().includes(currentSearchTerm.toLowerCase()) ||
-      location.category.toLowerCase().includes(currentSearchTerm.toLowerCase()) ||
-      (location.tags && location.tags.toLowerCase().includes(currentSearchTerm.toLowerCase()))
-    );
+    filtered = filtered.filter(location => {
+      const searchTerm = currentSearchTerm.toLowerCase();
+      
+      // Check name and address
+      const matchesBasic = 
+        (location.name && location.name.toLowerCase().includes(searchTerm)) ||
+        (location.address && location.address.toLowerCase().includes(searchTerm)) ||
+        (location.category && location.category.toLowerCase().includes(searchTerm));
+      
+      // Safe tag checking
+      let matchesTags = false;
+      if (location.tags) {
+        if (typeof location.tags === 'string') {
+          matchesTags = location.tags.toLowerCase().includes(searchTerm);
+        } else if (Array.isArray(location.tags)) {
+          matchesTags = location.tags.some(tag => 
+            String(tag).toLowerCase().includes(searchTerm)
+          );
+        }
+      }
+      
+      return matchesBasic || matchesTags;
+    });
   }
   
   filteredLocations = filtered;

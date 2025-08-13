@@ -67,7 +67,16 @@ async function loadLocations() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const locations = await response.json();
+    const responseData = await response.json();
+    
+    // FIXED: Handle paginated response format
+    const locations = responseData.data || responseData || [];
+    
+    // Ensure we have an array
+    if (!Array.isArray(locations)) {
+      throw new Error('Răspunsul API-ului nu conține un array valid de locații');
+    }
+    
     allLocations = locations;
     filteredLocations = locations;
     

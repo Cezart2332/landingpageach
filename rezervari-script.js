@@ -177,6 +177,9 @@ function createLocationCard(location) {
   const card = document.createElement('div');
   card.className = 'location-card';
   
+  // IMPORTANT: Add data-location-id to the main card element for click detection
+  card.setAttribute('data-location-id', location.id);
+  
   // FIXED: Safe tag processing with proper type checking
   let tags = [];
   if (location.tags) {
@@ -221,29 +224,42 @@ function createLocationCard(location) {
     </div>
   `;
   
-  // Event delegation for better performance
-  card.addEventListener('click', handleCardClick);
+  // IMPROVED: Event listener with better debugging
+  card.addEventListener('click', function(e) {
+    console.log('Card clicked!', { locationId: location.id, target: e.target });
+    handleCardClick(e, location.id);
+  });
   
   return card;
 }
 
 // Optimized event handling with delegation
-function handleCardClick(e) {
-  const locationId = e.target.closest('[data-location-id]')?.dataset.locationId;
-  if (!locationId) return;
+function handleCardClick(e, locationId) {
+  // Use the passed locationId parameter, or fallback to data attribute
+  const finalLocationId = locationId || e.target.closest('[data-location-id]')?.dataset.locationId;
+  
+  console.log('handleCardClick called', { finalLocationId, target: e.target.tagName });
+  
+  if (!finalLocationId) {
+    console.warn('No locationId found!');
+    return;
+  }
   
   if (e.target.closest('.btn-view-details')) {
+    console.log('Clicked Vezi detalii button');
     e.preventDefault();
     e.stopPropagation();
-    navigateToLocation(locationId);
+    navigateToLocation(finalLocationId);
   } else if (e.target.closest('.btn-reserve')) {
+    console.log('Clicked Rezervă button');
     e.preventDefault();
     e.stopPropagation();
-    navigateToReservation(locationId);
+    navigateToReservation(finalLocationId);
   } else if (!e.target.closest('button')) {
+    console.log('Clicked somewhere else on card - navigating to restaurant');
     e.preventDefault();
     e.stopPropagation();
-    navigateToLocation(locationId);
+    navigateToLocation(finalLocationId);
   }
 }
 

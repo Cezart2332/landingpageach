@@ -27,11 +27,63 @@ const DOM = {
 // LocalStorage utility functions
 function saveLocationsToCache(locations) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+    // Create a lightweight version of locations data for caching
+    const lightweightLocations = locations.map(location => ({
+      id: location.id,
+      name: location.name,
+      address: location.address,
+      category: location.category,
+      tags: location.tags,
+      description: location.description,
+      phone_number: location.phone_number,
+      // Skip heavy data like photos to avoid quota exceeded
+      // photo: location.photo - REMOVED to save space
+    }));
+    
+    // Check if the data size would exceed reasonable limits (aim for < 2MB)
+    const dataString = JSON.stringify(lightweightLocations);
+    const dataSize = new Blob([dataString]).size;
+    
+    console.log('Cache data size:', Math.round(dataSize / 1024), 'KB');
+    
+    // If still too large, cache only first 100 locations
+    let finalData = lightweightLocations;
+    if (dataSize > 1.5 * 1024 * 1024) { // 1.5MB limit
+      console.warn('Data still too large, caching first 100 locations only');
+      finalData = lightweightLocations.slice(0, 100);
+    }
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
     localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-    console.log('✅ Locations saved to localStorage cache:', locations.length);
+    console.log('✅ Locations saved to localStorage cache:', finalData.length, 'locations');
+    
   } catch (error) {
-    console.warn('Failed to save locations to localStorage:', error);
+    console.warn('Failed to save locations to localStorage:', error.message);
+    
+    // Try to clear some space and retry with even less data
+    if (error.name === 'QuotaExceededError') {
+      try {
+        // Clear old cache first
+        clearLocationsCache();
+        
+        // Try with minimal data - only essential fields
+        const minimalLocations = locations.slice(0, 50).map(location => ({
+          id: location.id,
+          name: location.name,
+          address: location.address,
+          category: location.category
+        }));
+        
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(minimalLocations));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+        console.log('✅ Minimal locations saved to cache:', minimalLocations.length, 'locations');
+        
+      } catch (retryError) {
+        console.error('Failed to save even minimal cache:', retryError.message);
+        // Clear potentially corrupted cache
+        clearLocationsCache();
+      }
+    }
   }
 }
 
@@ -172,14 +224,32 @@ async function fetchLocationsFromAPI() {
       throw new Error('Răspunsul API-ului nu conține un array valid de locații');
     }
     
-    // Check if we got new data
-    const hasNewData = JSON.stringify(locations) !== JSON.stringify(allLocations);
+    // Check if we got new data (compare without images for fair comparison)
+    const currentDataForComparison = allLocations.map(loc => ({
+      id: loc.id,
+      name: loc.name,
+      address: loc.address,
+      category: loc.category
+    }));
     
+    const newDataForComparison = locations.map(loc => ({
+      id: loc.id,
+      name: loc.name,
+      address: loc.address,
+      category: loc.category
+    }));
+    
+    const hasNewData = JSON.stringify(newDataForComparison) !== JSON.stringify(currentDataForComparison);
+    
+    // Always update allLocations with fresh data (including images)
     allLocations = locations;
     filteredLocations = locations;
     
-    // Only update UI if data changed or if this is initial load
-    if (hasNewData || allLocations.length === 0) {
+    // Update UI if data changed or if this is initial load or if we had cached data without images
+    const shouldUpdateUI = hasNewData || allLocations.length === 0 || 
+                          (allLocations.length > 0 && !allLocations[0].photo && locations[0]?.photo);
+    
+    if (shouldUpdateUI) {
       displayLocations(filteredLocations);
       console.log('🔄 Updated UI with fresh data from API');
     }
@@ -187,7 +257,7 @@ async function fetchLocationsFromAPI() {
     hideLoadingState();
     hideLoadingOverlay();
     
-    // Always save fresh data to cache
+    // Always save fresh data to cache (lightweight version)
     saveLocationsToCache(locations);
     
     console.log('✅ Successfully loaded locations from API:', locations.length, hasNewData ? '(data updated)' : '(no changes)');

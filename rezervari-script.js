@@ -3,6 +3,11 @@
 // Direct API endpoint
 const API_BASE_URL = 'https://api.acoomh.ro';
 
+// LocalStorage configuration
+const STORAGE_KEY = 'acoomh_locations_cache';
+const CACHE_TIMESTAMP_KEY = 'acoomh_locations_cache_timestamp';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 let allLocations = [];
 let filteredLocations = [];
 let currentFilter = 'all';
@@ -18,6 +23,51 @@ const DOM = {
   errorMessage: null,
   searchInput: null
 };
+
+// LocalStorage utility functions
+function saveLocationsToCache(locations) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+    localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+    console.log('✅ Locations saved to localStorage cache:', locations.length);
+  } catch (error) {
+    console.warn('Failed to save locations to localStorage:', error);
+  }
+}
+
+function loadLocationsFromCache() {
+  try {
+    const cachedData = localStorage.getItem(STORAGE_KEY);
+    const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+    
+    if (!cachedData || !timestamp) {
+      return null;
+    }
+    
+    const locations = JSON.parse(cachedData);
+    const cacheAge = Date.now() - parseInt(timestamp);
+    
+    console.log('📦 Loaded from cache:', locations.length, 'locations, age:', Math.round(cacheAge / 1000), 'seconds');
+    
+    return {
+      locations,
+      isStale: cacheAge > CACHE_DURATION
+    };
+  } catch (error) {
+    console.warn('Failed to load locations from localStorage:', error);
+    return null;
+  }
+}
+
+function clearLocationsCache() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+    console.log('🗑️ Cleared locations cache');
+  } catch (error) {
+    console.warn('Failed to clear locations cache:', error);
+  }
+}
 
 // Initialize DOM cache
 function initializeDOM() {
@@ -63,8 +113,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // API Functions
 async function loadLocations() {
-  showLoadingState();
-  
+  try {
+    // Check cache first (stale-while-revalidate pattern)
+    const cached = loadLocationsFromCache();
+    
+    if (cached) {
+      // Show cached data immediately
+      allLocations = cached.locations;
+      filteredLocations = cached.locations;
+      displayLocations(filteredLocations);
+      hideLoadingState();
+      hideLoadingOverlay();
+      
+      console.log('📦 Showing cached data immediately:', cached.locations.length, 'locations');
+      
+      // If cache is stale, fetch fresh data in background
+      if (cached.isStale) {
+        console.log('🔄 Cache is stale, fetching fresh data in background...');
+        fetchLocationsFromAPI(); // This runs in background
+      } else {
+        console.log('✅ Cache is fresh, no background fetch needed');
+      }
+    } else {
+      // No cache available, show loading and fetch from API
+      showLoadingState();
+      console.log('🚀 No cache found, fetching from API...');
+      await fetchLocationsFromAPI();
+    }
+    
+  } catch (error) {
+    console.error('Error in loadLocations:', error);
+    showErrorState(`Nu am putut încărca locațiile. ${error.message}`);
+    hideLoadingOverlay();
+  }
+}
+
+async function fetchLocationsFromAPI() {
   try {
     const response = await fetch(`${API_BASE_URL}/locations`, {
       method: 'GET',
@@ -88,23 +172,39 @@ async function loadLocations() {
       throw new Error('Răspunsul API-ului nu conține un array valid de locații');
     }
     
+    // Check if we got new data
+    const hasNewData = JSON.stringify(locations) !== JSON.stringify(allLocations);
+    
     allLocations = locations;
     filteredLocations = locations;
     
-    displayLocations(filteredLocations);
-    hideLoadingState();
+    // Only update UI if data changed or if this is initial load
+    if (hasNewData || allLocations.length === 0) {
+      displayLocations(filteredLocations);
+      console.log('🔄 Updated UI with fresh data from API');
+    }
     
-    // OPTIMIZED: Remove artificial 800ms delay - hide immediately
+    hideLoadingState();
     hideLoadingOverlay();
     
-    console.log('✅ Successfully loaded locations from API:', locations.length);
+    // Always save fresh data to cache
+    saveLocationsToCache(locations);
+    
+    console.log('✅ Successfully loaded locations from API:', locations.length, hasNewData ? '(data updated)' : '(no changes)');
     
   } catch (error) {
     console.error('Error loading locations from API:', error);
     
-    // Show user-friendly error message and hide loading overlay
-    showErrorState(`Nu am putut încărca locațiile. ${error.message}`);
-    hideLoadingOverlay();
+    // If we have cached data, don't show error - just log it
+    if (allLocations.length > 0) {
+      console.log('📦 Keeping cached data due to API error');
+      hideLoadingState();
+      hideLoadingOverlay();
+    } else {
+      // No cached data available, show error
+      showErrorState(`Nu am putut încărca locațiile. ${error.message}`);
+      hideLoadingOverlay();
+    }
   }
 }
 
@@ -426,6 +526,22 @@ function initializeInteractions() {
       this.style.transform = 'translateY(0)';
     });
   }
+}
+
+// Setup navigation handlers for smooth transitions
+function setupNavigationHandlers() {
+  // Handle all anchor links with loading overlay
+  document.querySelectorAll('a[href]').forEach(link => {
+    // Skip external links and fragments
+    if (link.href.startsWith('http') && !link.href.includes(window.location.origin)) return;
+    if (link.href.includes('#') && !link.href.includes('.html')) return;
+    
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      showLoadingOverlayImmediately();
+      window.location.href = this.href;
+    });
+  });
 }
 
 // Page Loading Overlay System - Prevents barrel roll animations

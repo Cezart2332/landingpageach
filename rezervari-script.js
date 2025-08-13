@@ -3,11 +3,6 @@
 // Direct API endpoint
 const API_BASE_URL = 'https://api.acoomh.ro';
 
-// LocalStorage configuration
-const STORAGE_KEY = 'acoomh_locations_cache';
-const CACHE_TIMESTAMP_KEY = 'acoomh_locations_cache_timestamp';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
-
 let allLocations = [];
 let filteredLocations = [];
 let currentFilter = 'all';
@@ -23,150 +18,6 @@ const DOM = {
   errorMessage: null,
   searchInput: null
 };
-
-// LocalStorage utility functions
-function saveLocationsToCache(locations) {
-  try {
-    // Strategy: Cache metadata + optimized image URLs, not full base64 images
-    const optimizedLocations = locations.map(location => {
-      const optimized = {
-        id: location.id,
-        name: location.name,
-        address: location.address,
-        category: location.category,
-        tags: location.tags,
-        description: location.description,
-        phone_number: location.phone_number,
-      };
-      
-      // Handle images intelligently
-      if (location.photo) {
-        if (typeof location.photo === 'string' && location.photo.startsWith('http')) {
-          // External URL - keep as is
-          optimized.photo = location.photo;
-        } else if (typeof location.photo === 'string' && location.photo.startsWith('data:image/')) {
-          // Base64 image - store reference and create blob URL for immediate use
-          optimized.hasImage = true;
-          optimized.imageType = 'base64';
-          // Store a compressed version or just mark that it exists
-          optimized.photo = null; // Will be loaded from fresh API call
-        } else {
-          optimized.hasImage = true;
-          optimized.photo = null;
-        }
-      } else {
-        optimized.hasImage = false;
-        optimized.photo = null;
-      }
-      
-      return optimized;
-    });
-    
-    // Check data size
-    const dataString = JSON.stringify(optimizedLocations);
-    const dataSize = new Blob([dataString]).size;
-    
-    console.log('Cache data size:', Math.round(dataSize / 1024), 'KB');
-    
-    // Store the optimized data
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(optimizedLocations));
-    localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-    console.log('✅ Locations metadata saved to cache:', optimizedLocations.length, 'locations');
-    
-    // Separately cache image data with a different strategy
-    cacheImageData(locations);
-    
-  } catch (error) {
-    console.warn('Failed to save locations to localStorage:', error.message);
-    
-    if (error.name === 'QuotaExceededError') {
-      try {
-        clearLocationsCache();
-        
-        // Fallback: minimal data without any image references
-        const minimalLocations = locations.slice(0, 50).map(location => ({
-          id: location.id,
-          name: location.name,
-          address: location.address,
-          category: location.category,
-          hasImage: !!location.photo
-        }));
-        
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(minimalLocations));
-        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-        console.log('✅ Minimal locations saved to cache:', minimalLocations.length, 'locations');
-        
-      } catch (retryError) {
-        console.error('Failed to save even minimal cache:', retryError.message);
-        clearLocationsCache();
-      }
-    }
-  }
-}
-
-// Cache image data using IndexedDB for larger storage capacity
-async function cacheImageData(locations) {
-  try {
-    // Only cache first 20 images to avoid quota issues
-    const locationsWithImages = locations
-      .filter(loc => loc.photo && typeof loc.photo === 'string' && loc.photo.startsWith('data:image/'))
-      .slice(0, 20);
-    
-    if (locationsWithImages.length === 0) return;
-    
-    // Use a separate localStorage key for image metadata
-    const imageCache = {};
-    locationsWithImages.forEach(location => {
-      if (location.photo) {
-        // Store just a hash or smaller version
-        imageCache[location.id] = {
-          hasImage: true,
-          timestamp: Date.now()
-        };
-      }
-    });
-    
-    localStorage.setItem('acoomh_image_cache', JSON.stringify(imageCache));
-    console.log('📷 Image cache metadata saved for', Object.keys(imageCache).length, 'locations');
-    
-  } catch (error) {
-    console.warn('Failed to cache image data:', error.message);
-  }
-}
-
-function loadLocationsFromCache() {
-  try {
-    const cachedData = localStorage.getItem(STORAGE_KEY);
-    const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-    
-    if (!cachedData || !timestamp) {
-      return null;
-    }
-    
-    const locations = JSON.parse(cachedData);
-    const cacheAge = Date.now() - parseInt(timestamp);
-    
-    console.log('📦 Loaded from cache:', locations.length, 'locations, age:', Math.round(cacheAge / 1000), 'seconds');
-    
-    return {
-      locations,
-      isStale: cacheAge > CACHE_DURATION
-    };
-  } catch (error) {
-    console.warn('Failed to load locations from localStorage:', error);
-    return null;
-  }
-}
-
-function clearLocationsCache() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-    console.log('🗑️ Cleared locations cache');
-  } catch (error) {
-    console.warn('Failed to clear locations cache:', error);
-  }
-}
 
 // Initialize DOM cache
 function initializeDOM() {
@@ -212,42 +63,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // API Functions
 async function loadLocations() {
-  try {
-    // Check cache first (stale-while-revalidate pattern)
-    const cached = loadLocationsFromCache();
-    
-    if (cached) {
-      // Show cached data immediately
-      allLocations = cached.locations;
-      filteredLocations = cached.locations;
-      displayLocations(filteredLocations);
-      hideLoadingState();
-      hideLoadingOverlay();
-      
-      console.log('📦 Showing cached data immediately:', cached.locations.length, 'locations');
-      
-      // If cache is stale, fetch fresh data in background
-      if (cached.isStale) {
-        console.log('🔄 Cache is stale, fetching fresh data in background...');
-        fetchLocationsFromAPI(); // This runs in background
-      } else {
-        console.log('✅ Cache is fresh, no background fetch needed');
-      }
-    } else {
-      // No cache available, show loading and fetch from API
-      showLoadingState();
-      console.log('🚀 No cache found, fetching from API...');
-      await fetchLocationsFromAPI();
-    }
-    
-  } catch (error) {
-    console.error('Error in loadLocations:', error);
-    showErrorState(`Nu am putut încărca locațiile. ${error.message}`);
-    hideLoadingOverlay();
-  }
-}
-
-async function fetchLocationsFromAPI() {
+  showLoadingState();
+  
   try {
     const response = await fetch(`${API_BASE_URL}/locations`, {
       method: 'GET',
@@ -271,57 +88,23 @@ async function fetchLocationsFromAPI() {
       throw new Error('Răspunsul API-ului nu conține un array valid de locații');
     }
     
-    // Check if we got new data (compare without images for fair comparison)
-    const currentDataForComparison = allLocations.map(loc => ({
-      id: loc.id,
-      name: loc.name,
-      address: loc.address,
-      category: loc.category
-    }));
-    
-    const newDataForComparison = locations.map(loc => ({
-      id: loc.id,
-      name: loc.name,
-      address: loc.address,
-      category: loc.category
-    }));
-    
-    const hasNewData = JSON.stringify(newDataForComparison) !== JSON.stringify(currentDataForComparison);
-    
-    // Always update allLocations with fresh data (including images)
     allLocations = locations;
     filteredLocations = locations;
     
-    // Update UI if data changed or if this is initial load or if we had cached data without images
-    const shouldUpdateUI = hasNewData || allLocations.length === 0 || 
-                          (allLocations.length > 0 && !allLocations[0].photo && locations[0]?.photo);
-    
-    if (shouldUpdateUI) {
-      displayLocations(filteredLocations);
-      console.log('🔄 Updated UI with fresh data from API');
-    }
-    
+    displayLocations(filteredLocations);
     hideLoadingState();
+    
+    // OPTIMIZED: Remove artificial 800ms delay - hide immediately
     hideLoadingOverlay();
     
-    // Always save fresh data to cache (lightweight version)
-    saveLocationsToCache(locations);
-    
-    console.log('✅ Successfully loaded locations from API:', locations.length, hasNewData ? '(data updated)' : '(no changes)');
+    console.log('✅ Successfully loaded locations from API:', locations.length);
     
   } catch (error) {
     console.error('Error loading locations from API:', error);
     
-    // If we have cached data, don't show error - just log it
-    if (allLocations.length > 0) {
-      console.log('📦 Keeping cached data due to API error');
-      hideLoadingState();
-      hideLoadingOverlay();
-    } else {
-      // No cached data available, show error
-      showErrorState(`Nu am putut încărca locațiile. ${error.message}`);
-      hideLoadingOverlay();
-    }
+    // Show user-friendly error message and hide loading overlay
+    showErrorState(`Nu am putut încărca locațiile. ${error.message}`);
+    hideLoadingOverlay();
   }
 }
 
@@ -409,39 +192,37 @@ function createLocationCard(location) {
     }
   }
   
-  // Create the progressive image container
-  const imageContainer = createProgressiveImage(location);
+  const imageUrl = getOptimizedImageUrl(location);
   
-  // Create the content container
-  const contentContainer = document.createElement('div');
-  contentContainer.className = 'location-content';
-  contentContainer.innerHTML = `
-    <h3 class="location-name">${location.name}</h3>
-    <p class="location-address">
-      <i class="fas fa-map-marker-alt"></i>
-      ${location.address}
-    </p>
-    ${tags.length > 0 ? `
-      <div class="location-tags">
-        ${tags.slice(0, 3).map(tag => `<span class="location-tag">${tag}</span>`).join('')}
-        ${tags.length > 3 ? `<span class="location-tag-more">+${tags.length - 3}</span>` : ''}
+  card.innerHTML = `
+    <div class="location-image">
+      <img src="${imageUrl}" alt="${location.name}" loading="lazy" onerror="this.src='${getOptimizedImageUrl({})}'" />
+      <div class="location-category">${getCategoryIcon(location.category)} ${location.category}</div>
+    </div>
+    <div class="location-content">
+      <h3 class="location-name">${location.name}</h3>
+      <p class="location-address">
+        <i class="fas fa-map-marker-alt"></i>
+        ${location.address}
+      </p>
+      ${tags.length > 0 ? `
+        <div class="location-tags">
+          ${tags.slice(0, 3).map(tag => `<span class="location-tag">${tag}</span>`).join('')}
+          ${tags.length > 3 ? `<span class="location-tag-more">+${tags.length - 3}</span>` : ''}
+        </div>
+      ` : ''}
+      <div class="location-actions">
+        <button class="btn-view-details" data-location-id="${location.id}">
+          <i class="fas fa-eye"></i>
+          Vezi detalii
+        </button>
+        <button class="btn-reserve" data-location-id="${location.id}">
+          <i class="fas fa-calendar-check"></i>
+          Rezervă
+        </button>
       </div>
-    ` : ''}
-    <div class="location-actions">
-      <button class="btn-view-details" data-location-id="${location.id}">
-        <i class="fas fa-eye"></i>
-        Vezi detalii
-      </button>
-      <button class="btn-reserve" data-location-id="${location.id}">
-        <i class="fas fa-calendar-check"></i>
-        Rezervă
-      </button>
     </div>
   `;
-  
-  // Append both containers to the card
-  card.appendChild(imageContainer);
-  card.appendChild(contentContainer);
   
   // IMPROVED: Event listener with better debugging
   card.addEventListener('click', function(e) {
@@ -647,22 +428,6 @@ function initializeInteractions() {
   }
 }
 
-// Setup navigation handlers for smooth transitions
-function setupNavigationHandlers() {
-  // Handle all anchor links with loading overlay
-  document.querySelectorAll('a[href]').forEach(link => {
-    // Skip external links and fragments
-    if (link.href.startsWith('http') && !link.href.includes(window.location.origin)) return;
-    if (link.href.includes('#') && !link.href.includes('.html')) return;
-    
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      showLoadingOverlayImmediately();
-      window.location.href = this.href;
-    });
-  });
-}
-
 // Page Loading Overlay System - Prevents barrel roll animations
 function createLoadingOverlay() {
   const overlay = document.createElement('div');
@@ -769,96 +534,4 @@ function showLoadingOverlayImmediately() {
   
   // Show overlay
   overlay.classList.remove('hidden');
-}
-
-// Progressive image loading with lazy loading and optimization
-function createProgressiveImage(location) {
-  const imageContainer = document.createElement('div');
-  imageContainer.className = 'location-image';
-  
-  // Create placeholder with skeleton loader
-  const placeholder = document.createElement('div');
-  placeholder.className = 'image-placeholder skeleton-loader';
-  placeholder.innerHTML = `
-    <div class="skeleton-image"></div>
-    <div class="location-category">${getCategoryIcon(location.category)} ${location.category}</div>
-  `;
-  
-  imageContainer.appendChild(placeholder);
-  
-  // Progressive loading strategy
-  if (location.photo) {
-    loadImageProgressively(location, imageContainer, placeholder);
-  } else if (location.hasImage) {
-    // We know there's an image from cache, but don't have it yet
-    // Show placeholder and wait for fresh API data
-    placeholder.classList.add('awaiting-image');
-  } else {
-    // No image available, use default
-    setTimeout(() => {
-      replaceWithActualImage(imageContainer, placeholder, getOptimizedImageUrl({}), location);
-    }, 100);
-  }
-  
-  return imageContainer;
-}
-
-async function loadImageProgressively(location, container, placeholder) {
-  const imageUrl = getOptimizedImageUrl(location);
-  
-  // Create a new image element to preload
-  const img = new Image();
-  
-  // Add loading class for animation
-  placeholder.classList.add('loading-image');
-  
-  img.onload = function() {
-    // Image loaded successfully, replace placeholder
-    replaceWithActualImage(container, placeholder, imageUrl, location);
-  };
-  
-  img.onerror = function() {
-    console.warn('Failed to load image for location:', location.id);
-    // Use default image on error
-    replaceWithActualImage(container, placeholder, getOptimizedImageUrl({}), location);
-  };
-  
-  // Start loading the image
-  img.src = imageUrl;
-  
-  // Timeout fallback - replace with default after 5 seconds
-  setTimeout(() => {
-    if (placeholder.parentNode === container) {
-      console.warn('Image loading timeout for location:', location.id);
-      replaceWithActualImage(container, placeholder, getOptimizedImageUrl({}), location);
-    }
-  }, 5000);
-}
-
-function replaceWithActualImage(container, placeholder, imageUrl, location) {
-  const actualImage = document.createElement('img');
-  actualImage.src = imageUrl;
-  actualImage.alt = location.name;
-  actualImage.loading = 'lazy';
-  actualImage.className = 'loaded-image';
-  
-  // Add error handling to the actual image
-  actualImage.onerror = function() {
-    this.src = getOptimizedImageUrl({});
-  };
-  
-  // Create the category overlay
-  const categoryOverlay = document.createElement('div');
-  categoryOverlay.className = 'location-category';
-  categoryOverlay.innerHTML = `${getCategoryIcon(location.category)} ${location.category}`;
-  
-  // Replace placeholder with actual image
-  container.innerHTML = '';
-  container.appendChild(actualImage);
-  container.appendChild(categoryOverlay);
-  
-  // Add fade-in animation
-  requestAnimationFrame(() => {
-    container.classList.add('image-loaded');
-  });
 }

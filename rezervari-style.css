@@ -291,151 +291,186 @@ body {
 /* Card Image Section - Optimized */
 .location-image {
   position: relative;
-  width: 100%;
   height: 200px;
-  border-radius: 15px 15px 0 0;
   overflow: hidden;
-  background: #f8f9fa;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, var(--bg-darker), var(--card-bg));
 }
 
-.image-placeholder {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-}
-
-.skeleton-loader {
-  animation: shimmer 1.5s infinite;
-}
-
-.skeleton-image {
-  width: 60px;
-  height: 60px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  position: relative;
-}
-
-.skeleton-image::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 24px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
-}
-
-.loading-image {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.2s infinite;
-}
-
-.awaiting-image {
-  background: linear-gradient(90deg, #e3f2fd 25%, #bbdefb 50%, #e3f2fd 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-.awaiting-image .skeleton-image {
-  background: rgba(33, 150, 243, 0.2);
-}
-
-.loaded-image {
+.location-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  opacity: 0;
-  animation: fadeInImage 0.5s ease forwards;
+  object-position: center;
+  transition: none; /* Remove transition for faster loading */
+  will-change: auto; /* Let browser optimize */
 }
 
-.image-loaded {
-  background: transparent;
+.location-card:hover .location-image img {
+  transform: scale(1.05); /* Reduced from 1.1 */
 }
 
-.image-loaded .loaded-image {
-  opacity: 1;
-}
-
-/* Shimmer animation for skeleton loader */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-@keyframes fadeInImage {
-  from {
-    opacity: 0;
-    transform: scale(1.05);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Enhanced location card hover effects */
-.location-card:hover .location-image {
-  transform: translateY(-2px);
-}
-
-.location-card:hover .loaded-image {
-  transform: scale(1.05);
-}
-
-/* Improved location category overlay */
 .location-category {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 15px;
+  left: 15px;
   background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+  color: white;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
   z-index: 2;
 }
 
 .location-category i {
-  margin-right: 4px;
-  font-size: 0.8rem;
+  color: var(--primary-color);
+  font-size: 0.9rem;
 }
 
-/* Loading states for different scenarios */
-.image-placeholder.loading-image::after {
+/* Card Content Section */
+.location-content {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.location-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* Added standard property for compatibility */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.location-address {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.location-address i {
+  color: var(--primary-color);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Location Tags */
+.location-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  min-height: 50px;
+}
+
+.location-tag {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: var(--primary-color);
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.location-tag:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--primary-color);
+}
+
+.location-tag-more {
+  background: var(--text-muted);
+  color: var(--bg-dark);
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Card Actions */
+.location-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.btn-view-details,
+.btn-reserve {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-view-details {
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.btn-view-details:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}
+
+.btn-reserve {
+  background: var(--gradient);
+  color: white;
+  border: 1px solid var(--primary-color);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.btn-reserve:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+}
+
+.btn-view-details::before,
+.btn-reserve::before {
   content: '';
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid #fff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.btn-view-details:hover::before,
+.btn-reserve:hover::before {
+  left: 100%;
 }
 
 /* Empty State Improvements */

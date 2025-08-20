@@ -226,6 +226,12 @@ async function loadLocationHours(locationId) {
       const hours = await response.json();
       currentLocation.hours = hours;
       console.log('✅ Successfully loaded location hours:', hours);
+      
+      // FIXED: Re-populate time slots after hours are loaded
+      const dateInput = document.getElementById('reservationDate');
+      if (dateInput && dateInput.value) {
+        populateTimeSlots(dateInput.value);
+      }
     } else {
       console.log('No hours data available for this location');
       currentLocation.hours = [];

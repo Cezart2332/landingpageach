@@ -574,6 +574,32 @@ body, body * {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
+/* Date input specific styling to make entire field clickable */
+.form-input[type="date"] {
+  cursor: pointer;
+  position: relative;
+}
+
+.form-input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  height: auto;
+  color: transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* For Firefox */
+.form-input[type="date"]::-moz-calendar-picker-indicator {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
 .form-input option {
   background: var(--bg-dark);
   color: var(--text-primary);

@@ -156,13 +156,27 @@ function displayLocations(locations) {
 function getOptimizedImageUrl(location) {
   const defaultImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
   
+  // NEW: Check for photoUrl first (new backend format)
+  if (location.photoUrl) {
+    return location.photoUrl;
+  }
+  
+  // FALLBACK: Support for legacy photo field
   if (!location.photo) return defaultImage;
   
   try {
     if (typeof location.photo === 'string') {
+      // NEW: Handle "use_photo_url" indicator
+      if (location.photo === 'use_photo_url') {
+        return location.photoUrl || defaultImage;
+      }
+      
+      // LEGACY: Handle direct URLs and base64 data
       if (location.photo.startsWith('data:image/') || location.photo.startsWith('http')) {
         return location.photo;
       }
+      
+      // LEGACY: Handle base64 without data prefix
       return `data:image/jpeg;base64,${location.photo}`;
     }
     // For other types, use default

@@ -321,34 +321,52 @@ function populateLocationDetails(location) {
     `Descoperă ${location.Name || location.name || 'acest loc'}, un loc minunat cu o atmosferă unică și o experiență de neuitat. Situat în ${location.Address || location.address || 'oraș'}, oferim servicii de calitate și o experiență plăcută pentru toți vizitatorii.`;
   document.getElementById('restaurantDescription').textContent = description;
   
-  // Restaurant image with better error handling
+  // Restaurant image with NEW photo URL handling
   const restaurantImage = document.getElementById('restaurantImage');
-  const photoData = location.Photo || location.photo;
   
-  if (photoData) {
-    try {
-      let imageUrl;
-      if (typeof photoData === 'string') {
-        // If photo is already a base64 string
-        imageUrl = photoData.startsWith('data:') ? photoData : `data:image/jpeg;base64,${photoData}`;
-      } else if (Array.isArray(photoData) && photoData.length > 0) {
-        // If photo is an array of bytes
-        const base64String = btoa(String.fromCharCode.apply(null, photoData));
-        imageUrl = `data:image/jpeg;base64,${base64String}`;
-      }
-      
-      if (imageUrl) {
-        restaurantImage.src = imageUrl;
-        restaurantImage.onerror = () => setDefaultImage(restaurantImage, location.Category || location.category);
-      } else {
+  // NEW: Check for photoUrl first (new backend format)
+  if (location.photoUrl) {
+    restaurantImage.src = location.photoUrl;
+    restaurantImage.onerror = () => setDefaultImage(restaurantImage, location.Category || location.category);
+  } else {
+    // FALLBACK: Support for legacy photo field
+    const photoData = location.Photo || location.photo;
+    
+    if (photoData) {
+      try {
+        let imageUrl;
+        if (typeof photoData === 'string') {
+          // NEW: Handle "use_photo_url" indicator
+          if (photoData === 'use_photo_url') {
+            imageUrl = location.photoUrl;
+          }
+          // LEGACY: Handle base64 data
+          else if (photoData.startsWith('data:')) {
+            imageUrl = photoData;
+          } else if (photoData.startsWith('http')) {
+            imageUrl = photoData;
+          } else {
+            imageUrl = `data:image/jpeg;base64,${photoData}`;
+          }
+        } else if (Array.isArray(photoData) && photoData.length > 0) {
+          // LEGACY: Handle byte arrays
+          const base64String = btoa(String.fromCharCode.apply(null, photoData));
+          imageUrl = `data:image/jpeg;base64,${base64String}`;
+        }
+        
+        if (imageUrl) {
+          restaurantImage.src = imageUrl;
+          restaurantImage.onerror = () => setDefaultImage(restaurantImage, location.Category || location.category);
+        } else {
+          setDefaultImage(restaurantImage, location.Category || location.category);
+        }
+      } catch (error) {
+        console.error('Error processing image:', error);
         setDefaultImage(restaurantImage, location.Category || location.category);
       }
-    } catch (error) {
-      console.error('Error processing image:', error);
+    } else {
       setDefaultImage(restaurantImage, location.Category || location.category);
     }
-  } else {
-    setDefaultImage(restaurantImage, location.Category || location.category);
   }
   restaurantImage.alt = location.Name || location.name || 'Restaurant';
   
@@ -613,6 +631,7 @@ function arrayBufferToBase64(buffer) {
 // Initialize reservation form
 function initializeReservationForm() {
   const dateInput = document.getElementById('reservationDate');
+  const timeSelect = document.getElementById('reservationTime');
   const today = new Date();
   const maxDate = new Date();
   maxDate.setDate(today.getDate() + 30); // Allow reservations up to 30 days in advance
@@ -625,6 +644,192 @@ function initializeReservationForm() {
   const tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);
   dateInput.value = tomorrow.toISOString().split('T')[0];
+  
+  // Populate time slots when date changes or when form is initialized
+  dateInput.addEventListener('change', function() {
+    populateTimeSlots(this.value);
+  });
+  
+  // Initial population of time slots for tomorrow
+  populateTimeSlots(dateInput.value);
+}
+
+// Generate time slots with 15-minute intervals based on restaurant hours
+function populateTimeSlots(selectedDate) {
+  const timeSelect = document.getElementById('reservationTime');
+  const currentValue = timeSelect.value; // Preserve current selection if possible
+  
+  // Clear existing options
+  timeSelect.innerHTML = '<option value="">Selectează ora</option>';
+  
+  if (!selectedDate || !currentLocation || !currentLocation.hours) {
+    // Fallback to default hours if no data available
+    generateDefaultTimeSlots(timeSelect);
+    return;
+  }
+  
+  // Get the day of week for the selected date
+  const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayNamesRo = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
+  const dayOfWeek = selectedDateObj.getDay();
+  const dayNameEn = dayNames[dayOfWeek];
+  const dayNameRo = dayNamesRo[dayOfWeek];
+  
+  // Find the hours for this day
+  const dayHour = currentLocation.hours.find(h => 
+    h.DayOfWeek === dayNameRo || 
+    h.DayOfWeek === dayNameEn ||
+    h.dayOfWeek === dayNameRo ||
+    h.dayOfWeek === dayNameEn
+  );
+  
+  if (!dayHour || dayHour.IsClosed || dayHour.isClosed) {
+    // Restaurant is closed on this day
+    const closedOption = document.createElement('option');
+    closedOption.value = '';
+    closedOption.textContent = 'Restaurant închis în această zi';
+    closedOption.disabled = true;
+    timeSelect.appendChild(closedOption);
+    return;
+  }
+  
+  // Get opening and closing times
+  const openTime = dayHour.OpenTime || dayHour.openTime;
+  const closeTime = dayHour.CloseTime || dayHour.closeTime;
+  
+  if (!openTime || !closeTime) {
+    generateDefaultTimeSlots(timeSelect);
+    return;
+  }
+  
+  // Generate time slots with 15-minute intervals
+  generateTimeSlots(timeSelect, openTime, closeTime, selectedDate);
+  
+  // Restore previous selection if still valid
+  if (currentValue && timeSelect.querySelector(`option[value="${currentValue}"]`)) {
+    timeSelect.value = currentValue;
+  }
+}
+
+// Generate time slots between opening and closing times
+function generateTimeSlots(selectElement, openTime, closeTime, selectedDate) {
+  const slots = [];
+  const now = new Date();
+  const isToday = selectedDate === now.toISOString().split('T')[0];
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  
+  // Parse opening time
+  const [openHour, openMinute] = openTime.split(':').map(Number);
+  // Parse closing time  
+  const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+  
+  // Start from opening time
+  let slotHour = openHour;
+  let slotMinute = openMinute;
+  
+  // Round opening time to next 15-minute interval if needed
+  const remainder = slotMinute % 15;
+  if (remainder !== 0) {
+    slotMinute += (15 - remainder);
+    if (slotMinute >= 60) {
+      slotMinute = 0;
+      slotHour += 1;
+    }
+  }
+  
+  // Generate slots until closing time (minus 1 hour for last reservation)
+  let endHour = closeHour;
+  let endMinute = closeMinute;
+  
+  // Last reservation should be at least 1 hour before closing
+  if (endMinute >= 60) {
+    endHour += 1;
+    endMinute -= 60;
+  } else {
+    endHour -= 1;
+    endMinute += 0;
+  }
+  
+  while (slotHour < endHour || (slotHour === endHour && slotMinute <= endMinute)) {
+    // Skip past times if it's today
+    if (isToday) {
+      const slotTotalMinutes = slotHour * 60 + slotMinute;
+      const currentTotalMinutes = currentHour * 60 + currentMinute + 60; // Add 1 hour buffer for today
+      
+      if (slotTotalMinutes < currentTotalMinutes) {
+        // Move to next slot
+        slotMinute += 15;
+        if (slotMinute >= 60) {
+          slotMinute = 0;
+          slotHour += 1;
+        }
+        continue;
+      }
+    }
+    
+    // Format time as HH:MM
+    const timeString = `${slotHour.toString().padStart(2, '0')}:${slotMinute.toString().padStart(2, '0')}`;
+    
+    // Create option element
+    const option = document.createElement('option');
+    option.value = timeString;
+    option.textContent = timeString;
+    selectElement.appendChild(option);
+    
+    // Move to next 15-minute slot
+    slotMinute += 15;
+    if (slotMinute >= 60) {
+      slotMinute = 0;
+      slotHour += 1;
+    }
+  }
+  
+  // If no slots were generated, show a message
+  if (selectElement.children.length === 1) { // Only the default "Selectează ora" option
+    const noSlotsOption = document.createElement('option');
+    noSlotsOption.value = '';
+    noSlotsOption.textContent = isToday ? 'Nu mai sunt ore disponibile astăzi' : 'Nu sunt ore disponibile';
+    noSlotsOption.disabled = true;
+    selectElement.appendChild(noSlotsOption);
+  }
+}
+
+// Fallback function for default time slots when no hours data is available
+function generateDefaultTimeSlots(selectElement) {
+  const defaultSlots = [
+    '12:00', '12:15', '12:30', '12:45',
+    '13:00', '13:15', '13:30', '13:45',
+    '14:00', '14:15', '14:30', '14:45',
+    '18:00', '18:15', '18:30', '18:45',
+    '19:00', '19:15', '19:30', '19:45',
+    '20:00', '20:15', '20:30', '20:45',
+    '21:00', '21:15', '21:30', '21:45'
+  ];
+  
+  const now = new Date();
+  const isToday = document.getElementById('reservationDate').value === now.toISOString().split('T')[0];
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  
+  defaultSlots.forEach(timeStr => {
+    // Skip past times if it's today
+    if (isToday) {
+      const [hour, minute] = timeStr.split(':').map(Number);
+      const slotTotalMinutes = hour * 60 + minute;
+      const currentTotalMinutes = currentHour * 60 + currentMinute + 60; // Add 1 hour buffer
+      
+      if (slotTotalMinutes < currentTotalMinutes) {
+        return; // Skip this slot
+      }
+    }
+    
+    const option = document.createElement('option');
+    option.value = timeStr;
+    option.textContent = timeStr;
+    selectElement.appendChild(option);
+  });
 }
 
 // Validate reservation form

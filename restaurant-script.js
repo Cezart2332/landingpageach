@@ -668,21 +668,13 @@ function populateTimeSlots(selectedDate) {
   // Clear existing options
   timeSelect.innerHTML = '<option value="">Selectează ora</option>';
   
-  console.log('🔍 populateTimeSlots called with:', { 
-    selectedDate, 
-    hasCurrentLocation: !!currentLocation, 
-    hasHours: !!(currentLocation && currentLocation.hours),
-    hoursLength: currentLocation?.hours?.length || 0,
-    hours: currentLocation?.hours 
-  });
+  if (!selectedDate || !currentLocation) {
+    generateDefaultTimeSlots(timeSelect);
+    return;
+  }
   
-  if (!selectedDate || !currentLocation || !currentLocation.hours) {
-    console.log('⚠️ Missing data, falling back to default slots:', {
-      selectedDate: !!selectedDate,
-      currentLocation: !!currentLocation,
-      hours: !!(currentLocation && currentLocation.hours)
-    });
-    // Fallback to default hours if no data available
+  // FIXED: If hours array exists but is empty, OR if hours don't exist, use default slots
+  if (!currentLocation.hours || currentLocation.hours.length === 0) {
     generateDefaultTimeSlots(timeSelect);
     return;
   }
@@ -695,8 +687,6 @@ function populateTimeSlots(selectedDate) {
   const dayNameEn = dayNames[dayOfWeek];
   const dayNameRo = dayNamesRo[dayOfWeek];
   
-  console.log('🗓️ Selected date info:', { dayOfWeek, dayNameEn, dayNameRo });
-  
   // Find the hours for this day
   const dayHour = currentLocation.hours.find(h => 
     h.DayOfWeek === dayNameRo || 
@@ -705,16 +695,9 @@ function populateTimeSlots(selectedDate) {
     h.dayOfWeek === dayNameEn
   );
   
-  console.log('⏰ Day hour found:', dayHour);
-  
   if (!dayHour || dayHour.IsClosed || dayHour.isClosed) {
-    console.log('🔒 Restaurant is closed on this day');
-    // Restaurant is closed on this day
-    const closedOption = document.createElement('option');
-    closedOption.value = '';
-    closedOption.textContent = 'Restaurant închis în această zi';
-    closedOption.disabled = true;
-    timeSelect.appendChild(closedOption);
+    // FIXED: Instead of showing "closed", use default slots when no hours are found for specific day
+    generateDefaultTimeSlots(timeSelect);
     return;
   }
   
@@ -722,16 +705,12 @@ function populateTimeSlots(selectedDate) {
   const openTime = dayHour.OpenTime || dayHour.openTime;
   const closeTime = dayHour.CloseTime || dayHour.closeTime;
   
-  console.log('🕐 Restaurant hours:', { openTime, closeTime });
-  
   if (!openTime || !closeTime) {
-    console.log('⚠️ Missing open/close times, using default slots');
     generateDefaultTimeSlots(timeSelect);
     return;
   }
   
   // Generate time slots with 15-minute intervals
-  console.log('✅ Generating time slots for', openTime, 'to', closeTime);
   generateTimeSlots(timeSelect, openTime, closeTime, selectedDate);
   
   // Restore previous selection if still valid

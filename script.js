@@ -10,6 +10,119 @@ document.addEventListener("DOMContentLoaded", function () {
     const navMenu = document.querySelector(".nav-menu");
     const navLinks = document.querySelectorAll(".nav-link");
 
+    // Rezervări button -> show feature-in-progress modal (no redirect)
+    (function attachRezervariModal() {
+      const rezervariBtn = document.querySelector('.hero-buttons .btn.btn-primary');
+      if (!rezervariBtn) return;
+
+  // Create modal lazily on first click
+  let modalOverlay = null;
+  let modalPopup = null;
+
+      function ensureModal() {
+        if (modalOverlay) return modalOverlay;
+
+        // Overlay styled like Download popup
+        modalOverlay = document.createElement('div');
+        modalOverlay.className = 'popup-overlay';
+        modalOverlay.setAttribute('role', 'dialog');
+        modalOverlay.setAttribute('aria-modal', 'true');
+        modalOverlay.setAttribute('aria-label', 'Informare funcționalitate');
+        modalOverlay.style.cssText = `
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background-color: rgba(0, 0, 0, 0.8); z-index: 10000;
+          display: flex; align-items: center; justify-content: center;
+          backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s ease;
+          padding: 16px; box-sizing: border-box;
+        `;
+
+        // Modal card styled like Download popup
+        modalPopup = document.createElement('div');
+        modalPopup.className = 'popup-content';
+        modalPopup.style.cssText = `
+          background: linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95));
+          border: 1px solid #6b46c1; border-radius: 25px; padding: 40px 30px;
+          text-align: center; max-width: 400px; width: 90%;
+          box-shadow: 0 20px 60px rgba(139, 92, 246, 0.4);
+          transform: scale(0.8) translateY(20px);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          color: #ffffff;
+        `;
+
+        modalPopup.innerHTML = `
+          <div style="margin-bottom: 25px;">
+            <i class="fas fa-tools" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
+            <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Această funcție este în curs de implementare</h3>
+            <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Îți mulțumim pentru interes! Revino în curând pentru actualizări.</p>
+          </div>
+          <button class="popup-close-btn" style="
+            background: linear-gradient(135deg, #6b46c1, #7c3aed); color: white; border: none;
+            border-radius: 15px; padding: 12px 30px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+          ">
+            <i class="fas fa-check" style="margin-right: 8px;"></i>
+            Înțeles!
+          </button>
+        `;
+
+        modalOverlay.appendChild(modalPopup);
+
+        const closeModal = () => {
+          modalOverlay.style.opacity = '0';
+          modalPopup.style.transform = 'scale(0.8) translateY(20px)';
+          setTimeout(() => {
+            if (modalOverlay && modalOverlay.parentNode) {
+              modalOverlay.style.display = 'none';
+            }
+          }, 300);
+        };
+
+        modalPopup.querySelector('.popup-close-btn').addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+          if (e.target === modalOverlay) closeModal();
+        });
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape' && modalOverlay.style.opacity === '1') {
+            closeModal();
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
+
+        document.body.appendChild(modalOverlay);
+        return modalOverlay;
+      }
+
+      function openModal() {
+        const overlay = ensureModal();
+        overlay.style.display = 'flex';
+        // force reflow for transition
+        // eslint-disable-next-line no-unused-expressions
+        overlay.offsetHeight;
+        overlay.style.opacity = '1';
+        if (modalPopup) {
+          modalPopup.style.transform = 'scale(1) translateY(0)';
+        }
+      }
+
+      function closeModal() {
+        if (!modalOverlay) return;
+        modalOverlay.style.opacity = '0';
+        if (modalPopup) modalPopup.style.transform = 'scale(0.8) translateY(20px)';
+        setTimeout(() => {
+          modalOverlay.style.display = 'none';
+        }, 300);
+      }
+
+  // Expose global helper so other handlers can open this modal without redirecting
+  window.showFeatureInProgressModal = openModal;
+
+      rezervariBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openModal();
+      });
+    })();
+
     // Completely rewritten iOS-compatible video initialization
     function initializeVideoForIOS() {
       if (!phoneVideo) return;
@@ -1112,7 +1225,9 @@ document.addEventListener("DOMContentLoaded", function () {
           rezervariButton.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            window.location.href = 'rezervari.html';
+            if (window.showFeatureInProgressModal) {
+              window.showFeatureInProgressModal();
+            }
           });
           
           allHeroButtons[1].addEventListener("click", (e) => {

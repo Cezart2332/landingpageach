@@ -13,6 +13,16 @@ try {
   console.log('   Continuing with cache busting only...\n');
 }
 
+// Parse CLI args for dev/serve mode and port
+const ARGS = process.argv.slice(2);
+const DEV_MODE = ARGS.includes('--dev') || ARGS.includes('--serve');
+const DEV_PORT = (() => {
+  const pFlagIndex = ARGS.findIndex(a => a === '--port');
+  const pValue = pFlagIndex >= 0 ? Number(ARGS[pFlagIndex + 1]) : undefined;
+  return Number.isFinite(pValue) ? pValue : 3000;
+})();
+const PROXY_TARGET = process.env.PROXY_TARGET || 'https://api.acoomh.ro';
+
 // Generate timestamp for cache busting
 const timestamp = Date.now();
 
@@ -329,12 +339,88 @@ async function main() {
     updateHTML();
     
     console.log('\n✨ Build process completed successfully!');
-    process.exit(0);
+    // In dev mode, keep process alive for the dev server
+    if (!DEV_MODE) {
+      process.exit(0);
+    }
   } catch (error) {
     console.error('❌ Build process failed:', error.message);
-    process.exit(1);
+    // In dev mode, keep process alive so server can still start for debugging
+    if (!DEV_MODE) {
+      process.exit(1);
+    }
   }
 }
 
-// Run the main function
-main();
+// --- Dev server with proxy (Express) ---
+function startDevServer({ port = DEV_PORT, proxyTarget = PROXY_TARGET } = {}) {
+  let express, createProxyMiddleware;
+  try {
+    express = require('express');
+    ({ createProxyMiddleware } = require('http-proxy-middleware'));
+  } catch (err) {
+    console.log('\n❌ Dev server dependencies missing. Install them with:');
+    console.log('   npm i --save-dev express http-proxy-middleware');
+    return;
+  }
+
+  const app = express();
+
+  // Static files from project root
+  app.use(express.static(__dirname));
+
+  // Common proxy options
+  const commonProxyOpts = {
+    target: proxyTarget,
+    changeOrigin: true,
+    secure: false, // dev only
+    logLevel: 'warn',
+    onProxyReq: (proxyReq) => {
+      try {
+        if (typeof proxyReq.removeHeader === 'function') {
+          proxyReq.removeHeader('origin');
+        } else {
+          proxyReq.setHeader('origin', '');
+        }
+      } catch (e) {
+        // no-op
+      }
+    },
+  };
+
+  // /api/* -> remove /api -> upstream sees original path (e.g., /api/locations -> /locations)
+  app.use('/api', createProxyMiddleware({
+    ...commonProxyOpts,
+    pathRewrite: { '^/api': '' },
+  }));
+
+  // /proxy/* -> remove /proxy
+  app.use('/proxy', createProxyMiddleware({
+    ...commonProxyOpts,
+    pathRewrite: { '^/proxy': '' },
+  }));
+
+  // Direct /locations passthrough (no rewrite) - matches /locations and /locations/*
+  app.use('/locations', createProxyMiddleware({
+    ...commonProxyOpts,
+  }));
+
+  app.listen(port, () => {
+    console.log('\n▶️  Dev server running at http://localhost:' + port);
+    console.log('   Serving static files from: ' + __dirname);
+    console.log('   Proxy target: ' + proxyTarget);
+    console.log('   Proxy rules:');
+    console.log('     - /api/*    -> ' + proxyTarget + ' (rewrite: ^/api → /)');
+    console.log('     - /proxy/*  -> ' + proxyTarget + ' (rewrite: ^/proxy → /)');
+    console.log('     - /locations -> ' + proxyTarget + '/locations (no rewrite)');
+    console.log('\nTips: In dev use /api/locations or /proxy/locations. The proxy rewrites /api/locations → /locations upstream.');
+  });
+}
+
+// Run build, then optionally start the dev server
+(async function run() {
+  await main();
+  if (DEV_MODE) {
+    startDevServer({ port: DEV_PORT, proxyTarget: PROXY_TARGET });
+  }
+})();

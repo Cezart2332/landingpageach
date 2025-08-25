@@ -1,7 +1,10 @@
 // Rezervari Page JavaScript - AcoomH API Integration
 
-// Direct API endpoint
-const API_BASE_URL = 'https://api.acoomh.ro';
+// Direct API endpoint (use proxy in dev to avoid CORS)
+const isLocalDev = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+);
+const API_BASE_URL = isLocalDev ? '/api' : 'https://api.acoomh.ro';
 
 let allLocations = [];
 let filteredLocations = [];

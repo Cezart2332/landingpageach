@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
   <!-- CRITICAL: Load CSS first to prevent FOUC -->
-  <link rel="stylesheet" href="rezervari-style.css?v=1756130602487" />
+  <link rel="stylesheet" href="rezervari-style.min.css?v=1756131778670" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -50,54 +50,54 @@
         </div>
       </div>
     </div>
+
     
     <!-- Back Button -->
-    <a href="index.html" class="back-button" aria-label="Înapoi la pagina principală">
-      <i class="fas fa-arrow-left" aria-hidden="true"></i>
-      Înapoi
+    <a href="index.html" class="back-button">
+      <i class="fas fa-arrow-left"></i>
+      Înapoi la pagina principală
     </a>
 
     <!-- Header Section -->
-    <section class="header-section" role="banner">
+  <section class="header-section">
       <div class="header-content">
-        <h1 class="header-title">Rezervări</h1>
+    <h1 class="header-title">Rezervări online</h1>
       </div>
     </section>
 
     <!-- Search Section -->
-    <section class="search-section" role="search">
+  <section class="search-section">
       <div class="search-container">
         <div class="search-box">
-          <i class="fas fa-search search-icon" aria-hidden="true"></i>
+          <i class="fas fa-search search-icon"></i>
           <input
             type="text"
             class="search-input"
-            placeholder="Caută locații sau tipuri"
+            placeholder="Caută după nume sau tipul de local"
             id="searchInput"
-            aria-label="Caută locații"
             autocomplete="off"
           />
         </div>
 
-        <div class="filter-buttons" role="tablist" aria-label="Filtre categorie">
-          <button class="filter-btn active" data-type="all" role="tab" aria-selected="true">
-            <i class="fas fa-th-large" aria-hidden="true"></i>
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-type="all">
+            <i class="fas fa-th-large"></i>
             Toate
           </button>
-          <button class="filter-btn" data-type="restaurants" role="tab" aria-selected="false">
-            <i class="fas fa-utensils" aria-hidden="true"></i>
+          <button class="filter-btn" data-type="restaurants">
+            <i class="fas fa-utensils"></i>
             Restaurante
           </button>
-          <button class="filter-btn" data-type="cafes" role="tab" aria-selected="false">
-            <i class="fas fa-coffee" aria-hidden="true"></i>
+          <button class="filter-btn" data-type="cafes">
+            <i class="fas fa-coffee"></i>
             Cafenele
           </button>
-          <button class="filter-btn" data-type="pubs" role="tab" aria-selected="false">
-            <i class="fas fa-beer" aria-hidden="true"></i>
+          <button class="filter-btn" data-type="pubs">
+            <i class="fas fa-beer"></i>
             Puburi
           </button>
-          <button class="filter-btn" data-type="clubs" role="tab" aria-selected="false">
-            <i class="fas fa-music" aria-hidden="true"></i>
+          <button class="filter-btn" data-type="clubs">
+            <i class="fas fa-music"></i>
             Cluburi
           </button>
         </div>
@@ -111,7 +111,7 @@
         <h3>Încărcăm locațiile...</h3>
       </div>
 
-  <div class="error-state" id="errorState" style="display: none;" role="alert">
+  <div class="error-state" id="errorState" style="display: none;">
         <div class="error-icon">
           <i class="fas fa-exclamation-triangle"></i>
         </div>
@@ -138,6 +138,6 @@
       </div>
     </section>
 
-    <script src="rezervari-script.js?v=1756130602487"></script>
+  <script src="rezervari-script.min.js?v=1756131778670"></script>
   </body>
 </html>

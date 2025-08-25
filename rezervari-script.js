@@ -316,13 +316,30 @@ function initializeFiltering() {
   filterButtons.forEach(button => {
     button.addEventListener('click', function() {
       // Remove active class from all buttons
-      filterButtons.forEach(btn => btn.classList.remove('active'));
+      filterButtons.forEach(btn => {
+        btn.classList.remove('active');
+        // Accessibility: keep aria-selected in sync
+        if (btn.hasAttribute('role')) {
+          btn.setAttribute('aria-selected', 'false');
+        }
+      });
       // Add active class to clicked button
       this.classList.add('active');
+      if (this.hasAttribute('role')) {
+        this.setAttribute('aria-selected', 'true');
+      }
       
       currentFilter = this.dataset.type;
       applyFilters();
     });
+  });
+
+  // Ensure initial aria-selected state is correct on load
+  filterButtons.forEach(btn => {
+    const isActive = btn.classList.contains('active');
+    if (btn.hasAttribute('role')) {
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    }
   });
 }
 

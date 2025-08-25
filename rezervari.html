@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- CRITICAL: Load CSS first to prevent FOUC -->
-    <link rel="stylesheet" href="rezervari-style.css?v=1756130027502" />
+  <!-- CRITICAL: Load CSS first to prevent FOUC -->
+  <link rel="stylesheet" href="rezervari-style.css?v=1756130602487" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -15,45 +15,21 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
     
-    <!-- CRITICAL: Inline styles to prevent any flash -->
+    <!-- CRITICAL: Inline styles to prevent any flash (kept minimal) -->
     <style>
-      /* Immediate hiding of content until loaded */
-      html, body { 
-        margin: 0; 
-        padding: 0; 
-        background: #0f0f0f !important; 
-        color: #ffffff !important; 
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #0f0f0f !important;
+        color: #ffffff !important;
         font-family: "Inter", sans-serif !important;
       }
-      
-      /* Hide content immediately */
-      body:not(.loading):not(.loaded) {
-        visibility: hidden !important;
-        opacity: 0 !important;
-      }
-      
-      /* Show loading overlay immediately */
-      .page-loading-overlay {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        background: #0f0f0f !important;
-        z-index: 99999 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-      }
-      
+      /* Hide content until JS toggles loaded */
+      body:not(.loading):not(.loaded) { visibility: hidden !important; opacity: 0 !important; }
+      /* Minimal loading overlay */
+      .page-loading-overlay { position: fixed !important; inset: 0 !important; background: #0f0f0f !important; z-index: 99999 !important; display: flex !important; align-items: center !important; justify-content: center !important; }
       /* Disable animations until loaded */
-      body.loading *, body:not(.loaded) * {
-        animation: none !important;
-        transition: none !important;
-        transform: none !important;
-      }
+      body.loading *, body:not(.loaded) * { animation: none !important; transition: none !important; transform: none !important; }
     </style>
     
     <!-- SEO Meta Tags -->
@@ -76,50 +52,52 @@
     </div>
     
     <!-- Back Button -->
-    <a href="index.html" class="back-button">
-      <i class="fas fa-arrow-left"></i>
-      Înapoi la pagina principală
+    <a href="index.html" class="back-button" aria-label="Înapoi la pagina principală">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i>
+      Înapoi
     </a>
 
     <!-- Header Section -->
-    <section class="header-section">
+    <section class="header-section" role="banner">
       <div class="header-content">
-        <h1 class="header-title">Rezervări online</h1>
+        <h1 class="header-title">Rezervări</h1>
       </div>
     </section>
 
     <!-- Search Section -->
-    <section class="search-section">
+    <section class="search-section" role="search">
       <div class="search-container">
         <div class="search-box">
-          <i class="fas fa-search search-icon"></i>
-          <input 
-            type="text" 
-            class="search-input" 
-            placeholder="Caută după nume sau tipul de local"
+          <i class="fas fa-search search-icon" aria-hidden="true"></i>
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Caută locații sau tipuri"
             id="searchInput"
+            aria-label="Caută locații"
+            autocomplete="off"
           />
         </div>
-        
-        <div class="filter-buttons">
-          <button class="filter-btn active" data-type="all">
-            <i class="fas fa-th-large"></i>
+
+        <div class="filter-buttons" role="tablist" aria-label="Filtre categorie">
+          <button class="filter-btn active" data-type="all" role="tab" aria-selected="true">
+            <i class="fas fa-th-large" aria-hidden="true"></i>
             Toate
           </button>
-          <button class="filter-btn" data-type="restaurants">
-            <i class="fas fa-utensils"></i>
+          <button class="filter-btn" data-type="restaurants" role="tab" aria-selected="false">
+            <i class="fas fa-utensils" aria-hidden="true"></i>
             Restaurante
           </button>
-          <button class="filter-btn" data-type="cafes">
-            <i class="fas fa-coffee"></i>
+          <button class="filter-btn" data-type="cafes" role="tab" aria-selected="false">
+            <i class="fas fa-coffee" aria-hidden="true"></i>
             Cafenele
           </button>
-          <button class="filter-btn" data-type="pubs">
-            <i class="fas fa-beer"></i>
+          <button class="filter-btn" data-type="pubs" role="tab" aria-selected="false">
+            <i class="fas fa-beer" aria-hidden="true"></i>
             Puburi
           </button>
-          <button class="filter-btn" data-type="clubs">
-            <i class="fas fa-music"></i>
+          <button class="filter-btn" data-type="clubs" role="tab" aria-selected="false">
+            <i class="fas fa-music" aria-hidden="true"></i>
             Cluburi
           </button>
         </div>
@@ -128,13 +106,12 @@
 
     <!-- Results Section -->
     <section class="results-section">
-      <div class="loading-state" id="loadingState">
-        <div class="loading-spinner"></div>
-        <h3>Se încarcă locațiile...</h3>
-        <p>Te rugăm să aștepți câteva secunde.</p>
+      <div class="loading-state" id="loadingState" aria-live="polite">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <h3>Încărcăm locațiile...</h3>
       </div>
 
-      <div class="error-state" id="errorState" style="display: none;">
+  <div class="error-state" id="errorState" style="display: none;" role="alert">
         <div class="error-icon">
           <i class="fas fa-exclamation-triangle"></i>
         </div>
@@ -157,10 +134,10 @@
           <i class="fas fa-search"></i>
         </div>
         <h3>Nu am găsit rezultate</h3>
-        <p>Încearcă să modifici criteriile de căutare sau să selectezi o altă categorie.</p>
+        <p>Încearcă alt termen sau o altă categorie.</p>
       </div>
     </section>
 
-    <script src="rezervari-script.js?v=1756130027502"></script>
+    <script src="rezervari-script.js?v=1756130602487"></script>
   </body>
 </html>

@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function initializeVideoForIOS() {
       if (!phoneVideo) return;
       
-      console.log('🎥 Starting simplified video initialization for iOS...');
+      console.log('🎥 Starting video initialization with new 0821-copy.mp4...');
       
       // Clear any existing video attributes and start fresh
       phoneVideo.removeAttribute('autoplay');
@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
       phoneVideo.setAttribute('playsinline', 'true');
       phoneVideo.setAttribute('webkit-playsinline', 'true');
       phoneVideo.setAttribute('preload', 'metadata');
+      phoneVideo.setAttribute('loop', 'true');
       
       // Set properties
       phoneVideo.muted = true;
@@ -33,11 +34,12 @@ document.addEventListener("DOMContentLoaded", function () {
       phoneVideo.volume = 0;
       phoneVideo.loop = true;
       
-      // Video sources in order of preference for iOS
+      // Updated video sources with new primary video
       const videoSources = [
-        'acoomharta_safe.mp4',
-        'acoomharta_noaudio.mp4', 
-        'acoomharta.mp4'
+        '0821-copy.mp4',                // NEW: Primary video source
+        'acoomharta_safe.mp4',         // Fallback 1
+        'acoomharta_noaudio.mp4',      // Fallback 2
+        'acoomharta.mp4'               // Fallback 3
       ];
       
       let currentSourceIndex = 0;

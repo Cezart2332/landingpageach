@@ -1,7 +1,8 @@
 // Restaurant Page JavaScript - AcoomH API Integration
 
-// Direct API endpoint
-const API_BASE_URL = 'https://api.acoomh.ro';
+// API endpoint (uses dev proxy when running on localhost)
+const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_BASE_URL = isLocalDev ? '/api' : 'https://api.acoomh.ro';
 
 let currentLocation = null;
 

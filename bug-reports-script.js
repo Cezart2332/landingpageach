@@ -15,8 +15,9 @@ immediateOverlay.innerHTML = `
 `;
 document.body.appendChild(immediateOverlay);
 
-// API Configuration - Updated to match backend
-const API_BASE_URL = 'https://api.acoomh.ro';
+// API Configuration - switch to /api in dev (proxied) and real host in prod
+const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_BASE_URL = isLocalDev ? '/api' : 'https://api.acoomh.ro';
 
 // Global variables
 let allBugReports = [];

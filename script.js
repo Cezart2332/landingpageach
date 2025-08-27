@@ -1228,31 +1228,46 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     async function collectEmail(email) {
-      // In a real application, this would send the email to your backend
-      // For now, we'll simulate storing it locally
       try {
-        // Get existing emails from localStorage
-        const existingEmails = JSON.parse(localStorage.getItem('acoomh_emails') || '[]');
+        // Send email to backend API endpoint
+        const response = await fetch('/api/collect-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: email })
+        });
         
-        // Check if email already exists
-        if (existingEmails.includes(email)) {
-          throw new Error('Email already registered');
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to collect email');
         }
         
-        // Add new email
-        existingEmails.push(email);
+        console.log('✅ Email successfully collected:', result);
+        return result;
         
-        // Save back to localStorage
-        localStorage.setItem('acoomh_emails', JSON.stringify(existingEmails));
-        
-        // Also log to console for development (remove in production)
-        console.log('Email collected:', email);
-        console.log('All emails:', existingEmails);
-        
-        return Promise.resolve();
       } catch (error) {
-        console.error('Error collecting email:', error);
-        throw error;
+        console.error('❌ Error collecting email:', error);
+        
+        // Fallback to localStorage if backend is not available
+        try {
+          const existingEmails = JSON.parse(localStorage.getItem('acoomh_emails') || '[]');
+          
+          if (existingEmails.includes(email)) {
+            throw new Error('Email already registered');
+          }
+          
+          existingEmails.push(email);
+          localStorage.setItem('acoomh_emails', JSON.stringify(existingEmails));
+          
+          console.log('📱 Email saved to localStorage as fallback');
+          return { success: true, message: 'Email saved locally' };
+          
+        } catch (fallbackError) {
+          console.error('❌ Fallback also failed:', fallbackError);
+          throw error; // Throw original error
+        }
       }
     }
 

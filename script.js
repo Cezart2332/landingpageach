@@ -404,7 +404,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Touch event handlers (declared once, added/removed as needed)
     const touchStartHandler = function(e) {
-      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+      // CRITICAL: Check for GDPR modal first
+      if (document.body.hasAttribute('data-gdpr-modal-open')) {
+        return;
+      }
+      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay') || e.target.closest('.gdpr-modal-overlay')) {
         return;
       }
       touchStartY = e.touches[0].clientY;
@@ -412,7 +416,11 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     const touchEndHandler = function(e) {
-      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+      // CRITICAL: Check for GDPR modal first
+      if (document.body.hasAttribute('data-gdpr-modal-open')) {
+        return;
+      }
+      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay') || e.target.closest('.gdpr-modal-overlay')) {
         return;
       }
       
@@ -446,8 +454,12 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     const touchMoveHandler = function(e) {
+      // CRITICAL: Check for GDPR modal first
+      if (document.body.hasAttribute('data-gdpr-modal-open')) {
+        return;
+      }
       // Don't prevent default for video or popup interactions
-      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay')) {
+      if (e.target.closest('.phone-video') || e.target.closest('.popup-overlay') || e.target.closest('.gdpr-modal-overlay')) {
         return;
       }
       
@@ -467,6 +479,10 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     const wheelHandler = function(e) {
+      // CRITICAL: Check for GDPR modal first
+      if (document.body.hasAttribute('data-gdpr-modal-open')) {
+        return;
+      }
       e.preventDefault();
     };
 
@@ -515,6 +531,11 @@ document.addEventListener("DOMContentLoaded", function () {
       const scrollCooldown = 600;
       
       desktopWheelHandler = (e) => {
+        // CRITICAL: Check for GDPR modal first
+        if (document.body.hasAttribute('data-gdpr-modal-open')) {
+          return;
+        }
+        
         const currentTime = Date.now();
         
         if (isScrolling) {
@@ -905,132 +926,230 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
 
-    // Popup functions
-    function showDownloadPopup() {
-      const existingPopups = document.querySelectorAll('.popup-overlay');
-      existingPopups.forEach(popup => popup.remove());
+    // Countdown Modal Functions
+    function createCountdownModal() {
+      // Target date: September 1st, 2025 at 18:00 Romania time (UTC+3)
+      const targetDate = new Date('2025-09-01T18:00:00+03:00').getTime();
       
       const overlay = document.createElement('div');
-      overlay.className = 'popup-overlay';
-      overlay.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background-color: rgba(0, 0, 0, 0.8); z-index: 10000;
-        display: flex; align-items: center; justify-content: center;
-        backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s ease;
-      `;
-
-      const popup = document.createElement('div');
-      popup.className = 'popup-content';
-      popup.style.cssText = `
-        background: linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95));
-        border: 1px solid #6b46c1; border-radius: 25px; padding: 40px 30px;
-        text-align: center; max-width: 400px; width: 90%;
-        box-shadow: 0 20px 60px rgba(139, 92, 246, 0.4);
-        transform: scale(0.8) translateY(20px);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      `;
-
-      popup.innerHTML = `
-        <div style="margin-bottom: 25px;">
-          <i class="fas fa-rocket" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
-          <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
-          <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
-        </div>
-        <button class="popup-close-btn" style="
-          background: linear-gradient(135deg, #6b46c1, #7c3aed); color: white; border: none;
-          border-radius: 15px; padding: 12px 30px; font-size: 1rem; font-weight: 600;
-          cursor: pointer; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-        ">
-          <i class="fas fa-check" style="margin-right: 8px;"></i>
-          Înțeles!
+      overlay.className = 'countdown-modal-overlay';
+      
+      const modal = document.createElement('div');
+      modal.className = 'countdown-modal';
+      
+      modal.innerHTML = `
+        <button class="countdown-modal-close">
+          <i class="fas fa-times"></i>
         </button>
+        <div class="countdown-modal-content">
+          <i class="fas fa-rocket countdown-modal-icon"></i>
+          <h3>Se lansează în curând!</h3>
+          <p>AcoomH va fi disponibil pe 1 septembrie la ora 18:00. Lasă-ți email-ul pentru a fi anunțat!</p>
+          
+          <div class="countdown-display">
+            <div class="countdown-item">
+              <span class="countdown-number" id="countdown-days">00</span>
+              <span class="countdown-label">Zile</span>
+            </div>
+            <div class="countdown-item">
+              <span class="countdown-number" id="countdown-hours">00</span>
+              <span class="countdown-label">Ore</span>
+            </div>
+            <div class="countdown-item">
+              <span class="countdown-number" id="countdown-minutes">00</span>
+              <span class="countdown-label">Min</span>
+            </div>
+            <div class="countdown-item">
+              <span class="countdown-number" id="countdown-seconds">00</span>
+              <span class="countdown-label">Sec</span>
+            </div>
+          </div>
+          
+          <form class="email-form" id="email-form">
+            <div class="email-input-group">
+              <input 
+                type="email" 
+                class="email-input" 
+                id="email-input" 
+                placeholder="Introdu adresa ta de email"
+                required
+              />
+              <button type="submit" class="email-submit-btn" id="email-submit-btn">
+                <i class="fas fa-envelope"></i>
+                Notifică-mă!
+              </button>
+            </div>
+            <div class="email-success-message" id="email-success-message">
+              <i class="fas fa-check"></i> Mulțumim! Te vom anunța când aplicația este gata!
+            </div>
+            <div class="email-error-message" id="email-error-message">
+              <i class="fas fa-exclamation-triangle"></i> <span id="error-text">A apărut o eroare. Te rugăm să încerci din nou.</span>
+            </div>
+          </form>
+        </div>
       `;
-
-      function closePopup() {
-        overlay.style.opacity = '0';
-        popup.style.transform = 'scale(0.8) translateY(20px)';
-        setTimeout(() => document.body.removeChild(overlay), 300);
+      
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      
+      // Show modal with animation
+      setTimeout(() => {
+        overlay.classList.add('show');
+        modal.classList.add('show');
+      }, 10);
+      
+      // Start countdown
+      const countdownInterval = startCountdown(targetDate);
+      
+      // Close modal function
+      function closeModal() {
+        overlay.classList.remove('show');
+        modal.classList.remove('show');
+        clearInterval(countdownInterval);
+        setTimeout(() => {
+          if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+          }
+        }, 300);
       }
-
-      popup.querySelector('.popup-close-btn').addEventListener('click', closePopup);
-      overlay.addEventListener('click', (e) => e.target === overlay && closePopup());
-      document.addEventListener('keydown', function escHandler(e) {
-        if (e.key === 'Escape') {
-          closePopup();
-          document.removeEventListener('keydown', escHandler);
+      
+      // Event listeners
+      modal.querySelector('.countdown-modal-close').addEventListener('click', closeModal);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+      
+      // Email form submission
+      const emailForm = modal.querySelector('#email-form');
+      const emailInput = modal.querySelector('#email-input');
+      const submitBtn = modal.querySelector('#email-submit-btn');
+      const successMessage = modal.querySelector('#email-success-message');
+      const errorMessage = modal.querySelector('#email-error-message');
+      const errorText = modal.querySelector('#error-text');
+      
+      emailForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = emailInput.value.trim();
+        if (!email || !isValidEmail(email)) {
+          showError('Te rugăm să introduci o adresă de email validă.');
+          return;
+        }
+        
+        // Disable submit button
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Se trimite...';
+        
+        try {
+          // Simulate email collection (in a real app, this would be an API call)
+          await collectEmail(email);
+          
+          // Show success message
+          emailInput.style.display = 'none';
+          submitBtn.style.display = 'none';
+          successMessage.style.display = 'block';
+          
+          // Auto-close after 3 seconds
+          setTimeout(closeModal, 3000);
+          
+        } catch (error) {
+          showError('A apărut o eroare. Te rugăm să încerci din nou.');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-envelope"></i> Notifică-mă!';
         }
       });
+      
+      function showError(message) {
+        errorText.textContent = message;
+        errorMessage.style.display = 'block';
+        setTimeout(() => {
+          errorMessage.style.display = 'none';
+        }, 5000);
+      }
+      
+      // Escape key to close
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+    }
+    
+    function startCountdown(targetDate) {
+      const updateCountdown = () => {
+        const now = new Date().getTime();
+        const distance = targetDate - now;
+        
+        if (distance < 0) {
+          // Countdown finished
+          document.getElementById('countdown-days').textContent = '00';
+          document.getElementById('countdown-hours').textContent = '00';
+          document.getElementById('countdown-minutes').textContent = '00';
+          document.getElementById('countdown-seconds').textContent = '00';
+          return;
+        }
+        
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        document.getElementById('countdown-days').textContent = String(days).padStart(2, '0');
+        document.getElementById('countdown-hours').textContent = String(hours).padStart(2, '0');
+        document.getElementById('countdown-minutes').textContent = String(minutes).padStart(2, '0');
+        document.getElementById('countdown-seconds').textContent = String(seconds).padStart(2, '0');
+      };
+      
+      // Update immediately
+      updateCountdown();
+      
+      // Update every second
+      return setInterval(updateCountdown, 1000);
+    }
+    
+    function isValidEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+    
+    async function collectEmail(email) {
+      // In a real application, this would send the email to your backend
+      // For now, we'll simulate storing it locally
+      try {
+        // Get existing emails from localStorage
+        const existingEmails = JSON.parse(localStorage.getItem('acoomh_emails') || '[]');
+        
+        // Check if email already exists
+        if (existingEmails.includes(email)) {
+          throw new Error('Email already registered');
+        }
+        
+        // Add new email
+        existingEmails.push(email);
+        
+        // Save back to localStorage
+        localStorage.setItem('acoomh_emails', JSON.stringify(existingEmails));
+        
+        // Also log to console for development (remove in production)
+        console.log('Email collected:', email);
+        console.log('All emails:', existingEmails);
+        
+        return Promise.resolve();
+      } catch (error) {
+        console.error('Error collecting email:', error);
+        throw error;
+      }
+    }
 
-      overlay.appendChild(popup);
-      document.body.appendChild(overlay);
-      setTimeout(() => {
-        overlay.style.opacity = '1';
-        popup.style.transform = 'scale(1) translateY(0)';
-      }, 10);
+    // Updated popup functions to use countdown modal
+    function showDownloadPopup() {
+      createCountdownModal();
     }
 
     function showEarlyAccessPopup() {
-      // Similar to showDownloadPopup but with clock icon
-      const existingPopups = document.querySelectorAll('.popup-overlay');
-      existingPopups.forEach(popup => popup.remove());
-      
-      const overlay = document.createElement('div');
-      overlay.className = 'popup-overlay';
-      overlay.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background-color: rgba(0, 0, 0, 0.8); z-index: 10000;
-        display: flex; align-items: center; justify-content: center;
-        backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s ease;
-      `;
-
-      const popup = document.createElement('div');
-      popup.className = 'popup-content';
-      popup.style.cssText = `
-        background: linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95));
-        border: 1px solid #6b46c1; border-radius: 25px; padding: 40px 30px;
-        text-align: center; max-width: 400px; width: 90%;
-        box-shadow: 0 20px 60px rgba(139, 92, 246, 0.4);
-        transform: scale(0.8) translateY(20px);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      `;
-
-      popup.innerHTML = `
-        <div style="margin-bottom: 25px;">
-          <i class="fas fa-clock" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
-          <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Aplicația nu este încă lansată</h3>
-          <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Fii pe fază, ne vom vedea curând!</p>
-        </div>
-        <button class="popup-close-btn" style="
-          background: linear-gradient(135deg, #6b46c1, #7c3aed); color: white; border: none;
-          border-radius: 15px; padding: 12px 30px; font-size: 1rem; font-weight: 600;
-          cursor: pointer; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-        ">
-          <i class="fas fa-check" style="margin-right: 8px;"></i>
-          Înțeles!
-        </button>
-      `;
-
-      function closePopup() {
-        overlay.style.opacity = '0';
-        popup.style.transform = 'scale(0.8) translateY(20px)';
-        setTimeout(() => document.body.removeChild(overlay), 300);
-      }
-
-      popup.querySelector('.popup-close-btn').addEventListener('click', closePopup);
-      overlay.addEventListener('click', (e) => e.target === overlay && closePopup());
-      document.addEventListener('keydown', function escHandler(e) {
-        if (e.key === 'Escape') {
-          closePopup();
-          document.removeEventListener('keydown', escHandler);
-        }
-      });
-
-      overlay.appendChild(popup);
-      document.body.appendChild(overlay);
-      setTimeout(() => {
-        overlay.style.opacity = '1';
-        popup.style.transform = 'scale(1) translateY(0)';
-      }, 10);
+      createCountdownModal();
     }
 
     function showReservationPopup() {
@@ -1097,6 +1216,116 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 10);
     }
 
+    // Coming Soon Modal Functions for unreleased features
+    function createComingSoonModal(featureName, featureIcon) {
+      const overlay = document.createElement('div');
+      overlay.className = 'coming-soon-modal-overlay';
+      overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0, 0, 0, 0.85); z-index: 10000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(15px); opacity: 0; transition: opacity 0.3s ease;
+      `;
+      
+      const modal = document.createElement('div');
+      modal.className = 'coming-soon-modal';
+      modal.style.cssText = `
+        background: linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95));
+        border: 1px solid #f59e0b; border-radius: 25px; padding: 40px 30px;
+        text-align: center; max-width: 450px; width: 90%;
+        box-shadow: 0 25px 60px rgba(245, 158, 11, 0.4);
+        transform: scale(0.8) translateY(20px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      `;
+
+      modal.innerHTML = `
+        <button class="coming-soon-modal-close" style="
+          position: absolute; top: 15px; right: 15px; background: none; border: none;
+          color: #9ca3af; font-size: 1.5rem; cursor: pointer; padding: 5px;
+          transition: color 0.3s ease; z-index: 1;
+        ">
+          <i class="fas fa-times"></i>
+        </button>
+        <div style="margin-bottom: 25px;">
+          <i class="${featureIcon}" style="font-size: 3.5rem; color: #f59e0b; margin-bottom: 20px; display: block;"></i>
+          <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.6rem; font-weight: 600;">${featureName}</h3>
+          <p style="color: #d1d5db; font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;">
+            Această funcționalitate va fi disponibilă în curând! Lucrăm din greu pentru a vă oferi cea mai bună experiență.
+          </p>
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); 
+                      border-radius: 15px; padding: 15px; margin: 20px 0;">
+            <p style="color: #fbbf24; font-size: 0.95rem; margin: 0;">
+              <i class="fas fa-clock" style="margin-right: 8px;"></i>
+              Funcționalitatea se lansează pe 1 septembrie 2025
+            </p>
+          </div>
+        </div>
+        <button class="coming-soon-close-btn" style="
+          background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none;
+          border-radius: 15px; padding: 12px 30px; font-size: 1rem; font-weight: 600;
+          cursor: pointer; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+        ">
+          <i class="fas fa-check" style="margin-right: 8px;"></i>
+          Înțeles!
+        </button>
+      `;
+
+      function closeModal() {
+        overlay.style.opacity = '0';
+        modal.style.transform = 'scale(0.8) translateY(20px)';
+        setTimeout(() => {
+          if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+          }
+        }, 300);
+      }
+
+      // Event listeners
+      modal.querySelector('.coming-soon-modal-close').addEventListener('click', closeModal);
+      modal.querySelector('.coming-soon-close-btn').addEventListener('click', closeModal);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+
+      // Hover effects
+      const closeBtn = modal.querySelector('.coming-soon-close-btn');
+      closeBtn.addEventListener('mouseenter', () => {
+        closeBtn.style.transform = 'translateY(-2px)';
+        closeBtn.style.boxShadow = '0 15px 40px rgba(245, 158, 11, 0.4)';
+      });
+      closeBtn.addEventListener('mouseleave', () => {
+        closeBtn.style.transform = 'translateY(0)';
+        closeBtn.style.boxShadow = '0 10px 30px rgba(245, 158, 11, 0.3)';
+      });
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      // Show modal with animation
+      setTimeout(() => {
+        overlay.style.opacity = '1';
+        modal.style.transform = 'scale(1) translateY(0)';
+      }, 10);
+
+      // Escape key to close
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+    }
+
+    function showRezervariComingSoon() {
+      createComingSoonModal('Rezervări', 'fas fa-calendar-check');
+    }
+
+    function showEventsComingSoon() {
+      createComingSoonModal('Evenimente', 'fas fa-glass-cheers');
+    }
+
     // Button handlers
     function initializeButtonHandlers() {
       if (handlersInitialized) return;
@@ -1109,10 +1338,11 @@ document.addEventListener("DOMContentLoaded", function () {
           allHeroButtons[0].replaceWith(allHeroButtons[0].cloneNode(true));
           const rezervariButton = heroButtons.querySelectorAll("button")[0];
           
+          // Updated to show coming soon modal instead of navigating
           rezervariButton.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            window.location.href = 'rezervari.html';
+            showRezervariComingSoon();
           });
           
           allHeroButtons[1].addEventListener("click", (e) => {
@@ -1139,6 +1369,23 @@ document.addEventListener("DOMContentLoaded", function () {
           });
         }
       }
+
+      // Intercept navigation to rezervari and events pages
+      document.addEventListener('click', function(e) {
+        const target = e.target.closest('a');
+        if (target) {
+          const href = target.getAttribute('href');
+          if (href === 'rezervari.html' || href === './rezervari.html' || href.includes('rezervari.html')) {
+            e.preventDefault();
+            e.stopPropagation();
+            showRezervariComingSoon();
+          } else if (href === 'events.html' || href === './events.html' || href.includes('events.html')) {
+            e.preventDefault();
+            e.stopPropagation();
+            showEventsComingSoon();
+          }
+        }
+      });
 
       handlersInitialized = true;
     }

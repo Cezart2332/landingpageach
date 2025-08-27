@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- CRITICAL: Load CSS first to prevent FOUC -->
-    <link rel="stylesheet" href="restaurant-style.min.css?v=1756304987474" />
+    <link rel="stylesheet" href="event-style.min.css?v=1756300919556" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -116,14 +116,14 @@
       }
       
       /* Hide main content until loaded */
-      body:not(.loaded) .restaurant-main,
+      body:not(.loaded) .events-main,
       body:not(.loaded) .navbar {
         visibility: hidden !important;
         opacity: 0 !important;
       }
       
       /* Show content when loaded */
-      body.loaded .restaurant-main,
+      body.loaded .events-main,
       body.loaded .navbar {
         visibility: visible !important;
         opacity: 1 !important;
@@ -162,18 +162,18 @@
     </style>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Detalii restaurant - Rezervă o masă prin AcoomH" />
-    <meta name="keywords" content="restaurant, rezervare, meniu, AcoomH, localuri" />
+    <meta name="description" content="Detalii eveniment - Rezervă bilete prin AcoomH" />
+    <meta name="keywords" content="evenimente, rezervare, bilete, AcoomH, divertisment" />
     <meta name="author" content="AcoomH Team" />
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="Restaurant - AcoomH" />
-    <meta property="og:description" content="Detalii complete despre restaurant și posibilitatea de rezervare prin AcoomH" />
+    <meta property="og:title" content="Evenimente - AcoomH" />
+    <meta property="og:description" content="Detalii complete despre evenimente și posibilitatea de rezervare prin AcoomH" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://acoomh.ro/restaurant.html" />
+    <meta property="og:url" content="https://acoomh.ro/events.html" />
     <meta property="og:image" content="https://acoomh.ro/acoomh.png" />
     
-    <title>Restaurant - AcoomH</title>
+    <title>Evenimente - AcoomH</title>
     <link rel="icon" type="image/png" href="acoomh.png" />
 </head>
 <body class="loading">
@@ -204,47 +204,49 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="restaurant-main">
-        <!-- Restaurant Header -->
-        <section class="restaurant-header">
-            <div class="restaurant-image-container">
-                <img id="restaurantImage" src="" alt="Restaurant Image" class="restaurant-image" />
+    <main class="events-main">
+        <!-- Event Header -->
+        <section class="event-header">
+            <div class="event-image-container">
+                <img id="eventImage" src="" alt="Event Image" class="event-image" />
                 <div class="image-overlay"></div>
             </div>
-            <div class="restaurant-header-content">
-                <h1 id="restaurantName" class="restaurant-name">Nume Restaurant</h1>
-                <div id="restaurantTags" class="restaurant-tags">
+            <div class="event-header-content">
+                <h1 id="eventName" class="event-name">Nume Eveniment</h1>
+                <div id="eventTags" class="event-tags">
                     <!-- Tags will be dynamically inserted here -->
                 </div>
-                <div class="restaurant-rating">
-                    <div class="stars">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star-half-alt"></i>
+                <div class="event-rating">
+                    <div class="event-info">
+                        <span class="rating-text">
+                            <i class="fas fa-calendar"></i>
+                            <span id="eventDate">Se încarcă...</span>
+                        </span>
+                        <span class="rating-text">
+                            <i class="fas fa-clock"></i>
+                            <span id="eventTime">Se încarcă...</span>
+                        </span>
                     </div>
-                    <span class="rating-text">4.5 (127 recenzii)</span>
                 </div>
                 <div class="header-actions">
-                    <button class="btn-menu" onclick="viewMenu()">
-                        <i class="fas fa-utensils"></i>
-                        Vezi meniu
+                    <button class="btn-menu" onclick="getDirections()">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Vezi locația
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- Restaurant Details -->
-        <section class="restaurant-details">
+        <!-- Event Details -->
+        <section class="event-details">
             <div class="container">
-                <!-- Program Section -->
+                <!-- Event Time Section -->
                 <div class="detail-section">
                     <h2 class="section-title">
-                        <i class="fas fa-clock"></i>
-                        Program
+                        <i class="fas fa-calendar-alt"></i>
+                        Program Eveniment
                     </h2>
-                    <div id="restaurantSchedule" class="schedule-grid">
+                    <div id="eventSchedule" class="schedule-grid">
                         <!-- Schedule will be dynamically inserted here -->
                     </div>
                 </div>
@@ -259,22 +261,29 @@
                         <div class="info-item address-clickable" onclick="openMaps()">
                             <i class="fas fa-map-marker-alt"></i>
                             <div class="info-content">
-                                <span class="info-label">Adresă</span>
-                                <span id="restaurantAddress" class="info-value">Strada Exemplu 123, București</span>
+                                <span class="info-label">Locație</span>
+                                <span id="eventLocation" class="info-value">Strada Exemplu 123, București</span>
                             </div>
                         </div>
                         <div class="info-item">
                             <i class="fas fa-phone"></i>
                             <div class="info-content">
-                                <span class="info-label">Telefon</span>
-                                <a href="tel:" id="restaurantPhone" class="info-value phone-link">Se încarcă...</a>
+                                <span class="info-label">Contact</span>
+                                <a href="tel:" id="eventPhone" class="info-value phone-link">Se încarcă...</a>
                             </div>
                         </div>
                         <div class="info-item">
-                            <i class="fas fa-utensils"></i>
+                            <i class="fas fa-ticket-alt"></i>
                             <div class="info-content">
-                                <span class="info-label">Tip Bucătărie</span>
-                                <span id="restaurantCuisine" class="info-value">Italiană</span>
+                                <span class="info-label">Tip Eveniment</span>
+                                <span id="eventType" class="info-value">Concert</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-euro-sign"></i>
+                            <div class="info-content">
+                                <span class="info-label">Preț</span>
+                                <span id="eventPrice" class="info-value">Se încarcă...</span>
                             </div>
                         </div>
                     </div>
@@ -284,11 +293,11 @@
                 <div class="detail-section">
                     <h2 class="section-title">
                         <i class="fas fa-align-left"></i>
-                        Despre Restaurant
+                        Despre Eveniment
                     </h2>
-                    <p id="restaurantDescription" class="restaurant-description">
-                        Un restaurant minunat cu o atmosferă caldă și mâncare delicioasă. 
-                        Oferim cele mai fresh ingrediente și o experiență culinară de neuitat.
+                    <p id="eventDescription" class="event-description">
+                        Un eveniment extraordinar care îți va oferi o experiență de neuitat. 
+                        Alătură-te nouă pentru o seară plină de energie și divertisment.
                     </p>
                 </div>
 
@@ -296,22 +305,22 @@
                 <div class="detail-section">
                     <h2 class="section-title">
                         <i class="fas fa-check-circle"></i>
-                        Facilități
+                        Ce include
                     </h2>
-                    <div id="restaurantFeatures" class="features-grid">
+                    <div id="eventFeatures" class="features-grid">
                         <!-- Features will be dynamically inserted here -->
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Reservation Section -->
+        <!-- Ticket Reservation Section -->
         <section class="reservation-section">
             <div class="container">
                 <div class="reservation-card">
                     <div class="reservation-header">
-                        <h2>Rezervă o masă</h2>
-                        <p>Alege data și ora pentru rezervarea ta</p>
+                        <h2>Rezervă bilete</h2>
+                        <p>Completează formularul pentru a rezerva biletele</p>
                     </div>
                     <div class="reservation-form">
                         <div class="form-group">
@@ -323,42 +332,35 @@
                             <input type="tel" id="phoneNumber" class="form-input" placeholder="07xx xxx xxx" />
                         </div>
                         <div class="form-group">
-                            <label for="reservationDate">Data</label>
-                            <input type="date" id="reservationDate" class="form-input" />
+                            <label for="email">Email</label>
+                            <input type="email" id="email" class="form-input" placeholder="nume@exemplu.com" />
                         </div>
                         <div class="form-group">
-                            <label for="reservationTime">Ora</label>
-                            <select id="reservationTime" class="form-input">
-                                <option value="">Selectează ora</option>
-                                <option value="12:00">12:00</option>
-                                <option value="12:30">12:30</option>
-                                <option value="13:00">13:00</option>
-                                <option value="13:30">13:30</option>
-                                <option value="14:00">14:00</option>
-                                <option value="19:00">19:00</option>
-                                <option value="19:30">19:30</option>
-                                <option value="20:00">20:00</option>
-                                <option value="20:30">20:30</option>
-                                <option value="21:00">21:00</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="guestCount">Numărul de persoane</label>
-                            <select id="guestCount" class="form-input">
+                            <label for="ticketCount">Numărul de bilete</label>
+                            <select id="ticketCount" class="form-input">
                                 <option value="">Selectează</option>
-                                <option value="1">1 persoană</option>
-                                <option value="2">2 persoane</option>
-                                <option value="3">3 persoane</option>
-                                <option value="4">4 persoane</option>
-                                <option value="5">5 persoane</option>
-                                <option value="6">6 persoane</option>
-                                <option value="7">7 persoane</option>
-                                <option value="8">8 persoane</option>
+                                <option value="1">1 bilet</option>
+                                <option value="2">2 bilete</option>
+                                <option value="3">3 bilete</option>
+                                <option value="4">4 bilete</option>
+                                <option value="5">5 bilete</option>
+                                <option value="6">6 bilete</option>
+                                <option value="7">7 bilete</option>
+                                <option value="8">8 bilete</option>
                             </select>
                         </div>
-                        <button class="btn-rezerva" onclick="makeReservation()">
-                            <i class="fas fa-calendar-check"></i>
-                            Rezervă Acum
+                        <div class="form-group">
+                            <label for="ticketType">Tip bilet</label>
+                            <select id="ticketType" class="form-input">
+                                <option value="">Selectează tipul</option>
+                                <option value="standard">Standard</option>
+                                <option value="vip">VIP</option>
+                                <option value="student">Student</option>
+                            </select>
+                        </div>
+                        <button class="btn-rezerva" onclick="reserveTickets()">
+                            <i class="fas fa-ticket-alt"></i>
+                            Rezervă Bilete
                         </button>
                     </div>
                 </div>
@@ -367,6 +369,6 @@
     </main>
 
     <!-- Load JavaScript -->
-    <script src="restaurant-script.min.js?v=1756304987474"></script>
+    <script src="event-script.min.js?v=1756300919556"></script>
 </body>
 </html>

@@ -34,16 +34,21 @@ function checkRequiredFiles() {
     'index.html',
     'rezervari.html',
     'restaurant.html',
+    'events.html',
     'bug-reports.html',
     'merchant-requests.html',
     'rezervari-style.css',
     'rezervari-script.js',
     'restaurant-style.css',
     'restaurant-script.js',
+    'events-style.css',
+    'events-script.js',
     'bug-reports-style.css',
     'bug-reports-script.js',
     'merchant-requests-style.css',
     'merchant-requests-script.js',
+    'gdpr-cookies.css',
+    'gdpr-cookies.js',
     'acoomh.png',
     'acoomharta.mp4',
     'acoomharta_noaudio.mp4',
@@ -120,8 +125,11 @@ function processCSS() {
     { name: 'style.css', output: 'style.min.css', label: 'CSS' },
     { name: 'rezervari-style.css', output: 'rezervari-style.min.css', label: 'Rezervari CSS' },
     { name: 'restaurant-style.css', output: 'restaurant-style.min.css', label: 'Restaurant CSS' },
+    { name: 'events-style.css', output: 'events-style.min.css', label: 'Events CSS' },
+    { name: 'event-style.css', output: 'event-style.min.css', label: 'Event CSS' },
     { name: 'bug-reports-style.css', output: 'bug-reports-style.min.css', label: 'Bug Reports CSS' },
-    { name: 'merchant-requests-style.css', output: 'merchant-requests-style.min.css', label: 'Merchant Requests CSS' }
+    { name: 'merchant-requests-style.css', output: 'merchant-requests-style.min.css', label: 'Merchant Requests CSS' },
+    { name: 'gdpr-cookies.css', output: 'gdpr-cookies.min.css', label: 'GDPR Cookies CSS' }
   ];
 
   cssFiles.forEach(cssFile => {
@@ -155,8 +163,11 @@ async function processJS() {
     { name: 'script.js', output: 'script.min.js', label: 'JavaScript' },
     { name: 'rezervari-script.js', output: 'rezervari-script.min.js', label: 'Rezervari JavaScript' },
     { name: 'restaurant-script.js', output: 'restaurant-script.min.js', label: 'Restaurant JavaScript' },
+    { name: 'events-script.js', output: 'events-script.min.js', label: 'Events JavaScript' },
+    { name: 'event-script.js', output: 'event-script.min.js', label: 'Event JavaScript' },
     { name: 'bug-reports-script.js', output: 'bug-reports-script.min.js', label: 'Bug Reports JavaScript' },
-    { name: 'merchant-requests-script.js', output: 'merchant-requests-script.min.js', label: 'Merchant Requests JavaScript' }
+    { name: 'merchant-requests-script.js', output: 'merchant-requests-script.min.js', label: 'Merchant Requests JavaScript' },
+    { name: 'gdpr-cookies.js', output: 'gdpr-cookies.min.js', label: 'GDPR Cookies JavaScript' }
   ];
 
   for (const jsFile of jsFiles) {
@@ -203,6 +214,11 @@ function updateHTML() {
       path: 'restaurant.html',
       css: useMinified ? 'restaurant-style.min.css' : 'restaurant-style.css',
       js: useMinified ? 'restaurant-script.min.js' : 'restaurant-script.js'
+    },
+    {
+      path: 'events.html',
+      css: useMinified ? 'events-style.min.css' : 'events-style.css',
+      js: useMinified ? 'events-script.min.js' : 'events-script.js'
     },
     {
       path: 'bug-reports.html',
@@ -260,10 +276,14 @@ function updateHTML() {
       rezervariJs: useMinified ? 'rezervari-script.min.js' : 'rezervari-script.js',
       restaurantCss: useMinified ? 'restaurant-style.min.css' : 'restaurant-style.css',
       restaurantJs: useMinified ? 'restaurant-script.min.js' : 'restaurant-script.js',
+      eventsCss: useMinified ? 'events-style.min.css' : 'events-style.css',
+      eventsJs: useMinified ? 'events-script.min.js' : 'events-script.js',
       bugReportsCss: useMinified ? 'bug-reports-style.min.css' : 'bug-reports-style.css',
       bugReportsJs: useMinified ? 'bug-reports-script.min.js' : 'bug-reports-script.js',
       merchantRequestsCss: useMinified ? 'merchant-requests-style.min.css' : 'merchant-requests-style.css',
-      merchantRequestsJs: useMinified ? 'merchant-requests-script.min.js' : 'merchant-requests-script.js'
+      merchantRequestsJs: useMinified ? 'merchant-requests-script.min.js' : 'merchant-requests-script.js',
+      gdprCookiesCss: useMinified ? 'gdpr-cookies.min.css' : 'gdpr-cookies.css',
+      gdprCookiesJs: useMinified ? 'gdpr-cookies.min.js' : 'gdpr-cookies.js'
     }
   };
   
@@ -276,6 +296,7 @@ function updateHTML() {
     console.log('   - index.html');
     console.log('   - rezervari.html');
     console.log('   - restaurant.html');
+    console.log('   - events.html');
     console.log('   - bug-reports.html');
     console.log('   - merchant-requests.html');
     console.log('   - style.min.css');
@@ -284,10 +305,14 @@ function updateHTML() {
     console.log('   - rezervari-script.min.js');
     console.log('   - restaurant-style.min.css');
     console.log('   - restaurant-script.min.js');
+    console.log('   - events-style.min.css');
+    console.log('   - events-script.min.js');
     console.log('   - bug-reports-style.min.css');
     console.log('   - bug-reports-script.min.js');
     console.log('   - merchant-requests-style.min.css');
     console.log('   - merchant-requests-script.min.js');
+    console.log('   - gdpr-cookies.min.css   🍪 GDPR Cookie System');
+    console.log('   - gdpr-cookies.min.js    🍪 GDPR Cookie System');
     console.log('   - acoomh.png');
     console.log('   - acoomharta.mp4');
     console.log('   - acoomharta_noaudio.mp4  ⭐ CRITICAL FOR SAFARI!');
@@ -306,6 +331,7 @@ function updateHTML() {
     console.log('   - index.html');
     console.log('   - rezervari.html');
     console.log('   - restaurant.html');
+    console.log('   - events.html');
     console.log('   - bug-reports.html');
     console.log('   - merchant-requests.html');
     console.log('   - style.css');
@@ -314,10 +340,14 @@ function updateHTML() {
     console.log('   - rezervari-script.js');
     console.log('   - restaurant-style.css');
     console.log('   - restaurant-script.js');
+    console.log('   - events-style.css');
+    console.log('   - events-script.js');
     console.log('   - bug-reports-style.css');
     console.log('   - bug-reports-script.js');
     console.log('   - merchant-requests-style.css');
     console.log('   - merchant-requests-script.js');
+    console.log('   - gdpr-cookies.css       🍪 GDPR Cookie System');
+    console.log('   - gdpr-cookies.js        🍪 GDPR Cookie System');
     console.log('   - acoomh.png');
     console.log('   - All video files');
   }

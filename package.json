@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "AcoomH Landing Page with automated cache busting",
   "scripts": {
-  "build": "node build.js",
-  "dev": "node build.js --dev",
-  "deploy": "node build.js && echo 'Ready for deployment! Upload all files to your hosting service.'"
+    "build": "node build.js",
+    "dev": "node build.js --dev && npm run server",
+    "server": "node -e \"const express = require('express'); const path = require('path'); const app = express(); app.use(express.static('.')); app.listen(3000, () => console.log('Server running at http://localhost:3000'));\"",
+    "deploy": "node build.js && echo 'Ready for deployment! Upload all files to your hosting service.'"
   },
   "keywords": [
     "landing-page",

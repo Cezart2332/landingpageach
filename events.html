@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
   <!-- CRITICAL: Load CSS first to prevent FOUC -->
-  <link rel="stylesheet" href="rezervari-style.min.css?v=1756304987474" />
+  <link rel="stylesheet" href="events-style.min.css?v=1756304987474" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -33,11 +33,11 @@
     </style>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="AcoomH Rezervări - Caută și rezervă la restaurante, cafenele, puburi și cluburi din orașul tău!" />
-    <meta name="keywords" content="AcoomH, rezervări, restaurante, cafenele, puburi, cluburi, căutare" />
+    <meta name="description" content="AcoomH Evenimente - Caută și rezervă bilete la evenimente, concerte, festivaluri și spectacole din orașul tău!" />
+    <meta name="keywords" content="AcoomH, evenimente, bilete, concerte, festivaluri, spectacole, rezervări" />
     <meta name="author" content="AcoomH Team" />
     
-    <title>AcoomH - Rezervări</title>
+    <title>AcoomH - Evenimente</title>
     <link rel="icon" type="image/png" href="acoomh.png" />
   </head>
   <body class="loading">
@@ -61,7 +61,7 @@
     <!-- Header Section -->
   <section class="header-section">
       <div class="header-content">
-    <h1 class="header-title">Rezervări online</h1>
+    <h1 class="header-title">Evenimente</h1>
       </div>
     </section>
 
@@ -73,7 +73,7 @@
           <input
             type="text"
             class="search-input"
-            placeholder="Caută după nume sau tipul de local"
+            placeholder="Caută după nume sau tipul de eveniment"
             id="searchInput"
             autocomplete="off"
           />
@@ -84,21 +84,25 @@
             <i class="fas fa-th-large"></i>
             Toate
           </button>
-          <button class="filter-btn" data-type="restaurants">
-            <i class="fas fa-utensils"></i>
-            Restaurante
-          </button>
-          <button class="filter-btn" data-type="cafes">
-            <i class="fas fa-coffee"></i>
-            Cafenele
-          </button>
-          <button class="filter-btn" data-type="pubs">
-            <i class="fas fa-beer"></i>
-            Puburi
-          </button>
-          <button class="filter-btn" data-type="clubs">
+          <button class="filter-btn" data-type="concert">
             <i class="fas fa-music"></i>
-            Cluburi
+            Concerte
+          </button>
+          <button class="filter-btn" data-type="festival">
+            <i class="fas fa-star"></i>
+            Festivaluri
+          </button>
+          <button class="filter-btn" data-type="teatru">
+            <i class="fas fa-theater-masks"></i>
+            Teatru
+          </button>
+          <button class="filter-btn" data-type="sport">
+            <i class="fas fa-trophy"></i>
+            Sport
+          </button>
+          <button class="filter-btn" data-type="conferinta">
+            <i class="fas fa-microphone"></i>
+            Conferințe
           </button>
         </div>
       </div>
@@ -108,7 +112,7 @@
     <section class="results-section">
       <div class="loading-state" id="loadingState" aria-live="polite">
         <div class="loading-spinner" aria-hidden="true"></div>
-        <h3>Încărcăm locațiile...</h3>
+        <h3>Încărcăm evenimentele...</h3>
       </div>
 
   <div class="error-state" id="errorState" style="display: none;">
@@ -116,16 +120,16 @@
           <i class="fas fa-exclamation-triangle"></i>
         </div>
         <h3>Eroare la încărcarea datelor</h3>
-        <p id="errorMessage">Nu am putut încărca locațiile disponibile.</p>
-        <button class="retry-button" onclick="loadLocations()">
+        <p id="errorMessage">Nu am putut încărca evenimentele disponibile.</p>
+        <button class="retry-button" onclick="loadEvents()">
           <i class="fas fa-refresh"></i>
           Încearcă din nou
         </button>
       </div>
 
-      <div class="locations-container" id="locationsContainer" style="display: none;">
-        <div class="locations-grid" id="locationsGrid">
-          <!-- Locations will be dynamically inserted here -->
+      <div class="events-container" id="eventsContainer" style="display: none;">
+        <div class="events-grid" id="eventsGrid">
+          <!-- Events will be dynamically inserted here -->
         </div>
       </div>
 
@@ -138,6 +142,6 @@
       </div>
     </section>
 
-  <script src="rezervari-script.min.js?v=1756304987474"></script>
+  <script src="events-script.min.js?v=1756304987474"></script>
   </body>
 </html>

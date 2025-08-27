@@ -36,8 +36,12 @@
     
     <title>AcoomH - Discover Hidden Experiences</title>
     <link rel="icon" type="image/png" href="acoomh.png" />
+    
     <!-- Load stylesheets with cache busting -->
-    <link rel="stylesheet" href="style.min.css?v=1756132641363" />
+    <link rel="stylesheet" href="style.min.css?v=1756304987474" />
+    <!-- GDPR Cookie Management Styles -->
+    <link rel="stylesheet" href="gdpr-cookies.min.css" />
+    
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -288,9 +292,8 @@
           <div class="footer-section">
             <h4>Explore</h4>
             <ul>
-              <li><a href="#events">Events</a></li>
-              <li><a href="#restaurants">Restaurants</a></li>
-             
+              <li><a href="events.html">Evenimente</a></li>
+              <li><a href="rezervari.html">Rezervări</a></li>
             </ul>
           </div>
           <div class="footer-section">
@@ -318,13 +321,16 @@
         <div class="footer-bottom">
           <p>
             &copy; 2025 AcoomH. All rights reserved. |
-            <a href="#privacy">Privacy</a> | <a href="#terms">Terms</a>
+            <a href="#privacy">Privacy</a> | <a href="#terms">Terms</a> | 
+            <a href="javascript:void(0);" onclick="window.acoomhCookies && window.acoomhCookies.showPreferences()">Cookie Preferences</a>
           </p>
         </div>
       </div>
     </footer>
 
+    <!-- GDPR Cookie Management System -->
+    <script src="gdpr-cookies.min.js"></script>
     <!-- Load JavaScript -->
-    <script src="script.min.js?v=1756132641363"></script>
+    <script src="script.min.js?v=1756304987474"></script>
   </body>
 </html>

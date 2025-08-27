@@ -1228,117 +1228,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     async function collectEmail(email) {
+      // Simple client-side storage - backend colleague will replace this
       try {
-        // Try backend API first (for local development)
-        const response = await fetch('/api/collect-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email: email })
+        // Get existing emails from localStorage
+        const existingEmails = JSON.parse(localStorage.getItem('acoomh_emails') || '[]');
+        
+        // Check if email already exists
+        if (existingEmails.includes(email)) {
+          throw new Error('Email already registered');
+        }
+        
+        // Add new email
+        existingEmails.push(email);
+        
+        // Save back to localStorage
+        localStorage.setItem('acoomh_emails', JSON.stringify(existingEmails));
+        
+        // Log for development
+        console.log('Email collected:', email);
+        console.log('All emails:', existingEmails);
+        
+        return Promise.resolve({
+          success: true,
+          message: 'Email collected successfully'
         });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to collect email');
-        }
-        
-        console.log('✅ Email successfully collected via API:', result);
-        return result;
-        
       } catch (error) {
-        console.log('🔄 API not available, using client-side collection');
-        
-        // Client-side collection for deployed static sites
-        try {
-          // Get existing emails from localStorage
-          const existingEmails = JSON.parse(localStorage.getItem('acoomh_emails') || '[]');
-          
-          // Check if email already exists
-          const emailExists = existingEmails.some(entry => 
-            typeof entry === 'string' ? entry === email : entry.email === email
-          );
-          
-          if (emailExists) {
-            throw new Error('Email already registered');
-          }
-          
-          // Create email entry with timestamp
-          const emailEntry = {
-            email: email,
-            submittedAt: new Date().toISOString(),
-            source: 'landing-page-static',
-            userAgent: navigator.userAgent,
-            timestamp: Date.now()
-          };
-          
-          // Add new email
-          existingEmails.push(emailEntry);
-          
-          // Save to localStorage
-          localStorage.setItem('acoomh_emails', JSON.stringify(existingEmails));
-          
-          // Also save to a separate admin-accessible storage
-          const adminEmails = JSON.parse(localStorage.getItem('acoomh_admin_emails') || '[]');
-          adminEmails.push(emailEntry);
-          localStorage.setItem('acoomh_admin_emails', JSON.stringify(adminEmails));
-          
-          // Send email notification to admin (if possible)
-          try {
-            await sendEmailNotification(emailEntry);
-          } catch (notificationError) {
-            console.log('📧 Email notification failed, but email was saved locally');
-          }
-          
-          console.log('✅ Email saved locally:', emailEntry);
-          console.log(`📊 Total emails collected: ${existingEmails.length}`);
-          
-          return { 
-            success: true, 
-            message: 'Email collected successfully',
-            totalEmails: existingEmails.length 
-          };
-          
-        } catch (fallbackError) {
-          console.error('❌ Client-side collection failed:', fallbackError);
-          throw fallbackError;
-        }
+        console.error('Error collecting email:', error);
+        throw error;
       }
-    }
-
-    // Send email notification to admin using a free service
-    async function sendEmailNotification(emailEntry) {
-      // You can integrate with services like:
-      // 1. EmailJS (free tier available)
-      // 2. Formspree
-      // 3. Netlify Forms
-      // 4. Web3Forms
-      
-      // Example with EmailJS (you'll need to set this up)
-      /*
-      const emailjsConfig = {
-        serviceID: 'your_service_id',
-        templateID: 'your_template_id',
-        publicKey: 'your_public_key'
-      };
-      
-      return emailjs.send(
-        emailjsConfig.serviceID,
-        emailjsConfig.templateID,
-        {
-          to_email: 'acoomh381@gmail.com',
-          user_email: emailEntry.email,
-          submitted_at: emailEntry.submittedAt,
-          source: emailEntry.source
-        },
-        emailjsConfig.publicKey
-      );
-      */
-      
-      // For now, just log the attempt
-      console.log('📧 Would send notification for:', emailEntry.email);
-      return Promise.resolve();
     }
 
     // Updated popup functions to use countdown modal

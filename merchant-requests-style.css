@@ -507,6 +507,93 @@ body {
   color: var(--text-muted);
 }
 
+/* Request Status Container */
+.request-status-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Quick Action Buttons */
+.quick-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.3s ease;
+}
+
+.merchant-request-card:hover .quick-actions {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.quick-approve-btn,
+.quick-reject-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+  position: relative;
+}
+
+.quick-approve-btn {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.quick-approve-btn:hover {
+  background: var(--success-color);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.quick-reject-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error-color);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.quick-reject-btn:hover {
+  background: var(--error-color);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Tooltip styles for quick action buttons */
+.quick-approve-btn::after,
+.quick-reject-btn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-darker);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.quick-approve-btn:hover::after,
+.quick-reject-btn:hover::after {
+  opacity: 1;
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;

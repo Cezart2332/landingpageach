@@ -241,7 +241,6 @@ function displayMerchantRequests(requests) {
 function createMerchantRequestCard(request) {
   const card = document.createElement('div');
   card.className = 'merchant-request-card';
-  card.onclick = () => openMerchantModal(request);
   
   const formattedDate = new Date(request.createdAt).toLocaleDateString('ro-RO', {
     day: 'numeric',
@@ -252,6 +251,18 @@ function createMerchantRequestCard(request) {
   const statusClass = request.status;
   const businessTypeIcon = getBusinessTypeIcon(request.businessType);
   
+  // Quick action buttons for pending requests
+  const quickActionsHtml = request.status === 'pending' ? `
+    <div class="quick-actions">
+      <button class="quick-approve-btn" onclick="event.stopPropagation(); quickApproveRequest('${request.id}')" title="Aprobă rapid">
+        <i class="fas fa-check"></i>
+      </button>
+      <button class="quick-reject-btn" onclick="event.stopPropagation(); openMerchantModal(${JSON.stringify(request).replace(/"/g, '&quot;')})" title="Respinge (cu motiv)">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  ` : '';
+  
   card.innerHTML = `
     <div class="request-header">
       <div class="business-info">
@@ -261,10 +272,13 @@ function createMerchantRequestCard(request) {
           ${getBusinessTypeText(request.businessType)}
         </div>
       </div>
-      <div class="request-status ${statusClass}">${getStatusText(request.status)}</div>
+      <div class="request-status-container">
+        <div class="request-status ${statusClass}">${getStatusText(request.status)}</div>
+        ${quickActionsHtml}
+      </div>
     </div>
     
-    <div class="request-details">
+    <div class="request-details" onclick="openMerchantModal(${JSON.stringify(request).replace(/"/g, '&quot;')})">
       <div class="contact-info">
         <div class="contact-item">
           <i class="fas fa-user"></i>
@@ -285,7 +299,7 @@ function createMerchantRequestCard(request) {
       </div>
     </div>
     
-    <div class="request-meta">
+    <div class="request-meta" onclick="openMerchantModal(${JSON.stringify(request).replace(/"/g, '&quot;')})">
       <div class="request-id">#${request.id}</div>
       <div class="request-date">${formattedDate}</div>
     </div>
@@ -294,35 +308,56 @@ function createMerchantRequestCard(request) {
   return card;
 }
 
-function getStatusText(status) {
-  const statusMap = {
-    'pending': 'În Așteptare',
-    'approved': 'Aprobat',
-    'rejected': 'Respins'
-  };
-  return statusMap[status] || status;
-}
-
-function getBusinessTypeText(type) {
-  const typeMap = {
-    'restaurant': 'Restaurant',
-    'cafe': 'Cafenea',
-    'pub': 'Pub',
-    'club': 'Club',
-    'bar': 'Bar'
-  };
-  return typeMap[type] || type;
-}
-
-function getBusinessTypeIcon(type) {
-  const iconMap = {
-    'restaurant': '<i class="fas fa-utensils"></i>',
-    'cafe': '<i class="fas fa-coffee"></i>',
-    'pub': '<i class="fas fa-beer"></i>',
-    'club': '<i class="fas fa-music"></i>',
-    'bar': '<i class="fas fa-cocktail"></i>'
-  };
-  return iconMap[type] || '<i class="fas fa-store"></i>';
+// Quick approve function for direct card actions
+async function quickApproveRequest(requestId) {
+  const request = allMerchantRequests.find(r => r.id === requestId);
+  if (!request || request.status !== 'pending') {
+    showNotification('Această cerere nu poate fi aprobată.', 'error');
+    return;
+  }
+  
+  // Confirm approval
+  if (!confirm(`Ești sigur că vrei să aprobi compania "${request.businessName}"?`)) {
+    return;
+  }
+  
+  try {
+    // Update via API
+    const response = await fetch(`${API_BASE_URL}/companies/${request.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ isActive: true })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // Update local data
+    request.status = 'approved';
+    request.isActive = true;
+    request.approvedAt = new Date().toISOString();
+    request.approvedBy = 'admin@acoomh.ro';
+    
+    // Update the request in the global array
+    const requestIndex = allMerchantRequests.findIndex(r => r.id === request.id);
+    if (requestIndex !== -1) {
+      allMerchantRequests[requestIndex] = { ...request };
+    }
+    
+    // Refresh displays
+    updateStatistics();
+    applyFilters();
+    
+    showNotification(`Compania "${request.businessName}" a fost aprobată cu succes!`, 'success');
+    
+  } catch (error) {
+    console.error('Error approving request:', error);
+    showNotification('Eroare la aprobarea companiei.', 'error');
+  }
 }
 
 // Statistics
@@ -798,3 +833,4 @@ window.closeRejectionModal = closeRejectionModal;
 window.updateRequestStatus = updateRequestStatus;
 window.confirmRejection = confirmRejection;
 window.downloadDocument = downloadDocument;
+window.quickApproveRequest = quickApproveRequest;

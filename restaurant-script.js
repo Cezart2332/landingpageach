@@ -1085,7 +1085,7 @@ window.shareRestaurant = function() {
   }
 };
 
-// View menu function - Enhanced to display actual menu data
+// View menu function - Enhanced to redirect to PDF when available
 window.viewMenu = async function() {
   if (!currentLocation) {
     showPopup(
@@ -1096,89 +1096,14 @@ window.viewMenu = async function() {
     return;
   }
 
-  // Show menu modal
-  showMenuModal();
-  
-  // Load menu data
-  loadMenuData();
-};
-
-// Show menu modal
-function showMenuModal() {
-  const modal = document.getElementById('menuModalOverlay');
-  const restaurantName = getCurrentRestaurant().name;
-  
-  // Update modal title
-  document.getElementById('menuRestaurantName').textContent = `Meniu ${restaurantName}`;
-  
-  // Show modal with animation
-  modal.style.display = 'flex';
-  setTimeout(() => {
-    modal.classList.add('show');
-  }, 10);
-  
-  // Prevent body scroll
-  document.body.style.overflow = 'hidden';
-}
-
-// Close menu modal
-window.closeMenuModal = function() {
-  const modal = document.getElementById('menuModalOverlay');
-  
-  modal.classList.remove('show');
-  setTimeout(() => {
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
-  }, 300);
-};
-
-// Load menu data from backend
-window.loadMenuData = async function() {
-  const menuLoading = document.getElementById('menuLoading');
-  const menuError = document.getElementById('menuError');
-  const menuContent = document.getElementById('menuContent');
-  
-  // Show loading state
-  menuLoading.style.display = 'flex';
-  menuError.style.display = 'none';
-  menuContent.style.display = 'none';
-  
-  try {
-    // Try to fetch menu items from the backend
-    const response = await fetch(`${API_BASE_URL}/locations/${currentLocation.id}/menu-items`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      const menuData = await response.json();
-      console.log('✅ Successfully loaded menu data:', menuData);
-      
-      if (menuData && (Array.isArray(menuData) ? menuData.length > 0 : Object.keys(menuData).length > 0)) {
-        displayMenuData(menuData);
-      } else {
-        displayEmptyMenu();
-      }
-    } else if (response.status === 404) {
-      // Try fallback - fetch PDF menu and show appropriate message
-      tryPdfMenuFallback();
-    } else {
-      throw new Error(`Server error: ${response.status}`);
-    }
-    
-  } catch (error) {
-    console.error('Error loading menu data:', error);
-    
-    // Try PDF fallback as last resort
-    tryPdfMenuFallback();
+  // Check if restaurant has a direct menu URL (PDF)
+  if (currentLocation.menuUrl && currentLocation.menuUrl.trim() !== '') {
+    // Direct redirect to PDF menu
+    window.open(currentLocation.menuUrl, '_blank');
+    return;
   }
-};
 
-// Try PDF menu as fallback
-async function tryPdfMenuFallback() {
+  // Fallback: Try to fetch menu from backend API
   try {
     const response = await fetch(`${API_BASE_URL}/locations/${currentLocation.id}/menu`, {
       method: 'GET',
@@ -1191,312 +1116,31 @@ async function tryPdfMenuFallback() {
       const blob = await response.blob();
       
       if (blob.size > 0) {
-        showPdfMenuOption(blob);
+        const pdfUrl = URL.createObjectURL(blob);
+        window.open(pdfUrl, '_blank');
+        
+        // Clean up after 1 minute
+        setTimeout(() => {
+          URL.revokeObjectURL(pdfUrl);
+        }, 60000);
         return;
       }
     }
   } catch (error) {
-    console.log('PDF menu also not available:', error);
+    console.error('Error loading menu:', error);
   }
-  
-  // Show error if both menu data and PDF failed
-  showMenuError();
-}
 
-// Show PDF menu option
-function showPdfMenuOption(pdfBlob) {
-  const menuLoading = document.getElementById('menuLoading');
-  const menuError = document.getElementById('menuError');
-  const menuContent = document.getElementById('menuContent');
-  
-  menuLoading.style.display = 'none';
-  menuError.style.display = 'none';
-  menuContent.style.display = 'flex';
-  
-  const menuItems = document.getElementById('menuItems');
-  menuItems.innerHTML = `
-    <div class="pdf-menu-container">
-      <div class="pdf-menu-info">
-        <i class="fas fa-file-pdf"></i>
-        <h3>Meniu disponibil în format PDF</h3>
-        <p>Meniul acestui restaurant este disponibil ca document PDF.</p>
-        <button class="btn-download-pdf" onclick="downloadPdfMenu()">
-          <i class="fas fa-download"></i>
-          Descarcă meniul
-        </button>
-        <button class="btn-view-pdf" onclick="viewPdfMenu()">
-          <i class="fas fa-external-link-alt"></i>
-          Vezi în browser
-        </button>
-      </div>
-    </div>
-  `;
-  
-  // Store PDF blob for later use
-  window.currentMenuPdf = pdfBlob;
-  
-  // Hide categories for PDF view
-  document.getElementById('menuCategories').style.display = 'none';
-}
-
-// Download PDF menu
-window.downloadPdfMenu = function() {
-  if (window.currentMenuPdf) {
-    const restaurant = getCurrentRestaurant();
-    const pdfUrl = URL.createObjectURL(window.currentMenuPdf);
-    const downloadLink = document.createElement('a');
-    downloadLink.href = pdfUrl;
-    downloadLink.download = `Meniu-${restaurant.name.replace(/\s+/g, '-')}.pdf`;
-    downloadLink.click();
-    
-    setTimeout(() => {
-      URL.revokeObjectURL(pdfUrl);
-    }, 1000);
-  }
-};
-
-// View PDF menu in browser
-window.viewPdfMenu = function() {
-  if (window.currentMenuPdf) {
-    const pdfUrl = URL.createObjectURL(window.currentMenuPdf);
-    window.open(pdfUrl, '_blank');
-    
-    setTimeout(() => {
-      URL.revokeObjectURL(pdfUrl);
-    }, 60000);
-  }
-};
-
-// Display menu data
-function displayMenuData(menuData) {
-  const menuLoading = document.getElementById('menuLoading');
-  const menuError = document.getElementById('menuError');
-  const menuContent = document.getElementById('menuContent');
-  
-  menuLoading.style.display = 'none';
-  menuError.style.display = 'none';
-  menuContent.style.display = 'flex';
-  
-  // Organize menu data by categories
-  const menuByCategory = organizeMenuByCategory(menuData);
-  
-  // Display categories
-  displayMenuCategories(Object.keys(menuByCategory));
-  
-  // Display menu items
-  displayMenuItems(menuByCategory);
-}
-
-// Organize menu data by category
-function organizeMenuByCategory(menuData) {
-  const organized = {};
-  
-  // Handle both array and object formats
-  const items = Array.isArray(menuData) ? menuData : menuData.items || [];
-  
-  items.forEach(item => {
-    const category = item.category || item.Category || 'Altele';
-    
-    if (!organized[category]) {
-      organized[category] = [];
-    }
-    
-    organized[category].push(item);
-  });
-  
-  return organized;
-}
-
-// Display menu categories
-function displayMenuCategories(categories) {
-  const categoriesContainer = document.getElementById('menuCategories');
-  categoriesContainer.style.display = 'block';
-  categoriesContainer.innerHTML = '';
-  
-  // Category icons mapping
-  const categoryIcons = {
-    'Aperitive': 'fas fa-leaf',
-    'Supe': 'fas fa-bowl-hot',
-    'Ciorbe': 'fas fa-bowl-hot',
-    'Feluri principale': 'fas fa-utensils',
-    'Paste': 'fas fa-wheat-awn',
-    'Pizza': 'fas fa-pizza-slice',
-    'Salate': 'fas fa-seedling',
-    'Deserturi': 'fas fa-ice-cream',
-    'Bauturi': 'fas fa-cocktail',
-    'Cafea': 'fas fa-coffee',
-    'Altele': 'fas fa-ellipsis-h'
-  };
-  
-  categories.forEach((category, index) => {
-    const categoryElement = document.createElement('div');
-    categoryElement.className = `menu-category ${index === 0 ? 'active' : ''}`;
-    categoryElement.innerHTML = `
-      <i class="${getCategoryIcon(category, categoryIcons)}"></i>
-      <span>${category}</span>
-    `;
-    
-    categoryElement.addEventListener('click', () => {
-      // Remove active class from all categories
-      document.querySelectorAll('.menu-category').forEach(cat => {
-        cat.classList.remove('active');
-      });
-      
-      // Add active class to clicked category
-      categoryElement.classList.add('active');
-      
-      // Scroll to category section
-      const categorySection = document.getElementById(`category-${category.replace(/\s+/g, '-')}`);
-      if (categorySection) {
-        categorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-    
-    categoriesContainer.appendChild(categoryElement);
-  });
-}
-
-// Get category icon
-function getCategoryIcon(category, iconMapping) {
-  const normalizedCategory = category.toLowerCase();
-  
-  // Try exact match first
-  for (const [key, icon] of Object.entries(iconMapping)) {
-    if (key.toLowerCase() === normalizedCategory) {
-      return icon;
-    }
-  }
-  
-  // Try partial matches
-  if (normalizedCategory.includes('aperitiv') || normalizedCategory.includes('gustare')) {
-    return iconMapping['Aperitive'];
-  }
-  if (normalizedCategory.includes('sup') || normalizedCategory.includes('ciorb')) {
-    return iconMapping['Supe'];
-  }
-  if (normalizedCategory.includes('principal') || normalizedCategory.includes('carne') || normalizedCategory.includes('pește')) {
-    return iconMapping['Feluri principale'];
-  }
-  if (normalizedCategory.includes('past') || normalizedCategory.includes('spaghetti') || normalizedCategory.includes('penne')) {
-    return iconMapping['Paste'];
-  }
-  if (normalizedCategory.includes('pizza')) {
-    return iconMapping['Pizza'];
-  }
-  if (normalizedCategory.includes('salat') || normalizedCategory.includes('verde')) {
-    return iconMapping['Salate'];
-  }
-  if (normalizedCategory.includes('desert') || normalizedCategory.includes('dulce') || normalizedCategory.includes('tort')) {
-    return iconMapping['Deserturi'];
-  }
-  if (normalizedCategory.includes('bautur') || normalizedCategory.includes('suc') || normalizedCategory.includes('apa')) {
-    return iconMapping['Bauturi'];
-  }
-  if (normalizedCategory.includes('cafea') || normalizedCategory.includes('espresso') || normalizedCategory.includes('cappuccino')) {
-    return iconMapping['Cafea'];
-  }
-  
-  return iconMapping['Altele'];
-}
-
-// Display menu items
-function displayMenuItems(menuByCategory) {
-  const menuItems = document.getElementById('menuItems');
-  menuItems.innerHTML = '';
-  
-  Object.entries(menuByCategory).forEach(([category, items]) => {
-    const sectionElement = document.createElement('div');
-    sectionElement.className = 'menu-section';
-    sectionElement.id = `category-${category.replace(/\s+/g, '-')}`;
-    
-    const categoryIcons = {
-      'Aperitive': 'fas fa-leaf',
-      'Supe': 'fas fa-bowl-hot',
-      'Ciorbe': 'fas fa-bowl-hot',
-      'Feluri principale': 'fas fa-utensils',
-      'Paste': 'fas fa-wheat-awn',
-      'Pizza': 'fas fa-pizza-slice',
-      'Salate': 'fas fa-seedling',
-      'Deserturi': 'fas fa-ice-cream',
-      'Bauturi': 'fas fa-cocktail',
-      'Cafea': 'fas fa-coffee',
-      'Altele': 'fas fa-ellipsis-h'
-    };
-    
-    sectionElement.innerHTML = `
-      <h3 class="menu-section-title">
-        <i class="${getCategoryIcon(category, categoryIcons)}"></i>
-        ${category}
-      </h3>
-      <div class="menu-items-list">
-        ${items.map(item => createMenuItemHTML(item)).join('')}
-      </div>
-    `;
-    
-    menuItems.appendChild(sectionElement);
-  });
-}
-
-// Create menu item HTML
-function createMenuItemHTML(item) {
-  const name = item.name || item.Name || 'Nume nedisponibil';
-  const description = item.description || item.Description || '';
-  const price = item.price || item.Price || null;
-  const ingredients = item.ingredients || item.Ingredients || '';
-  
-  const priceDisplay = price ? `${price} Lei` : 'Preț la cerere';
-  
-  return `
-    <div class="menu-item">
-      <div class="menu-item-header">
-        <h4 class="menu-item-name">${name}</h4>
-        <span class="menu-item-price">${priceDisplay}</span>
-      </div>
-      ${description ? `<p class="menu-item-description">${description}</p>` : ''}
-      ${ingredients ? `<p class="menu-item-ingredients">Ingrediente: ${ingredients}</p>` : ''}
-    </div>
-  `;
-}
-
-// Display empty menu
-function displayEmptyMenu() {
-  const menuLoading = document.getElementById('menuLoading');
-  const menuError = document.getElementById('menuError');
-  const menuContent = document.getElementById('menuContent');
-  
-  menuLoading.style.display = 'none';
-  menuError.style.display = 'none';
-  menuContent.style.display = 'flex';
-  
-  document.getElementById('menuCategories').style.display = 'none';
-  
-  const menuItems = document.getElementById('menuItems');
-  menuItems.innerHTML = `
-    <div class="menu-empty">
-      <i class="fas fa-utensils"></i>
-      <h3>Meniul va fi disponibil în curând</h3>
-      <p>Acest restaurant încă nu și-a încărcat meniul digital. Te rugăm să contactezi restaurantul direct pentru informații despre preparatele disponibile.</p>
-    </div>
-  `;
-}
-
-// Show menu error
-function showMenuError() {
-  const menuLoading = document.getElementById('menuLoading');
-  const menuError = document.getElementById('menuError');
-  const menuContent = document.getElementById('menuContent');
-  
-  menuLoading.style.display = 'none';
-  menuError.style.display = 'flex';
-  menuContent.style.display = 'none';
-  
+  // No menu available - show user-friendly message
   const restaurant = getCurrentRestaurant();
   const phoneDisplay = restaurant.phone !== 'N/A' 
     ? `<strong><a href="tel:${restaurant.phone.replace(/\s/g, '')}" style="color: var(--primary-color);">📞 ${restaurant.phone}</a></strong>`
     : 'restaurant direct';
   
-  document.getElementById('menuErrorMessage').innerHTML = 
-    `Nu am putut încărca meniul pentru ${restaurant.name}. Te rugăm să contactezi ${phoneDisplay} pentru informații despre preparate.`;
+  showPopup(
+    'Meniu indisponibil',
+    `Meniul pentru <strong>${restaurant.name}</strong> nu este disponibil momentan.<br><br>Te rugăm să contactezi ${phoneDisplay} pentru informații despre preparatele disponibile.`,
+    'fas fa-info-circle'
+  );
 };
 
 // Close modal when clicking outside

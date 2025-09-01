@@ -1041,8 +1041,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Countdown Modal Functions
     function createCountdownModal() {
-      // Target date: September 1st, 2025 at 18:00 Romania time (UTC+3)
-      const targetDate = new Date('2025-09-01T18:00:00+03:00').getTime();
+      // Target date: September 3rd, 2025 at 18:00 Romania time (UTC+3)
+      const targetDate = new Date('2025-09-03T18:00:00+03:00').getTime();
       
       const overlay = document.createElement('div');
       overlay.className = 'countdown-modal-overlay';
@@ -1057,7 +1057,7 @@ document.addEventListener("DOMContentLoaded", function () {
         <div class="countdown-modal-content">
           <i class="fas fa-rocket countdown-modal-icon"></i>
           <h3>Se lansează în curând!</h3>
-          <p>AcoomH va fi disponibil pe 1 septembrie la ora 18:00. Lasă-ți email-ul pentru a fi anunțat!</p>
+          <p>AcoomH va fi disponibil pe 3 septembrie la ora 18:00. Lasă-ți email-ul pentru a fi anunțat!</p>
           
           <div class="countdown-display">
             <div class="countdown-item">

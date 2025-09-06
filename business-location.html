@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>AcoomH – Locație</title>
+  <meta name="description" content="Profil locație AcoomH." />
+  <link rel="icon" type="image/png" href="acoomh.png" />
+  <link rel="stylesheet" href="style.min.css?v=INITIAL" />
+  <link rel="stylesheet" href="business-location-style.css?v=1757154673610" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="lp-nav">
+    <div class="inner">
+      <a href="business-dashboard.html" class="lp-brand"><img src="acoomh.png" alt="AcoomH"/>AcoomH</a>
+      <div class="lp-actions">
+        <button class="btn-small" onclick="history.back()"><i class="fas fa-arrow-left"></i> Înapoi</button>
+        <button class="btn-small" onclick="location.href='business-locations.html'"><i class="fas fa-location-dot"></i> Locații</button>
+        <button class="btn-small" onclick="location.href='business-dashboard.html'"><i class="fas fa-gauge"></i> Dashboard</button>
+      </div>
+    </div>
+  </nav>
+  <main class="lp-shell" id="locationRoot">
+    <a href="business-locations.html" class="back-link"><i class="fas fa-chevron-left"></i> Înapoi la Locații</a>
+    <div id="locationContent"></div>
+  </main>
+  <script src="business-location-script.js?v=1757154673610"></script>
+</body>
+</html>

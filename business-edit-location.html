@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>AcoomH – Editează Locație</title>
+  <meta name="description" content="Editează detaliile unei locații." />
+  <link rel="icon" type="image/png" href="acoomh.png" />
+  <link rel="stylesheet" href="style.min.css?v=INITIAL" />
+  <link rel="stylesheet" href="business-edit-location-style.css?v=1757154673610" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="el-nav">
+    <div class="inner">
+      <a href="business-dashboard.html" class="el-brand"><img src="acoomh.png" alt="AcoomH"/>AcoomH</a>
+      <div class="el-actions">
+        <button class="btn-small" onclick="history.back()"><i class="fas fa-arrow-left"></i> Înapoi</button>
+        <button class="btn-small" onclick="location.href='business-locations.html'"><i class="fas fa-location-dot"></i> Locații</button>
+        <button class="btn-small" onclick="location.href='business-dashboard.html'"><i class="fas fa-gauge"></i> Dashboard</button>
+      </div>
+    </div>
+  </nav>
+  <main class="edit-shell" id="editRoot">
+    <h1 class="page-heading">Editează Locație</h1>
+    <form id="editLocationForm" novalidate>
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-store"></i></div><h4>Nume Locație <span class="req-star">*</span></h4></div>
+        <input type="text" id="name" class="text-input" />
+      </div>
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-location-dot"></i></div><h4>Adresa <span class="req-star">*</span></h4></div>
+        <textarea id="address" class="text-area" placeholder="Adresă completă..."></textarea>
+        <div class="coords-row">
+          <input type="text" id="lat" class="coord-input" placeholder="Lat" />
+          <input type="text" id="lng" class="coord-input" placeholder="Lng" />
+          <button type="button" class="mini-btn" id="geoBtn"><i class="fas fa-location-crosshairs"></i> Geocode</button>
+          <button type="button" class="mini-btn" id="gpsBtn"><i class="fas fa-compass"></i> GPS Demo</button>
+        </div>
+        <div id="geoStatus" style="margin-top:10px;font-size:.7rem;font-weight:600;"></div>
+      </div>
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-tags"></i></div><h4>Taguri</h4></div>
+        <input type="text" id="tags" class="text-input" placeholder="pizza, terasa, wifi" />
+        <div class="tags-preview" id="tagsPreview"></div>
+      </div>
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-file-lines"></i></div><h4>Descriere <span class="hint-optional">(opțional)</span></h4></div>
+        <textarea id="description" class="text-area" placeholder="Descrie locația..."></textarea>
+      </div>
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-camera"></i></div><h4>Fotografie <span class="hint-optional">(poți înlocui)</span></h4></div>
+        <div id="photoArea" class="photo-box" data-photo-drop></div>
+      </div>
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-file-pdf"></i></div><h4>Meniu (PDF) <span class="hint-optional">(opțional)</span></h4></div>
+        <div class="menu-box" id="menuBox">
+          <p style="margin:0;font-size:.7rem;color:#64748b;">Încarcă sau înlocuiește meniul existent</p>
+          <button type="button" class="mini-btn" id="menuBtn"><i class="fas fa-upload"></i> Alege PDF</button>
+          <div id="menuStatus" style="margin-top:8px;font-size:.65rem;font-weight:600;"></div>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="toggle-row">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="icon-box"><i class="fas fa-utensils"></i></div>
+            <h4 style="margin:0;">Acceptă Rezervări</h4>
+          </div>
+          <label class="switch"><input type="checkbox" id="reservationsToggle"><span class="slider"></span></label>
+        </div>
+        <p class="toggle-hint">Când e dezactivat, clienții nu pot face rezervări pentru această locație.</p>
+      </div>
+      <button type="submit" id="saveBtn" class="submit-btn"><i class="fas fa-save"></i> Salvează Modificările</button>
+    </form>
+  </main>
+  <script src="business-edit-location-script.js?v=1757154673610"></script>
+</body>
+</html>

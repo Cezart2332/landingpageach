@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>AcoomH – Program Locație</title>
+  <meta name="description" content="Configurează programul unei locații." />
+  <link rel="icon" type="image/png" href="acoomh.png" />
+  <link rel="stylesheet" href="style.min.css?v=INITIAL" />
+  <link rel="stylesheet" href="business-hours-style.css?v=1757154673610" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="hrs-nav">
+    <div class="inner">
+      <a href="business-dashboard.html" class="hrs-brand"><img src="acoomh.png" alt="AcoomH"/>AcoomH</a>
+      <div class="hrs-actions">
+        <button class="btn-small" onclick="history.back()"><i class="fas fa-arrow-left"></i> Înapoi</button>
+        <button class="btn-small" onclick="location.href='business-locations.html'"><i class="fas fa-location-dot"></i> Locații</button>
+        <button class="btn-small" onclick="location.href='business-dashboard.html'"><i class="fas fa-gauge"></i> Dashboard</button>
+      </div>
+    </div>
+  </nav>
+  <main class="hours-shell" id="hoursRoot">
+    <h1 class="page-title">Program Locație</h1>
+    <p class="subtitle" id="locNameSub" style="margin-top:-8px;margin-bottom:38px;">Configurați orele de funcționare</p>
+    <section class="quick-actions" id="quickActions">
+      <h3 class="qa-title"><i class="fas fa-bolt"></i> Acțiuni Rapide</h3>
+      <div class="qa-grid">
+        <button type="button" data-action="nonstop" class="qa-btn"><i class="fas fa-infinity"></i> Non‑stop Toate</button>
+        <button type="button" data-action="openall" class="qa-btn"><i class="fas fa-unlock"></i> Deschis (09‑22)</button>
+        <button type="button" data-action="closeall" class="qa-btn danger"><i class="fas fa-lock"></i> Închide Toate</button>
+        <button type="button" data-action="weekdays" class="qa-btn"><i class="fas fa-briefcase"></i> Doar Zile Lucru</button>
+        <button type="button" data-action="weekend" class="qa-btn"><i class="fas fa-martini-glass"></i> Doar Weekend</button>
+      </div>
+    </section>
+    <section class="days-wrap" id="daysWrap"></section>
+    <div class="save-bar">
+      <button id="saveHoursBtn" class="save-btn" disabled><i class="fas fa-save"></i> <span>Salvează Program</span></button>
+    </div>
+  </main>
+
+  <!-- Time picker modal -->
+  <div class="time-modal" id="timeModal" style="display:none;">
+    <div class="tm-backdrop" data-close></div>
+    <div class="tm-dialog">
+      <div class="tm-head">
+        <strong id="tmTitle">Selectează Ora</strong>
+        <button class="tm-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="tm-list" id="tmList"></div>
+      <div class="tm-actions">
+        <button class="tm-btn" data-close>Anulează</button>
+        <button class="tm-btn primary" id="tmConfirm">Confirmă</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="business-hours-script.js?v=1757154673610"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>AcoomH Business Dashboard</title>
+  <meta name="description" content="Panou de administrare AcoomH pentru gestionarea locațiilor, evenimentelor și meniurilor." />
+  <link rel="icon" type="image/png" href="acoomh.png" />
+  <link rel="stylesheet" href="style.min.css?v=INITIAL" />
+  <link rel="stylesheet" href="business-dashboard-style.css?v=1757154673610" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="dash-nav">
+    <div class="inner">
+      <a href="business.html" class="dash-brand"><img src="acoomh.png" alt="AcoomH"/>AcoomH</a>
+      <div class="dash-actions">
+        <button class="btn-small" onclick="location.href='business.html'"><i class="fas fa-home"></i> Site</button>
+        <button class="btn-small btn-danger" data-logout><i class="fas fa-right-from-bracket"></i> Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dash-container" id="dashboardRoot">
+    <!-- Pending Approval -->
+    <section id="pendingRoot">
+      <h1 class="page-title">Bine ai venit, <span data-company-name></span>!</h1>
+      <p class="subtitle">Contul tău este în curs de verificare</p>
+      <div class="pending-card">
+        <div class="center">
+          <div class="badge-round"><i class="fas fa-hourglass-half"></i></div>
+          <h3>Cont în Așteptare</h3>
+          <p style="color:var(--text-secondary);max-width:620px;margin:0 auto 4px;font-size:.95rem;line-height:1.5;">Contul tău este analizat de echipa noastră. Vei primi notificare când va fi activat.</p>
+        </div>
+        <div class="info-box">
+          <strong style="color:var(--warn);display:block;margin-bottom:8px;">Ce verificăm:</strong>
+          <ul style="margin:0 0 10px 18px;padding:0;font-size:.85rem;line-height:1.5;">
+            <li>Certificatul de înregistrare încărcat</li>
+            <li>Consistența datelor furnizate</li>
+            <li>Categorisirea corectă a locației</li>
+          </ul>
+          <p style="margin:0;font-size:.75rem;color:var(--text-secondary);">Durata medie: 1-2 zile lucrătoare</p>
+          <button class="activate-btn" id="activateSim" type="button">Simulează Activarea (Test)</button>
+        </div>
+      </div>
+      <div class="logout-box">
+        <button class="logout-btn" data-logout><i class="fas fa-right-from-bracket"></i> Deconectare</button>
+      </div>
+    </section>
+
+    <!-- Active Dashboard -->
+    <section id="activeRoot" style="display:none;">
+      <h1 class="page-title">Bine ai revenit, <span data-company-name></span>!</h1>
+      <p class="subtitle">Alege ce vrei să gestionezi astăzi</p>
+      <div class="grid-cards">
+        <div class="manage-card" data-nav="locations">
+          <div class="mc-head">
+            <div class="mc-icon purple"><i class="fas fa-location-dot"></i></div>
+            <div style="flex:1;">
+              <h4 class="mc-title">Gestionează Locații</h4>
+              <p class="mc-desc">Adaugă, editează și configurează locațiile.</p>
+            </div>
+            <div class="chevron"><i class="fas fa-chevron-right"></i></div>
+          </div>
+          <div class="mini-strip">Program • Meniuri • Rezervări <span style="opacity:.4;">Features</span></div>
+        </div>
+        <div class="manage-card" data-nav="events">
+          <div class="mc-head">
+            <div class="mc-icon green"><i class="fas fa-calendar"></i></div>
+            <div style="flex:1;">
+              <h4 class="mc-title">Gestionează Evenimente</h4>
+              <p class="mc-desc">Creează și promovează evenimente speciale.</p>
+            </div>
+            <div class="chevron" style="color:#10b981;"><i class="fas fa-chevron-right"></i></div>
+          </div>
+          <div class="mini-strip green">Creează • Programează • Promovează <span style="opacity:.4;">Features</span></div>
+        </div>
+      </div>
+      <div class="quick-stats">
+        <div class="stat-box">
+          <div class="icon"><i class="fas fa-location-dot" style="color:#7c3aed;"></i></div>
+          <div class="stat-number" id="statLocations">-</div>
+          <div class="stat-label">LOCAȚII ACTIVE</div>
+        </div>
+        <div class="stat-box green">
+          <div class="icon"><i class="fas fa-calendar" style="color:#10b981;"></i></div>
+          <div class="stat-number" id="statEvents">-</div>
+          <div class="stat-label">EVENIMENTE VIITOARE</div>
+        </div>
+      </div>
+      <div class="logout-box">
+        <button class="logout-btn" data-logout><i class="fas fa-right-from-bracket"></i> Deconectare</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="business-dashboard-script.js?v=1757154673610"></script>
+</body>
+</html>

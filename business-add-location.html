@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>AcoomH – Locație Nouă</title>
+  <meta name="description" content="Adaugă o locație nouă în platforma AcoomH." />
+  <link rel="icon" type="image/png" href="acoomh.png" />
+  <link rel="stylesheet" href="style.min.css?v=INITIAL" />
+  <link rel="stylesheet" href="business-add-location-style.css?v=1757154673610" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="al-nav">
+    <div class="inner">
+      <a href="business-dashboard.html" class="al-brand"><img src="acoomh.png" alt="AcoomH"/>AcoomH</a>
+      <div class="al-actions">
+        <button class="btn-small" onclick="location.href='business-locations.html'"><i class="fas fa-location-dot"></i> Locații</button>
+        <button class="btn-small" onclick="location.href='business-dashboard.html'"><i class="fas fa-gauge"></i> Dashboard</button>
+      </div>
+    </div>
+  </nav>
+  <main class="form-shell">
+    <h1 class="page-heading">Locație Nouă</h1>
+    <p class="page-sub">Extinde prezența afacerii tale</p>
+    <form id="addLocationForm" novalidate>
+      <!-- Name -->
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-store"></i></div><h4>Numele Locației <span class="req-star">*</span></h4></div>
+        <input type="text" id="name" class="text-input" placeholder="Ex: Downtown Branch" autocomplete="off" />
+        <div class="error-msg" id="nameError" style="display:none;"></div>
+      </div>
+      <!-- Reservations -->
+      <div class="field-block">
+        <div class="toggle-row">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="icon-box"><i class="fas fa-utensils"></i></div>
+            <h4 style="margin:0;">Acceptă rezervări</h4>
+          </div>
+          <label class="switch"><input type="checkbox" id="reservationsToggle" checked><span class="slider"></span></label>
+        </div>
+        <p class="toggle-hint">Când este dezactivat, clienții nu pot face rezervări pentru această locație.</p>
+      </div>
+      <!-- Address -->
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-location-dot"></i></div><h4>Adresa <span class="req-star">*</span></h4></div>
+        <textarea id="address" class="text-area" placeholder="Introdu adresa completă..."></textarea>
+        <div id="geoStatus"></div>
+      </div>
+      <!-- Phone -->
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-phone"></i></div><h4>Telefon <span class="req-star">*</span></h4></div>
+        <input type="tel" id="phone" class="text-input" placeholder="Ex: 0712345678" />
+      </div>
+      <!-- Category -->
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-briefcase"></i></div><h4>Categorie <span class="req-star">*</span></h4></div>
+        <div class="categories" id="categories"></div>
+      </div>
+      <!-- Tags -->
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-tags"></i></div><h4>Taguri <span class="hint-optional">(opțional)</span></h4></div>
+        <input type="text" id="tags" class="text-input" placeholder="restaurant, delivery, terasa..." />
+        <div class="tags-preview" id="tagsPreview"></div>
+      </div>
+      <!-- Photo -->
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-camera"></i></div><h4>Fotografie Locație <span class="hint-optional">(opțional)</span></h4></div>
+        <div id="photoArea" class="photo-box" data-photo-drop>
+          <i class="fas fa-camera" style="font-size:2rem;color:#a855f7;"></i>
+          <p style="margin:10px 0 4px;font-weight:600;color:#a855f7;">Adaugă o fotografie</p>
+          <p style="margin:0;color:#64748b;font-size:.7rem;">Click sau trage o imagine (16:9 recomandat)</p>
+          <input type="file" id="photoInput" accept="image/*" style="display:none;" />
+        </div>
+      </div>
+      <!-- Description -->
+      <div class="field-block">
+        <div class="field-label-row"><div class="icon-box"><i class="fas fa-file-lines"></i></div><h4>Descriere <span class="hint-optional">(opțional)</span></h4></div>
+        <textarea id="description" class="text-area" placeholder="Descrie atmosfera, specialitățile..." ></textarea>
+      </div>
+      <button type="submit" id="submitBtn" class="submit-btn" disabled><i class="fas fa-plus-circle"></i> Creează Locație</button>
+    </form>
+  </main>
+  <script src="business-add-location-script.js?v=1757154673610"></script>
+</body>
+</html>

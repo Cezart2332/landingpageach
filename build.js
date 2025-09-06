@@ -37,6 +37,17 @@ function checkRequiredFiles() {
     'events.html',
     'bug-reports.html',
     'merchant-requests.html',
+  'business.html',
+  'business-auth.html',
+  'business-dashboard.html',
+  'business-locations.html',
+  'business-add-location.html',
+  'business-location.html',
+  'business-location-hours.html',
+  'business-edit-location.html',
+  'business-reservations.html',
+  'business.html',
+  'business-auth.html',
     'rezervari-style.css',
     'rezervari-script.js',
     'restaurant-style.css',
@@ -130,6 +141,15 @@ function processCSS() {
     { name: 'bug-reports-style.css', output: 'bug-reports-style.min.css', label: 'Bug Reports CSS' },
     { name: 'merchant-requests-style.css', output: 'merchant-requests-style.min.css', label: 'Merchant Requests CSS' },
     { name: 'gdpr-cookies.css', output: 'gdpr-cookies.min.css', label: 'GDPR Cookies CSS' }
+  ,{ name: 'business-style.css', output: 'business-style.min.css', label: 'Business CSS' }
+  ,{ name: 'business-auth-style.css', output: 'business-auth-style.min.css', label: 'Business Auth CSS' }
+  ,{ name: 'business-dashboard-style.css', output: 'business-dashboard-style.min.css', label: 'Business Dashboard CSS' }
+  ,{ name: 'business-locations-style.css', output: 'business-locations-style.min.css', label: 'Business Locations CSS' }
+  ,{ name: 'business-add-location-style.css', output: 'business-add-location-style.min.css', label: 'Business Add Location CSS' }
+  ,{ name: 'business-location-style.css', output: 'business-location-style.min.css', label: 'Business Location CSS' }
+  ,{ name: 'business-hours-style.css', output: 'business-hours-style.min.css', label: 'Business Hours CSS' }
+  ,{ name: 'business-edit-location-style.css', output: 'business-edit-location-style.min.css', label: 'Business Edit Location CSS' }
+  ,{ name: 'business-reservations-style.css', output: 'business-reservations-style.min.css', label: 'Business Reservations CSS' }
   ];
 
   cssFiles.forEach(cssFile => {
@@ -168,6 +188,15 @@ async function processJS() {
     { name: 'bug-reports-script.js', output: 'bug-reports-script.min.js', label: 'Bug Reports JavaScript' },
     { name: 'merchant-requests-script.js', output: 'merchant-requests-script.min.js', label: 'Merchant Requests JavaScript' },
     { name: 'gdpr-cookies.js', output: 'gdpr-cookies.min.js', label: 'GDPR Cookies JavaScript' }
+  ,{ name: 'business-script.js', output: 'business-script.min.js', label: 'Business JavaScript' }
+  ,{ name: 'business-auth-script.js', output: 'business-auth-script.min.js', label: 'Business Auth JavaScript' }
+  ,{ name: 'business-dashboard-script.js', output: 'business-dashboard-script.min.js', label: 'Business Dashboard JavaScript' }
+  ,{ name: 'business-locations-script.js', output: 'business-locations-script.min.js', label: 'Business Locations JavaScript' }
+  ,{ name: 'business-add-location-script.js', output: 'business-add-location-script.min.js', label: 'Business Add Location JavaScript' }
+  ,{ name: 'business-location-script.js', output: 'business-location-script.min.js', label: 'Business Location JavaScript' }
+  ,{ name: 'business-hours-script.js', output: 'business-hours-script.min.js', label: 'Business Hours JavaScript' }
+  ,{ name: 'business-edit-location-script.js', output: 'business-edit-location-script.min.js', label: 'Business Edit Location JavaScript' }
+  ,{ name: 'business-reservations-script.js', output: 'business-reservations-script.min.js', label: 'Business Reservations JavaScript' }
   ];
 
   for (const jsFile of jsFiles) {
@@ -229,6 +258,51 @@ function updateHTML() {
       path: 'merchant-requests.html',
       css: useMinified ? 'merchant-requests-style.min.css' : 'merchant-requests-style.css',
       js: useMinified ? 'merchant-requests-script.min.js' : 'merchant-requests-script.js'
+    },
+    {
+      path: 'business.html',
+      css: useMinified ? 'business-style.min.css' : 'business-style.css',
+      js: useMinified ? 'business-script.min.js' : 'business-script.js'
+    },
+    {
+      path: 'business-auth.html',
+      css: useMinified ? 'business-auth-style.min.css' : 'business-auth-style.css',
+      js: useMinified ? 'business-auth-script.min.js' : 'business-auth-script.js'
+    },
+    {
+      path: 'business-dashboard.html',
+      css: useMinified ? 'business-dashboard-style.min.css' : 'business-dashboard-style.css',
+      js: useMinified ? 'business-dashboard-script.min.js' : 'business-dashboard-script.js'
+    },
+    {
+      path: 'business-locations.html',
+      css: useMinified ? 'business-locations-style.min.css' : 'business-locations-style.css',
+      js: useMinified ? 'business-locations-script.min.js' : 'business-locations-script.js'
+    }
+    ,{
+      path: 'business-add-location.html',
+      css: useMinified ? 'business-add-location-style.min.css' : 'business-add-location-style.css',
+      js: useMinified ? 'business-add-location-script.min.js' : 'business-add-location-script.js'
+    }
+    ,{
+      path: 'business-location.html',
+      css: useMinified ? 'business-location-style.min.css' : 'business-location-style.css',
+      js: useMinified ? 'business-location-script.min.js' : 'business-location-script.js'
+    }
+    ,{
+      path: 'business-location-hours.html',
+      css: useMinified ? 'business-hours-style.min.css' : 'business-hours-style.css',
+      js: useMinified ? 'business-hours-script.min.js' : 'business-hours-script.js'
+    }
+    ,{
+      path: 'business-edit-location.html',
+      css: useMinified ? 'business-edit-location-style.min.css' : 'business-edit-location-style.css',
+      js: useMinified ? 'business-edit-location-script.min.js' : 'business-edit-location-script.js'
+    }
+    ,{
+      path: 'business-reservations.html',
+      css: useMinified ? 'business-reservations-style.min.css' : 'business-reservations-style.css',
+      js: useMinified ? 'business-reservations-script.min.js' : 'business-reservations-script.js'
     }
   ];
   
@@ -282,6 +356,24 @@ function updateHTML() {
       bugReportsJs: useMinified ? 'bug-reports-script.min.js' : 'bug-reports-script.js',
       merchantRequestsCss: useMinified ? 'merchant-requests-style.min.css' : 'merchant-requests-style.css',
       merchantRequestsJs: useMinified ? 'merchant-requests-script.min.js' : 'merchant-requests-script.js',
+  businessCss: useMinified ? 'business-style.min.css' : 'business-style.css',
+  businessJs: useMinified ? 'business-script.min.js' : 'business-script.js',
+  businessAuthCss: useMinified ? 'business-auth-style.min.css' : 'business-auth-style.css',
+  businessAuthJs: useMinified ? 'business-auth-script.min.js' : 'business-auth-script.js',
+  businessDashboardCss: useMinified ? 'business-dashboard-style.min.css' : 'business-dashboard-style.css',
+  businessDashboardJs: useMinified ? 'business-dashboard-script.min.js' : 'business-dashboard-script.js',
+  businessLocationsCss: useMinified ? 'business-locations-style.min.css' : 'business-locations-style.css',
+  businessLocationsJs: useMinified ? 'business-locations-script.min.js' : 'business-locations-script.js',
+  businessAddLocationCss: useMinified ? 'business-add-location-style.min.css' : 'business-add-location-style.css',
+  businessAddLocationJs: useMinified ? 'business-add-location-script.min.js' : 'business-add-location-script.js',
+  businessLocationCss: useMinified ? 'business-location-style.min.css' : 'business-location-style.css',
+  businessLocationJs: useMinified ? 'business-location-script.min.js' : 'business-location-script.js',
+  businessHoursCss: useMinified ? 'business-hours-style.min.css' : 'business-hours-style.css',
+  businessHoursJs: useMinified ? 'business-hours-script.min.js' : 'business-hours-script.js',
+  businessEditLocationCss: useMinified ? 'business-edit-location-style.min.css' : 'business-edit-location-style.css',
+  businessEditLocationJs: useMinified ? 'business-edit-location-script.min.js' : 'business-edit-location-script.js',
+  businessReservationsCss: useMinified ? 'business-reservations-style.min.css' : 'business-reservations-style.css',
+  businessReservationsJs: useMinified ? 'business-reservations-script.min.js' : 'business-reservations-script.js',
       gdprCookiesCss: useMinified ? 'gdpr-cookies.min.css' : 'gdpr-cookies.css',
       gdprCookiesJs: useMinified ? 'gdpr-cookies.min.js' : 'gdpr-cookies.js'
     }

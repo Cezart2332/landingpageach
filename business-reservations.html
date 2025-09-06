@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>AcoomH – Rezervări Locație</title>
+  <meta name="description" content="Gestionează rezervările pentru locația selectată." />
+  <link rel="icon" type="image/png" href="acoomh.png" />
+  <link rel="stylesheet" href="style.min.css?v=INITIAL" />
+  <link rel="stylesheet" href="business-reservations-style.css?v=INITIAL" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="res-nav">
+    <div class="inner">
+      <a href="business-dashboard.html" class="res-brand"><img src="acoomh.png" alt="AcoomH"/>AcoomH</a>
+      <div class="res-actions">
+        <button class="btn-small" onclick="history.back()"><i class="fas fa-arrow-left"></i> Înapoi</button>
+        <button class="btn-small" id="locProfileBtn"><i class="fas fa-location-dot"></i> Profil Locație</button>
+        <button class="btn-small" onclick="location.href='business-locations.html'"><i class="fas fa-map"></i> Locații</button>
+        <button class="btn-small" onclick="location.href='business-dashboard.html'"><i class="fas fa-gauge"></i> Dashboard</button>
+      </div>
+    </div>
+  </nav>
+  <main class="res-shell" id="reservationsRoot">
+    <h1 class="page-title">Rezervări <span class="loc-pill" id="locName"></span></h1>
+    <p class="subtitle" id="pageHint">Gestionează cererile clienților (demo static)</p>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="filter-tabs" id="filterTabs"></div>
+    <div id="reservationsList"></div>
+  </main>
+
+  <!-- Cancel modal -->
+  <div class="cancel-modal" id="cancelModal" style="display:none;">
+    <div class="cm-backdrop" data-close></div>
+    <div class="cm-dialog">
+      <div class="cm-head">
+        <strong><i class="fas fa-ban"></i> Motiv anulare</strong>
+        <button class="cm-close" data-close><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="cm-body">
+        <p class="cm-text">Explică pe scurt motivul anulării (vizibil intern).</p>
+        <textarea id="cancelReason" class="cm-textarea" placeholder="Ex: Clientul a sunat și a anulat..." ></textarea>
+      </div>
+      <div class="cm-actions">
+        <button class="cm-btn" data-close>Anulează</button>
+        <button class="cm-btn danger" id="confirmCancelBtn"><i class="fas fa-check"></i> Confirmă Anulare</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="business-reservations-script.js?v=INITIAL"></script>
+</body>
+</html>

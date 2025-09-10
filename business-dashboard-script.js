@@ -17,7 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-nav="locations"]').forEach(btn => btn.addEventListener('click', () => {
     window.location.href = 'business-locations.html';
   }));
-  document.querySelectorAll('[data-nav="events"]').forEach(btn => btn.addEventListener('click', () => alert('Secțiunea Evenimente (demo)')));
+  // Navigate to the new business events page
+  document.querySelectorAll('[data-nav="events"]').forEach(btn => btn.addEventListener('click', () => {
+    window.location.href = 'business-events.html';
+  }));
   // Logout = redirect simplu
   document.querySelectorAll('[data-logout]').forEach(btn => btn.addEventListener('click', () => {
     if(confirm('Sigur te deconectezi?')) window.location.href = 'business-auth.html';

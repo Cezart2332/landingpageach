@@ -48,7 +48,16 @@ document.addEventListener('DOMContentLoaded', () => {
     imageUploadArea: document.getElementById('imageUploadArea'),
     imagePreview: document.getElementById('imagePreview'),
     previewImg: document.getElementById('previewImg'),
-    removeImage: document.getElementById('removeImage')
+  removeImage: document.getElementById('removeImage'),
+  // Optional/legacy fields (may not exist in simplified modal)
+  eventTags: document.getElementById('eventTags'),
+  tagsPreview: document.getElementById('tagsPreview'),
+  ownLocationRadio: document.getElementById('ownLocationRadio') || document.getElementById('ownLocation'),
+  otherLocationRadio: document.getElementById('otherLocationRadio') || document.getElementById('otherLocation'),
+  ownLocationSelector: document.getElementById('ownLocationSelector'),
+  otherLocationInput: document.getElementById('otherLocationInput'),
+  customLocationName: document.getElementById('customLocationName'),
+  customLocationAddress: document.getElementById('customLocationAddress')
   };
 
   // Helpers to unwrap API payloads and resolve company id
@@ -707,11 +716,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Add event buttons
-    document.getElementById('addEventBtn').addEventListener('click', () => openEventModal());
-    document.getElementById('addFirstEventBtn').addEventListener('click', () => openEventModal());
+  const addEventBtn = document.getElementById('addEventBtn');
+  if (addEventBtn) addEventBtn.addEventListener('click', () => openEventModal());
+  const addFirstEventBtn = document.getElementById('addFirstEventBtn');
+  if (addFirstEventBtn) addFirstEventBtn.addEventListener('click', () => openEventModal());
 
     // Filter tabs
-    elements.filterTabs.addEventListener('click', (e) => {
+  if (elements.filterTabs) elements.filterTabs.addEventListener('click', (e) => {
       const filterBtn = e.target.closest('.filter-btn');
       if (filterBtn) {
         currentFilter = filterBtn.dataset.filter;
@@ -721,13 +732,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Search
-    elements.searchInput.addEventListener('input', (e) => {
+  if (elements.searchInput) elements.searchInput.addEventListener('input', (e) => {
       currentSearchTerm = e.target.value.trim();
       applyFilters();
     });
 
     // Location filter
-    elements.locationFilter.addEventListener('change', (e) => {
+  if (elements.locationFilter) elements.locationFilter.addEventListener('change', (e) => {
       currentLocationFilter = e.target.value;
       applyFilters();
     });
@@ -742,28 +753,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Form submission
-    elements.eventForm.addEventListener('submit', handleEventFormSubmit);
+  if (elements.eventForm) elements.eventForm.addEventListener('submit', handleEventFormSubmit);
 
     // Tags input
-    elements.eventTags.addEventListener('input', handleTagsInput);
-    elements.eventTags.addEventListener('keydown', handleTagsKeydown);
+    if (elements.eventTags) {
+      elements.eventTags.addEventListener('input', handleTagsInput);
+      elements.eventTags.addEventListener('keydown', handleTagsKeydown);
+    }
 
     // Image upload
-    elements.imageUploadArea.addEventListener('click', () => elements.eventImage.click());
-    elements.eventImage.addEventListener('change', handleImageUpload);
-    elements.removeImage.addEventListener('click', hideImagePreview);
+    if (elements.imageUploadArea && elements.eventImage) {
+      elements.imageUploadArea.addEventListener('click', () => elements.eventImage.click());
+    }
+    if (elements.eventImage) {
+      elements.eventImage.addEventListener('change', handleImageUpload);
+    }
+    if (elements.removeImage) {
+      elements.removeImage.addEventListener('click', hideImagePreview);
+    }
 
     // Delete confirmation
-    document.getElementById('confirmDeleteBtn').addEventListener('click', handleDeleteEvent);
+  const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+  if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', handleDeleteEvent);
 
     // Retry button
-    document.getElementById('retryBtn').addEventListener('click', () => {
-      loadBusinessEvents();
-    });
+  const retryBtn = document.getElementById('retryBtn');
+  if (retryBtn) retryBtn.addEventListener('click', () => { loadBusinessEvents(); });
 
     // Location type radio buttons
-    elements.ownLocationRadio.addEventListener('change', handleLocationTypeChange);
-    elements.otherLocationRadio.addEventListener('change', handleLocationTypeChange);
+  if (elements.ownLocationRadio) elements.ownLocationRadio.addEventListener('change', handleLocationTypeChange);
+  if (elements.otherLocationRadio) elements.otherLocationRadio.addEventListener('change', handleLocationTypeChange);
   }
 
   function updateFilterTabs() {
@@ -779,26 +798,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Location Type Management
   function handleLocationTypeChange() {
+    if (!elements.ownLocationRadio || !elements.otherLocationRadio) return; // Optional fields not present
     const isOwnLocation = elements.ownLocationRadio.checked;
     
     if (isOwnLocation) {
-      elements.ownLocationSelector.style.display = 'block';
-      elements.otherLocationInput.style.display = 'none';
+      if (elements.ownLocationSelector) elements.ownLocationSelector.style.display = 'block';
+      if (elements.otherLocationInput) elements.otherLocationInput.style.display = 'none';
       
       // Clear custom location fields
-      elements.customLocationName.value = '';
-      elements.customLocationAddress.value = '';
+  if (elements.customLocationName) elements.customLocationName.value = '';
+  if (elements.customLocationAddress) elements.customLocationAddress.value = '';
       
       // Make custom location fields not required
-      elements.customLocationName.required = false;
-      elements.customLocationAddress.required = false;
+  if (elements.customLocationName) elements.customLocationName.required = false;
+  if (elements.customLocationAddress) elements.customLocationAddress.required = false;
     } else {
-      elements.ownLocationSelector.style.display = 'none';
-      elements.otherLocationInput.style.display = 'block';
+  if (elements.ownLocationSelector) elements.ownLocationSelector.style.display = 'none';
+  if (elements.otherLocationInput) elements.otherLocationInput.style.display = 'block';
       
       // Make custom location required
-      elements.customLocationName.required = true;
-      elements.customLocationAddress.required = true;
+  if (elements.customLocationName) elements.customLocationName.required = true;
+  if (elements.customLocationAddress) elements.customLocationAddress.required = true;
     }
     
     // Clear any existing errors
@@ -806,8 +826,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function clearLocationErrors() {
-    document.getElementById('eventLocationError').style.display = 'none';
-    document.getElementById('customLocationError').style.display = 'none';
+    const el1 = document.getElementById('eventLocationError');
+    if (el1) el1.style.display = 'none';
+    const el2 = document.getElementById('customLocationError');
+    if (el2) el2.style.display = 'none';
   }
 
   // Tags Management
@@ -843,6 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateTagsPreview() {
+    if (!elements.tagsPreview) return;
     elements.tagsPreview.innerHTML = currentTags.map(tag => `
       <span class="tag-chip">
         ${tag}

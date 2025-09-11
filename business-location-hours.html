@@ -7,7 +7,7 @@
   <meta name="description" content="Configurează programul unei locații." />
   <link rel="icon" type="image/png" href="acoomh.png" />
   <link rel="stylesheet" href="style.min.css?v=INITIAL" />
-  <link rel="stylesheet" href="business-hours-style.min.css?v=1757593574915" />
+  <link rel="stylesheet" href="business-hours-style.min.css?v=1757595862783" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
 </head>
@@ -57,6 +57,14 @@
     </div>
   </div>
 
-  <script src="business-hours-script.min.js?v=1757593574915"></script>
+  <script src="secure-api.min.js?v=1757595862783"></script>
+  <script>
+    try {
+      if (!window.SecureApiService || !window.SecureApiService.isAuthenticated()) {
+        window.location.href = 'business-auth.html';
+      }
+    } catch (e) { window.location.href = 'business-auth.html'; }
+  </script>
+  <script src="business-hours-script.min.js?v=1757595862783"></script>
 </body>
 </html>

@@ -150,6 +150,7 @@ function processCSS() {
   ,{ name: 'business-hours-style.css', output: 'business-hours-style.min.css', label: 'Business Hours CSS' }
   ,{ name: 'business-edit-location-style.css', output: 'business-edit-location-style.min.css', label: 'Business Edit Location CSS' }
   ,{ name: 'business-reservations-style.css', output: 'business-reservations-style.min.css', label: 'Business Reservations CSS' }
+  ,{ name: 'business-events-style.css', output: 'business-events-style.min.css', label: 'Business Events CSS' }
   ];
 
   cssFiles.forEach(cssFile => {
@@ -198,6 +199,7 @@ async function processJS() {
   ,{ name: 'business-hours-script.js', output: 'business-hours-script.min.js', label: 'Business Hours JavaScript' }
   ,{ name: 'business-edit-location-script.js', output: 'business-edit-location-script.min.js', label: 'Business Edit Location JavaScript' }
   ,{ name: 'business-reservations-script.js', output: 'business-reservations-script.min.js', label: 'Business Reservations JavaScript' }
+  ,{ name: 'business-events-script.js', output: 'business-events-script.min.js', label: 'Business Events JavaScript' }
   ];
 
   for (const jsFile of jsFiles) {
@@ -274,6 +276,11 @@ function updateHTML() {
       path: 'business-dashboard.html',
       css: useMinified ? 'business-dashboard-style.min.css' : 'business-dashboard-style.css',
       js: useMinified ? 'business-dashboard-script.min.js' : 'business-dashboard-script.js'
+    },
+    {
+      path: 'business-events.html',
+      css: useMinified ? 'business-events-style.min.css' : 'business-events-style.css',
+      js: useMinified ? 'business-events-script.min.js' : 'business-events-script.js'
     },
     {
       path: 'business-locations.html',

@@ -5,6 +5,7 @@ const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 const API_BASE_URL = isLocalDev ? '/api' : 'https://api.acoomh.ro';
 
 let currentEvent = null;
+let currentEventId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
   try {
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Get event ID from URL
     const eventId = getEventId();
+    currentEventId = eventId;
     if (eventId) {
       loadEventDetails(eventId);
     } else {
@@ -174,89 +176,108 @@ window.addEventListener('beforeunload', function() {
 // API Functions
 async function loadEventDetails(eventId) {
   try {
-    const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const event = await response.json();
+    const event = await fetchEventData(eventId);
+    if (!event) throw new Error('Nu s-au primit detalii despre eveniment');
     currentEvent = event;
-
     // Populate the page with event data
     populateEventDetails(event);
-
-    console.log('✅ Successfully loaded event details:', event);
-    
-    // FIXED: Hide loading overlay after everything is loaded
+    // Hide loading overlay after everything is loaded
     setTimeout(() => {
       hideLoadingOverlay();
-      // CRITICAL: Show content only after overlay is hidden
-      setTimeout(() => {
-        document.body.classList.add('loaded');
-      }, 100);
+      setTimeout(() => { document.body.classList.add('loaded'); }, 100);
     }, 500);
-
   } catch (error) {
     console.error('Error loading event details:', error);
     showError(`Nu am putut încărca datele evenimentului. ${error.message}`);
-    hideLoadingOverlay(); // FIXED: Hide loading overlay on error
+    hideLoadingOverlay();
   }
 }
 
-async function reserveTickets(ticketData) {
+// New: fetch event data (id optional: uses currentEventId)
+async function fetchEventData(eventId) {
+  const id = eventId || currentEventId || getEventId();
+  if (!id) { console.warn('No event id found for fetchEventData'); return null; }
   try {
-    // Prepare form data for the API
-    const formData = new FormData();
-    formData.append('customerName', ticketData.customerName);
-    formData.append('customerEmail', ticketData.customerEmail);
-    formData.append('customerPhone', ticketData.customerPhone);
-    formData.append('numberOfTickets', ticketData.numberOfTickets.toString());
-    formData.append('ticketType', ticketData.ticketType);
-    formData.append('eventId', ticketData.eventId.toString());
-    formData.append('specialRequests', ticketData.specialRequests || '');
-    
-    // Add userId if available (for logged-in users)
-    if (ticketData.userId) {
-      formData.append('userId', ticketData.userId.toString());
-    }
-
-    const response = await fetch(`${API_BASE_URL}/tickets/reserve`, {
-      method: 'POST',
-      body: formData
+    const response = await fetch(`${API_BASE_URL}/events/${id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
     });
-    
     if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = 'A apărut o eroare la rezervarea biletelor.';
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.message || errorMessage;
-      } catch {
-        // If not JSON, use the text directly if it's meaningful
-        if (errorText.length < 200) {
-          errorMessage = errorText;
-        }
-      }
-      
-      throw new Error(errorMessage);
+      console.log('Failed to fetch event, status:', response.status);
+      return null;
     }
-    
-    const reservation = await response.json();
-    console.log('✅ Successfully reserved tickets:', reservation);
-    return reservation;
-    
+    const eventData = await response.json();
+    console.log('Event data received:', {
+      id: eventData.id || eventData.Id,
+      title: eventData.title || eventData.name || eventData.Name,
+      hasPhoto: !!(eventData.photo || eventData.Photo || eventData.photoUrl),
+      photoLength: eventData.photo ? (eventData.photo.length || 0) : 0,
+    });
+    return eventData;
   } catch (error) {
-    console.error('Error reserving tickets:', error);
-    throw error;
+    console.error('Error fetching event data:', error);
+    return null;
   }
+}
+
+// New: expose a refresh callback similar to RN onRefresh
+window.refreshEvent = async function() {
+  try {
+    showLoadingOverlay();
+    const data = await fetchEventData();
+    if (data) {
+      currentEvent = data;
+      populateEventDetails(data);
+    }
+  } finally {
+    hideLoadingOverlay();
+  }
+};
+
+// New: delete event with confirmation (uses unauthenticated DELETE like RN snippet)
+window.deleteEvent = function() {
+  const id = currentEventId || getEventId();
+  if (!id) return;
+  const confirmed = confirm('Ești sigur că vrei să ștergi acest eveniment? Această acțiune nu poate fi anulată.');
+  if (!confirmed) return;
+  (async () => {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/events/${id}`, { method: 'DELETE' });
+      if (resp.ok) {
+        alert('Eveniment șters cu succes');
+        // Go back or home
+        if (document.referrer && document.referrer.includes(window.location.origin)) {
+          history.back();
+        } else {
+          window.location.href = 'events.html';
+        }
+      } else {
+        alert('Eroare: nu s-a putut șterge evenimentul');
+      }
+    } catch (e) {
+      console.error('Error deleting event:', e);
+      alert('Eroare: nu s-a putut șterge evenimentul');
+    }
+  })();
+};
+
+// Formatters similar to RN snippet (adapted for ro-RO date)
+function formatDate(dateString) {
+  try {
+    return new Date(dateString).toLocaleDateString('ro-RO', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+  } catch { return dateString || ''; }
+}
+
+function formatTime(timeString) {
+  if (!timeString) return '';
+  const parts = String(timeString).split(':');
+  const hours = parseInt(parts[0], 10);
+  const minutes = parts[1] ?? '00';
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHour = ((hours % 12) || 12).toString();
+  return `${displayHour}:${minutes} ${ampm}`;
 }
 
 // Utility Functions
@@ -282,18 +303,13 @@ function populateEventDetails(event) {
   document.getElementById('eventPrice').textContent = event.Price || event.price || 'Preț la cerere';
   
   // Event date and time
-  if (event.Date || event.date) {
-    const eventDate = new Date(event.Date || event.date);
-    document.getElementById('eventDate').textContent = eventDate.toLocaleDateString('ro-RO', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const rawDate = event.Date || event.date || event.eventDate;
+  const rawTime = event.Time || event.time || event.eventTime;
+  if (rawDate) {
+    document.getElementById('eventDate').textContent = formatDate(rawDate);
   }
-  
-  if (event.Time || event.time) {
-    document.getElementById('eventTime').textContent = event.Time || event.time;
+  if (rawTime) {
+    document.getElementById('eventTime').textContent = formatTime(rawTime);
   }
   
   // Description (use a default if not provided)
@@ -421,45 +437,20 @@ function populateEventDetails(event) {
 
 function populateEventSchedule(event) {
   const scheduleContainer = document.getElementById('eventSchedule');
-  if (!scheduleContainer) {
-    console.warn('Schedule container not found');
-    return;
-  }
-  
+  if (!scheduleContainer) { console.warn('Schedule container not found'); return; }
   scheduleContainer.innerHTML = '';
-  
-  // Create event schedule item
+
   const scheduleItem = document.createElement('div');
   scheduleItem.className = 'schedule-item';
-  
-  const eventDate = event.Date || event.date;
-  const eventTime = event.Time || event.time;
-  
-  let dateText = 'Se anunță data';
-  let timeText = 'Se anunță ora';
-  
-  if (eventDate) {
-    const date = new Date(eventDate);
-    dateText = date.toLocaleDateString('ro-RO', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-  
-  if (eventTime) {
-    timeText = eventTime;
-  }
-  
+  const eventDate = event.Date || event.date || event.eventDate;
+  const eventTime = event.Time || event.time || event.eventTime;
+  const dateText = eventDate ? formatDate(eventDate) : 'Se anunță data';
+  const timeText = eventTime ? formatTime(eventTime) : 'Se anunță ora';
   scheduleItem.innerHTML = `
     <span class="schedule-day">Data evenimentului</span>
     <span class="schedule-hours">${dateText}</span>
   `;
-  
   scheduleContainer.appendChild(scheduleItem);
-  
-  // Add time if different from date
   if (eventTime) {
     const timeItem = document.createElement('div');
     timeItem.className = 'schedule-item';

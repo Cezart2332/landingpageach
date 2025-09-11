@@ -238,6 +238,11 @@ function updateHTML() {
       js: useMinified ? 'script.min.js' : 'script.js'
     },
     {
+      path: 'event.html',
+      css: useMinified ? 'event-style.min.css' : 'event-style.css',
+      js: useMinified ? 'event-script.min.js' : 'event-script.js'
+    },
+    {
       path: 'rezervari.html',
       css: useMinified ? 'rezervari-style.min.css' : 'rezervari-style.css',
       js: useMinified ? 'rezervari-script.min.js' : 'rezervari-script.js'

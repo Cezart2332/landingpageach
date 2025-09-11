@@ -7,7 +7,7 @@
   <meta name="description" content="Gestionează evenimentele pentru locațiile tale în platforma AcoomH." />
   <link rel="icon" type="image/png" href="acoomh.png" />
   <link rel="stylesheet" href="style.min.css?v=INITIAL" />
-  <link rel="stylesheet" href="business-events-style.min.css?v=1757597840888" />
+  <link rel="stylesheet" href="business-events-style.min.css?v=1757602050407" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
@@ -142,60 +142,11 @@
         <!-- Basic Info -->
         <div class="form-section">
           <h4><i class="fas fa-info-circle"></i> Informații de bază</h4>
-          
           <div class="field-group">
-            <label for="eventName">Nume eveniment <span class="required">*</span></label>
+            <label for="eventName">Titlu eveniment <span class="required">*</span></label>
             <input type="text" id="eventName" class="form-input" placeholder="Ex: Concert live jazz" required />
             <div class="field-error" id="eventNameError"></div>
           </div>
-
-          <div class="field-row">
-            <div class="field-group">
-              <label>Locația <span class="required">*</span></label>
-              <div class="location-type-options">
-                <div class="radio-option">
-                  <input type="radio" id="ownLocation" name="locationType" value="own" checked />
-                  <label for="ownLocation">Locația ta</label>
-                </div>
-                <div class="radio-option">
-                  <input type="radio" id="otherLocation" name="locationType" value="other" />
-                  <label for="otherLocation">Altă locație</label>
-                </div>
-              </div>
-              
-              <!-- Own location selector -->
-              <div id="ownLocationSelector" class="location-selector">
-                <!-- Automatic location display will be created dynamically -->
-                <div class="field-error" id="eventLocationError"></div>
-              </div>
-              
-              <!-- Other location input -->
-              <div id="otherLocationInput" class="location-selector" style="display: none;">
-                <input type="text" id="customLocationName" class="form-input" placeholder="Numele locației..." />
-                <input type="text" id="customLocationAddress" class="form-input" placeholder="Adresa completă..." style="margin-top: 8px;" />
-                <div class="field-error" id="customLocationError"></div>
-              </div>
-            </div>
-            <div class="field-group">
-              <label for="eventCategory">Categorie <span class="required">*</span></label>
-              <select id="eventCategory" class="form-select" required>
-                <option value="">Selectează categoria...</option>
-                <option value="concert">Concert</option>
-                <option value="festival">Festival</option>
-                <option value="teatru">Teatru</option>
-                <option value="standup">Stand-up Comedy</option>
-                <option value="workshop">Workshop</option>
-                <option value="degustare">Degustare</option>
-                <option value="karaoke">Karaoke</option>
-                <option value="trivia">Trivia Night</option>
-                <option value="lansare">Lansare produs</option>
-                <option value="networking">Networking</option>
-                <option value="altele">Altele</option>
-              </select>
-              <div class="field-error" id="eventCategoryError"></div>
-            </div>
-          </div>
-
           <div class="field-group">
             <label for="eventDescription">Descriere <span class="required">*</span></label>
             <textarea id="eventDescription" class="form-textarea" placeholder="Descrie evenimentul..." rows="4" required></textarea>
@@ -206,7 +157,6 @@
         <!-- Date & Time -->
         <div class="form-section">
           <h4><i class="fas fa-clock"></i> Programare</h4>
-          
           <div class="field-row">
             <div class="field-group">
               <label for="eventDate">Data evenimentului <span class="required">*</span></label>
@@ -219,59 +169,39 @@
               <div class="field-error" id="eventTimeError"></div>
             </div>
           </div>
-
           <div class="field-row">
             <div class="field-group">
-              <label for="eventDuration">Durata (ore)</label>
-              <input type="number" id="eventDuration" class="form-input" placeholder="Ex: 2" min="0.5" max="24" step="0.5" />
+              <label for="eventEndTime">Ora de sfârșit <span class="required">*</span></label>
+              <input type="time" id="eventEndTime" class="form-input" required />
+              <div class="field-error" id="eventEndTimeError"></div>
             </div>
             <div class="field-group">
-              <label for="eventCapacity">Capacitate maximă</label>
-              <input type="number" id="eventCapacity" class="form-input" placeholder="Ex: 50" min="1" />
+              <label>&nbsp;</label>
+              <div class="checkbox-row" style="margin-top: 8px;">
+                <input type="checkbox" id="isActive" />
+                <label for="isActive">Activ</label>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Pricing -->
+        <!-- Location Info -->
         <div class="form-section">
-          <h4><i class="fas fa-ticket-alt"></i> Bilete și Prețuri</h4>
-          
+          <h4><i class="fas fa-map-marker-alt"></i> Locație</h4>
           <div class="field-group">
-            <div class="checkbox-row">
-              <input type="checkbox" id="hasPaidTickets" />
-              <label for="hasPaidTickets">Eveniment cu plată</label>
-            </div>
+            <label for="eventAddress">Adresă <span class="required">*</span></label>
+            <input type="text" id="eventAddress" class="form-input" placeholder="Strada și numărul" required />
+            <div class="field-error" id="eventAddressError"></div>
           </div>
-
-          <div id="ticketPricing" style="display: none;">
-            <div class="field-row">
-              <div class="field-group">
-                <label for="ticketPrice">Preț bilet (RON) <span class="required">*</span></label>
-                <input type="number" id="ticketPrice" class="form-input" placeholder="Ex: 25" min="0" step="0.01" />
-                <div class="field-error" id="ticketPriceError"></div>
-              </div>
-              <div class="field-group">
-                <label for="earlyBirdPrice">Preț early bird (RON)</label>
-                <input type="number" id="earlyBirdPrice" class="form-input" placeholder="Ex: 20" min="0" step="0.01" />
-              </div>
-            </div>
-            <div class="field-group">
-              <label for="earlyBirdDeadline">Deadline early bird</label>
-              <input type="date" id="earlyBirdDeadline" class="form-input" />
-            </div>
+          <div class="field-group">
+            <label for="eventCity">Oraș</label>
+            <input type="text" id="eventCity" class="form-input" placeholder="Ex: Constanța" />
           </div>
         </div>
 
-        <!-- Additional Info -->
+        <!-- Image -->
         <div class="form-section">
-          <h4><i class="fas fa-cog"></i> Detalii suplimentare</h4>
-          
-          <div class="field-group">
-            <label for="eventTags">Tag-uri (separate prin virgulă)</label>
-            <input type="text" id="eventTags" class="form-input" placeholder="live music, jazz, weekend, outdoor" />
-            <div class="tags-preview" id="tagsPreview"></div>
-          </div>
-
+          <h4><i class="fas fa-image"></i> Imagine</h4>
           <div class="field-group">
             <label for="eventImage">Imagine eveniment</label>
             <div class="file-upload-area" id="imageUploadArea">
@@ -285,19 +215,6 @@
                 <i class="fas fa-times"></i>
               </button>
             </div>
-          </div>
-
-          <div class="field-group">
-            <label for="specialInstructions">Instrucțiuni speciale</label>
-            <textarea id="specialInstructions" class="form-textarea" placeholder="Instrucțiuni pentru participanți, cod vestimentar, etc." rows="3"></textarea>
-          </div>
-
-          <div class="field-group">
-            <div class="checkbox-row">
-              <input type="checkbox" id="isPromoted" />
-              <label for="isPromoted">Promovează în feed-ul principal AcoomH</label>
-            </div>
-            <p class="field-hint">Când e bifat, evenimentul va apărea în secțiunea Evenimente din aplicația principală</p>
           </div>
         </div>
 
@@ -332,7 +249,7 @@
     </div>
   </div>
 
-  <script src="secure-api.min.js?v=1757597840888"></script>
+  <script src="secure-api.min.js?v=1757602050407"></script>
   <script>
     try {
       if (!window.SecureApiService || !window.SecureApiService.isAuthenticated()) {
@@ -340,6 +257,6 @@
       }
     } catch (e) { window.location.href = 'business-auth.html'; }
   </script>
-  <script src="business-events-script.min.js?v=1757597840888"></script>
+  <script src="business-events-script.min.js?v=1757602050407"></script>
 </body>
 </html>

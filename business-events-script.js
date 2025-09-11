@@ -37,33 +37,50 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Form elements
     eventName: document.getElementById('eventName'),
-    ownLocationRadio: document.getElementById('ownLocation'),
-    otherLocationRadio: document.getElementById('otherLocation'),
-    ownLocationSelector: document.getElementById('ownLocationSelector'),
-    otherLocationInput: document.getElementById('otherLocationInput'),
-    customLocationName: document.getElementById('customLocationName'),
-    customLocationAddress: document.getElementById('customLocationAddress'),
-    eventCategory: document.getElementById('eventCategory'),
     eventDescription: document.getElementById('eventDescription'),
     eventDate: document.getElementById('eventDate'),
     eventTime: document.getElementById('eventTime'),
-    eventDuration: document.getElementById('eventDuration'),
-    eventCapacity: document.getElementById('eventCapacity'),
-    hasPaidTickets: document.getElementById('hasPaidTickets'),
-    ticketPrice: document.getElementById('ticketPrice'),
-    earlyBirdPrice: document.getElementById('earlyBirdPrice'),
-    earlyBirdDeadline: document.getElementById('earlyBirdDeadline'),
-    eventTags: document.getElementById('eventTags'),
+    eventEndTime: document.getElementById('eventEndTime'),
+    eventAddress: document.getElementById('eventAddress'),
+    eventCity: document.getElementById('eventCity'),
+    isActive: document.getElementById('isActive'),
     eventImage: document.getElementById('eventImage'),
-    specialInstructions: document.getElementById('specialInstructions'),
-    isPromoted: document.getElementById('isPromoted'),
-    tagsPreview: document.getElementById('tagsPreview'),
     imageUploadArea: document.getElementById('imageUploadArea'),
     imagePreview: document.getElementById('imagePreview'),
     previewImg: document.getElementById('previewImg'),
-    removeImage: document.getElementById('removeImage'),
-    ticketPricing: document.getElementById('ticketPricing')
+    removeImage: document.getElementById('removeImage')
   };
+
+  // Helpers to unwrap API payloads and resolve company id
+  function unwrapList(payload){
+    if (!payload) return [];
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.items)) return payload.items;
+    if (Array.isArray(payload?.events)) return payload.events;
+    return [];
+  }
+
+  async function getActiveCompanyId(){
+    // Try profile first (authenticated)
+    try {
+      if (window.SecureApiService) {
+        const resp = await window.SecureApiService.getProfile();
+        const data = resp && resp.success ? resp.data : resp;
+        const company = data?.company || data;
+        const cid = company?.id || company?.Id;
+        if (cid) return Number(cid);
+      }
+    } catch (e) { /* ignore */ }
+    // Fallback to sessionStorage snapshot
+    try {
+      const cRaw = sessionStorage.getItem('company');
+      if (cRaw) { const c = JSON.parse(cRaw); if (c?.id || c?.Id) return Number(c.id || c.Id); }
+      const uRaw = sessionStorage.getItem('user');
+      if (uRaw) { const u = JSON.parse(uRaw); if (u?.id || u?.Id) return Number(u.id || u.Id); }
+    } catch(e){ console.warn('Failed to read company/user from storage:', e); }
+    return null;
+  }
 
   // Initialize the page
   async function initialize() {
@@ -83,19 +100,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // API Functions
   async function loadUserLocations() {
     try {
+      const companyId = await getActiveCompanyId();
+      if (companyId && window.SecureApiService) {
+        const resp = await window.SecureApiService.get(`/companies/${companyId}/locations`);
+        const list = resp && resp.success ? resp.data : resp;
+        userLocations = Array.isArray(list) ? list : [];
+        populateLocationFilter();
+        console.log('✅ Loaded company locations:', userLocations.length);
+        return;
+      }
+      // Fallback (unauthenticated) to generic endpoint or mock
       const response = await fetch(`${API_BASE_URL}/locations`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
       });
-
       if (response.ok) {
         const locations = await response.json();
         userLocations = Array.isArray(locations) ? locations : locations.data || [];
         populateLocationFilter();
-        console.log('✅ Successfully loaded user locations:', userLocations.length);
+        console.log('✅ Loaded user locations (fallback):', userLocations.length);
       } else {
         console.warn('Could not load user locations, using fallback mock data');
         userLocations = generateMockLocations();
@@ -109,6 +132,136 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function loadBusinessEvents() {
+    showLoadingState();
+    try {
+      const companyId = await getActiveCompanyId();
+      if (companyId && window.SecureApiService) {
+        // Preferred: company-specific endpoint via FormData
+        const fd = new FormData();
+        // Send both keys for compatibility
+        fd.append('id', String(companyId));
+        fd.append('companyId', String(companyId));
+        const resp = await window.SecureApiService.post('/companyevents', fd);
+        let events = resp && resp.success ? resp.data : resp;
+        events = unwrapList(events);
+
+        if (!Array.isArray(events) || events.length === 0) {
+          // Fallback: fetch all and client-filter by companyId
+          const all = await window.SecureApiService.get('/events');
+          let arr = all && all.success ? all.data : all;
+          arr = unwrapList(arr);
+          const filtered = arr.filter(ev => Number(ev.companyId || ev.CompanyId || ev.company?.id) === Number(companyId));
+          allEvents = filtered.map(normalizeEvent);
+          filteredEvents = [...allEvents];
+        } else {
+          allEvents = events.map(normalizeEvent);
+          filteredEvents = [...allEvents];
+        }
+        updateStatistics();
+        displayEvents();
+        hideLoadingState();
+        console.log('✅ Loaded business events:', filteredEvents.length);
+        return;
+      }
+
+      // Unauthenticated fallback (rare)
+      const response = await fetch(`${API_BASE_URL}/events`, { method: 'GET', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  const responseData = await response.json();
+  const events = responseData.data || responseData || [];
+  if (!Array.isArray(events)) throw new Error('API response is not a valid events array');
+  allEvents = events.map(normalizeEvent);
+  filteredEvents = [...allEvents];
+  updateStatistics();
+  displayEvents();
+  hideLoadingState();
+    } catch (error) {
+      console.error('Error loading business events:', error);
+      // Prefer empty state over mock in authenticated flows
+      allEvents = Array.isArray(allEvents) ? allEvents : [];
+      filteredEvents = allEvents;
+      displayEvents();
+      hideLoadingState();
+    }
+  }
+
+  async function createEvent(eventData) {
+    try {
+      const formData = new FormData();
+      formData.append('title', eventData.title);
+      formData.append('description', eventData.description);
+      formData.append('eventDate', eventData.eventDate);
+      formData.append('startTime', eventData.startTime);
+      formData.append('endTime', eventData.endTime);
+      formData.append('address', eventData.address);
+      if (eventData.city) formData.append('city', eventData.city);
+      if (eventData.companyId) formData.append('companyId', String(eventData.companyId));
+      formData.append('isActive', eventData.isActive ? 'true' : 'false');
+      if (eventData.imageFile) formData.append('file', eventData.imageFile);
+
+      // Use SecureApiService for auth
+      if (window.SecureApiService) {
+        const resp = await window.SecureApiService.post('/events', formData);
+        if (!(resp && resp.success)) { throw new Error(resp?.error || 'Failed to create event'); }
+        const newEvent = resp.data || null;
+        console.log('✅ Successfully created event:', newEvent);
+        return newEvent;
+      }
+
+      // Fallback
+      const response = await fetch(`${API_BASE_URL}/events`, { method: 'POST', body: formData });
+      if (!response.ok) { const errorText = await response.text(); throw new Error(errorText || 'Failed to create event'); }
+      const newEvent = await response.json();
+      console.log('✅ Successfully created event (fallback):', newEvent);
+      return newEvent;
+    } catch (error) { console.error('Error creating event:', error); throw error; }
+  }
+
+  async function updateEvent(eventId, eventData) {
+    try {
+      const formData = new FormData();
+      formData.append('title', eventData.title);
+      formData.append('description', eventData.description);
+      formData.append('eventDate', eventData.eventDate);
+      formData.append('startTime', eventData.startTime);
+      formData.append('endTime', eventData.endTime);
+      formData.append('address', eventData.address);
+      if (eventData.city) formData.append('city', eventData.city);
+      if (typeof eventData.isActive === 'boolean') formData.append('isActive', eventData.isActive ? 'true' : 'false');
+      if (eventData.imageFile) formData.append('file', eventData.imageFile);
+
+      if (window.SecureApiService) {
+        const resp = await window.SecureApiService.put(`/events/${eventId}`, formData);
+        if (!(resp && resp.success)) { throw new Error(resp?.error || 'Failed to update event'); }
+        const updatedEvent = resp.data || null;
+        console.log('✅ Successfully updated event:', updatedEvent);
+        return updatedEvent;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, { method: 'PUT', body: formData });
+      if (!response.ok) { const errorText = await response.text(); throw new Error(errorText || 'Failed to update event'); }
+      const updatedEvent = await response.json();
+      console.log('✅ Successfully updated event (fallback):', updatedEvent);
+      return updatedEvent;
+    } catch (error) { console.error('Error updating event:', error); throw error; }
+  }
+
+  async function deleteEvent(eventId) {
+    try {
+      if (window.SecureApiService) {
+        const resp = await window.SecureApiService.delete(`/events/${eventId}`);
+        if (!(resp && resp.success)) throw new Error(resp?.error || `HTTP ${resp?.status}`);
+        console.log('✅ Successfully deleted event:', eventId);
+        return true;
+      }
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      console.log('✅ Successfully deleted event (fallback):', eventId);
+      return true;
+    } catch (error) { console.error('Error deleting event:', error); throw error; }
+  }
+
   // Mock locations generator for demonstration
   function generateMockLocations() {
     return [
@@ -116,191 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { id: 2, name: 'Urban Roast', address: 'Bd. Magheru Nr. 28, București' },
       { id: 3, name: 'Garden Lounge', address: 'Str. Florilor Nr. 42, București' }
     ];
-  }
-
-  async function loadBusinessEvents() {
-    showLoadingState();
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/events`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const responseData = await response.json();
-      const events = responseData.data || responseData || [];
-
-      if (!Array.isArray(events)) {
-        throw new Error('API response is not a valid events array');
-      }
-
-      allEvents = events;
-      filteredEvents = events;
-      
-      displayEvents();
-      hideLoadingState();
-      
-      console.log('✅ Successfully loaded business events:', events.length);
-      
-    } catch (error) {
-      console.error('Error loading business events:', error);
-      
-      // Fallback to mock data for demonstration
-      allEvents = generateMockEvents();
-      filteredEvents = allEvents;
-      displayEvents();
-      hideLoadingState();
-      
-      console.log('🔄 Using mock data for demonstration');
-    }
-  }
-
-  async function createEvent(eventData) {
-    try {
-      const formData = new FormData();
-      
-      // Basic information
-      formData.append('name', eventData.name);
-      formData.append('description', eventData.description);
-      formData.append('category', eventData.category);
-      formData.append('locationId', eventData.locationId.toString());
-      
-      // Date and time
-      formData.append('eventDate', eventData.eventDate);
-      formData.append('eventTime', eventData.eventTime);
-      formData.append('duration', eventData.duration || '2');
-      formData.append('capacity', eventData.capacity || '50');
-      
-      // Pricing
-      formData.append('isPaid', eventData.isPaid ? 'true' : 'false');
-      if (eventData.isPaid) {
-        formData.append('ticketPrice', eventData.ticketPrice.toString());
-        if (eventData.earlyBirdPrice) {
-          formData.append('earlyBirdPrice', eventData.earlyBirdPrice.toString());
-        }
-        if (eventData.earlyBirdDeadline) {
-          formData.append('earlyBirdDeadline', eventData.earlyBirdDeadline);
-        }
-      }
-      
-      // Additional info
-      if (eventData.tags && eventData.tags.length > 0) {
-        formData.append('tags', JSON.stringify(eventData.tags));
-      }
-      if (eventData.specialInstructions) {
-        formData.append('specialInstructions', eventData.specialInstructions);
-      }
-      formData.append('isPromoted', eventData.isPromoted ? 'true' : 'false');
-      
-      // Image
-      if (eventData.imageFile) {
-        formData.append('eventImage', eventData.imageFile);
-      }
-
-      const response = await fetch(`${API_BASE_URL}/events`, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to create event');
-      }
-
-      const newEvent = await response.json();
-      console.log('✅ Successfully created event:', newEvent);
-      return newEvent;
-      
-    } catch (error) {
-      console.error('Error creating event:', error);
-      throw error;
-    }
-  }
-
-  async function updateEvent(eventId, eventData) {
-    try {
-      const formData = new FormData();
-      
-      // Add all the same fields as createEvent
-      formData.append('name', eventData.name);
-      formData.append('description', eventData.description);
-      formData.append('category', eventData.category);
-      formData.append('locationId', eventData.locationId.toString());
-      formData.append('eventDate', eventData.eventDate);
-      formData.append('eventTime', eventData.eventTime);
-      formData.append('duration', eventData.duration || '2');
-      formData.append('capacity', eventData.capacity || '50');
-      formData.append('isPaid', eventData.isPaid ? 'true' : 'false');
-      
-      if (eventData.isPaid) {
-        formData.append('ticketPrice', eventData.ticketPrice.toString());
-        if (eventData.earlyBirdPrice) {
-          formData.append('earlyBirdPrice', eventData.earlyBirdPrice.toString());
-        }
-        if (eventData.earlyBirdDeadline) {
-          formData.append('earlyBirdDeadline', eventData.earlyBirdDeadline);
-        }
-      }
-      
-      if (eventData.tags && eventData.tags.length > 0) {
-        formData.append('tags', JSON.stringify(eventData.tags));
-      }
-      if (eventData.specialInstructions) {
-        formData.append('specialInstructions', eventData.specialInstructions);
-      }
-      formData.append('isPromoted', eventData.isPromoted ? 'true' : 'false');
-      
-      if (eventData.imageFile) {
-        formData.append('eventImage', eventData.imageFile);
-      }
-
-      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
-        method: 'PUT',
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to update event');
-      }
-
-      const updatedEvent = await response.json();
-      console.log('✅ Successfully updated event:', updatedEvent);
-      return updatedEvent;
-      
-    } catch (error) {
-      console.error('Error updating event:', error);
-      throw error;
-    }
-  }
-
-  async function deleteEvent(eventId) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      console.log('✅ Successfully deleted event:', eventId);
-      return true;
-      
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      throw error;
-    }
   }
 
   // Mock data generator for demonstration
@@ -506,6 +474,44 @@ document.addEventListener('DOMContentLoaded', () => {
     return labelMap[status] || 'Viitor';
   }
 
+  // Normalize backend event object to UI shape
+  function normalizeEvent(ev) {
+    if (!ev || typeof ev !== 'object') return {};
+    const id = ev.id || ev.Id || ev.eventId || ev.EventId || ev._id || String(Math.random()).slice(2);
+    const name = ev.name || ev.Name || ev.title || 'Eveniment';
+    const description = ev.description || ev.Description || '';
+    const category = (ev.category || ev.Category || 'altele').toString().toLowerCase();
+    const locationId = ev.locationId || ev.LocationId || ev.location?.id || ev.Location?.Id || null;
+    const locationName = ev.locationName || ev.LocationName || ev.location?.name || ev.Location?.Name || ev.Location || 'Locație necunoscută';
+    const rawDate = ev.eventDate || ev.EventDate || ev.date || ev.Date || '';
+    const rawTime = ev.eventTime || ev.EventTime || ev.time || ev.Time || '';
+    const eventDate = (typeof rawDate === 'string' && rawDate.includes('-')) ? rawDate : (rawDate ? new Date(rawDate).toISOString().slice(0,10) : '');
+    const eventTime = (typeof rawTime === 'string' && rawTime.includes(':')) ? rawTime : (rawTime ? String(rawTime).padStart(4,'0').replace(/(\d{2})(\d{2})/,'$1:$2') : '');
+    const duration = ev.duration || ev.Duration || '';
+    const capacity = ev.capacity || ev.Capacity || '';
+    const isPaid = !!(ev.isPaid || ev.IsPaid || ev.hasPaidTickets || ev.HasPaidTickets);
+    const ticketPrice = ev.ticketPrice || ev.Price || ev.price || 0;
+    const earlyBirdPrice = ev.earlyBirdPrice || ev.EarlyBirdPrice || null;
+    const earlyBirdDeadline = ev.earlyBirdDeadline || ev.EarlyBirdDeadline || null;
+    let tags = [];
+    if (Array.isArray(ev.tags)) tags = ev.tags.map(t=>String(t));
+    else if (typeof ev.tags === 'string') tags = ev.tags.split(',').map(t=>t.trim()).filter(Boolean);
+    const specialInstructions = ev.specialInstructions || '';
+    const isPromoted = !!(ev.isPromoted || ev.IsPromoted);
+    const ticketsSold = ev.ticketsSold || ev.TicketsSold || 0;
+    const imageUrl = ev.imageUrl || ev.photoUrl || ev.PhotoUrl || ev.photo || ev.Photo || '';
+    const status = ev.status || determineEventStatus(eventDate || '', eventTime || '');
+
+    return {
+      id, name, description, category,
+      locationId, locationName,
+      eventDate, eventTime, duration, capacity,
+      isPaid, ticketPrice, earlyBirdPrice, earlyBirdDeadline,
+      tags, specialInstructions, isPromoted, ticketsSold,
+      imageUrl, status
+    };
+  }
+
   function formatEventDateTime(date, time) {
     try {
       const eventDate = new Date(date + 'T' + time);
@@ -619,247 +625,74 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function resetEventForm() {
     elements.eventForm.reset();
-    currentTags = [];
-    updateTagsPreview();
-    hideImagePreview();
-    elements.ticketPricing.style.display = 'none';
-    clearFormErrors();
-    
-    // Set minimum date to today
+    elements.imageUploadArea.style.display = 'block';
+    elements.imagePreview.style.display = 'none';
+    elements.previewImg.src = '';
     const today = new Date().toISOString().split('T')[0];
     elements.eventDate.min = today;
   }
 
   function populateEventForm(event) {
-    elements.eventName.value = event.name || '';
-    elements.eventCategory.value = event.category || '';
+    elements.eventName.value = event.title || event.name || '';
     elements.eventDescription.value = event.description || '';
-    elements.eventDate.value = event.eventDate || '';
-    elements.eventTime.value = event.eventTime || '';
-    elements.eventDuration.value = event.duration || '';
-    elements.eventCapacity.value = event.capacity || '';
-    elements.hasPaidTickets.checked = event.isPaid || false;
-    elements.ticketPrice.value = event.ticketPrice || '';
-    elements.earlyBirdPrice.value = event.earlyBirdPrice || '';
-    elements.earlyBirdDeadline.value = event.earlyBirdDeadline || '';
-    elements.specialInstructions.value = event.specialInstructions || '';
-    elements.isPromoted.checked = event.isPromoted || false;
-    
-    // Handle location selection based on whether it's a user location or custom
-    if (event.locationId && userLocations.find(l => l.id === event.locationId)) {
-      // Event uses one of user's locations - select "Locația ta"
-      elements.ownLocationRadio.checked = true;
-      elements.otherLocationRadio.checked = false;
-      
-      // Set up automatic location display
-      const selectedLocation = userLocations.find(l => l.id === event.locationId);
-      if (selectedLocation) {
-        // Create and show the location display
-        createLocationDisplay(selectedLocation);
-      }
-      
-      // Show/hide appropriate sections
-      elements.ownLocationSelector.style.display = 'block';
-      elements.otherLocationInput.style.display = 'none';
-    } else {
-      // Event uses custom location - select "Altă locație"
-      elements.ownLocationRadio.checked = false;
-      elements.otherLocationRadio.checked = true;
-      
-      // Populate custom location fields
-      elements.customLocationName.value = event.customLocationName || event.locationName || '';
-      elements.customLocationAddress.value = event.customLocationAddress || '';
-      
-      // Show/hide appropriate sections
-      elements.ownLocationSelector.style.display = 'none';
-      elements.otherLocationInput.style.display = 'block';
+    elements.eventDate.value = event.eventDate || event.date || '';
+    elements.eventTime.value = (event.startTime || event.time || '').toString().slice(0,5);
+    elements.eventEndTime.value = (event.endTime || '').toString().slice(0,5);
+    elements.eventAddress.value = event.address || '';
+    elements.eventCity.value = event.city || '';
+    elements.isActive.checked = !!(event.isActive || event.status === 'active');
+    if (event.imageUrl || event.photoUrl) {
+      elements.previewImg.src = event.imageUrl || event.photoUrl;
+      elements.imageUploadArea.style.display = 'none';
+      elements.imagePreview.style.display = 'block';
     }
-    
-    // Handle tags
-    currentTags = event.tags || [];
-    updateTagsPreview();
-    
-    // Handle image
-    if (event.imageUrl) {
-      showImagePreview(event.imageUrl);
-    }
-    
-    // Show/hide ticket pricing
-    toggleTicketPricing();
-  }
-
-  // Helper function to create location display for editing
-  function createLocationDisplay(location) {
-    const ownLocationSelector = elements.ownLocationSelector;
-    
-    // Clear existing content
-    ownLocationSelector.innerHTML = '';
-    
-    // Create the display element
-    const displayElement = document.createElement('div');
-    displayElement.className = 'selected-location-display';
-    displayElement.dataset.locationId = location.id;
-    displayElement.innerHTML = `
-      <div class="location-info">
-        <i class="fas fa-location-dot"></i>
-        <span>${location.name}</span>
-      </div>
-      <div class="location-note">Evenimentul va fi organizat la această locație</div>
-    `;
-    
-    ownLocationSelector.appendChild(displayElement);
   }
 
   function validateEventForm() {
     clearFormErrors();
     const errors = [];
-
-    console.log('🔍 Starting form validation...');
-
-    // Required fields validation
     if (!elements.eventName.value.trim()) {
-      console.log('❌ Event name is missing');
-      showFieldError('eventNameError', 'Numele evenimentului este obligatoriu');
+      showFieldError('eventNameError', 'Titlul este obligatoriu');
       errors.push('name');
-    } else {
-      console.log('✅ Event name is valid:', elements.eventName.value.trim());
     }
-
-    // Location validation based on type
-    const isOwnLocation = elements.ownLocationRadio.checked;
-    console.log('📍 Location type - Own location:', isOwnLocation);
-    
-    if (isOwnLocation) {
-      // For own location, check multiple ways to find a valid location
-      let hasValidLocation = false;
-      
-      // Method 1: Check if we have a location display element
-      const locationDisplay = elements.ownLocationSelector.querySelector('.selected-location-display');
-      if (locationDisplay && locationDisplay.dataset.locationId) {
-        hasValidLocation = true;
-        console.log('✅ Found location display with ID:', locationDisplay.dataset.locationId);
-      }
-      
-      // Method 2: If editing and we have the original event, check its location
-      if (!hasValidLocation && editingEvent && editingEvent.locationId) {
-        const originalLocation = userLocations.find(l => l.id === editingEvent.locationId);
-        if (originalLocation) {
-          hasValidLocation = true;
-          console.log('✅ Using original event location:', editingEvent.locationId);
-        }
-      }
-      
-      // Method 3: If we have only one user location, that's valid
-      if (!hasValidLocation && userLocations.length === 1) {
-        hasValidLocation = true;
-        console.log('✅ Using single user location:', userLocations[0].id);
-      }
-      
-      if (!hasValidLocation) {
-        console.log('❌ No valid location found for own location option');
-        console.log('User locations:', userLocations);
-        console.log('Editing event:', editingEvent);
-        showFieldError('eventLocationError', 'Selectează o locație sau adaugă o locație în secțiunea Locații');
-        errors.push('location');
-      }
-    } else {
-      // Custom location validation
-      if (!elements.customLocationName.value.trim()) {
-        console.log('❌ Custom location name is missing');
-        showFieldError('customLocationError', 'Numele locației este obligatoriu');
-        errors.push('customLocationName');
-      } else {
-        console.log('✅ Custom location name is valid:', elements.customLocationName.value.trim());
-      }
-      
-      if (!elements.customLocationAddress.value.trim()) {
-        console.log('❌ Custom location address is missing');
-        showFieldError('customLocationError', 'Adresa locației este obligatorie');
-        errors.push('customLocationAddress');
-      } else {
-        console.log('✅ Custom location address is valid:', elements.customLocationAddress.value.trim());
-      }
-    }
-
-    if (!elements.eventCategory.value) {
-      console.log('❌ Event category is missing');
-      showFieldError('eventCategoryError', 'Selectează o categorie');
-      errors.push('category');
-    } else {
-      console.log('✅ Event category is valid:', elements.eventCategory.value);
-    }
-
     if (!elements.eventDescription.value.trim()) {
-      console.log('❌ Event description is missing');
       showFieldError('eventDescriptionError', 'Descrierea este obligatorie');
-      errors.push('description');
-    } else {
-      console.log('✅ Event description is valid');
+      errors.push('desc');
     }
-
     if (!elements.eventDate.value) {
-      console.log('❌ Event date is missing');
-      showFieldError('eventDateError', 'Data evenimentului este obligatorie');
+      showFieldError('eventDateError', 'Data este obligatorie');
       errors.push('date');
-    } else {
-      console.log('✅ Event date is valid:', elements.eventDate.value);
     }
-
     if (!elements.eventTime.value) {
-      console.log('❌ Event time is missing');
       showFieldError('eventTimeError', 'Ora de început este obligatorie');
-      errors.push('time');
-    } else {
-      console.log('✅ Event time is valid:', elements.eventTime.value);
+      errors.push('stime');
     }
-
-    // Paid event validation
-    if (elements.hasPaidTickets.checked) {
-      if (!elements.ticketPrice.value || parseFloat(elements.ticketPrice.value) <= 0) {
-        console.log('❌ Ticket price is invalid for paid event');
-        showFieldError('ticketPriceError', 'Prețul biletului este obligatoriu pentru evenimente cu plată');
-        errors.push('ticketPrice');
-      } else {
-        console.log('✅ Ticket price is valid:', elements.ticketPrice.value);
-      }
+    if (!elements.eventEndTime.value) {
+      showFieldError('eventEndTimeError', 'Ora de sfârșit este obligatorie');
+      errors.push('etime');
     }
-
-    // Date validation
-    if (elements.eventDate.value) {
-      const eventDate = new Date(elements.eventDate.value);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (eventDate < today) {
-        console.log('❌ Event date is in the past');
-        showFieldError('eventDateError', 'Data evenimentului nu poate fi în trecut');
-        errors.push('pastDate');
-      }
+    if (!elements.eventAddress.value.trim()) {
+      showFieldError('eventAddressError', 'Adresa este obligatorie');
+      errors.push('addr');
     }
-
-    const isValid = errors.length === 0;
-    console.log('🎯 Validation result:', isValid ? 'PASSED' : 'FAILED');
-    if (!isValid) {
-      console.log('❌ Validation errors:', errors);
-    }
-
-    return isValid;
+    return errors.length === 0;
   }
 
-  function showFieldError(errorId, message) {
-    const errorElement = document.getElementById(errorId);
-    if (errorElement) {
-      errorElement.textContent = message;
-      errorElement.style.display = 'block';
-    }
-  }
-
-  function clearFormErrors() {
-    const errorElements = document.querySelectorAll('.field-error');
-    errorElements.forEach(element => {
-      element.style.display = 'none';
-      element.textContent = '';
-    });
+  // Helper to get active company id
+  async function resolveCompanyId() {
+    try {
+      if (window.SecureApiService) {
+        const r = await window.SecureApiService.getProfile();
+        const d = r && r.success ? r.data : r;
+        const c = d?.company || d;
+        return c?.id || c?.Id || null;
+      }
+    } catch {}
+    try {
+      const cRaw = sessionStorage.getItem('company');
+      if (cRaw) { const c = JSON.parse(cRaw); return c?.id || c?.Id || null; }
+    } catch {}
+    return null;
   }
 
   // Event Handlers
@@ -911,9 +744,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Form submission
     elements.eventForm.addEventListener('submit', handleEventFormSubmit);
 
-    // Paid tickets toggle
-    elements.hasPaidTickets.addEventListener('change', toggleTicketPricing);
-
     // Tags input
     elements.eventTags.addEventListener('input', handleTagsInput);
     elements.eventTags.addEventListener('keydown', handleTagsKeydown);
@@ -945,17 +775,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyFilters() {
     filteredEvents = getFilteredEvents();
     displayEvents();
-  }
-
-  function toggleTicketPricing() {
-    const isChecked = elements.hasPaidTickets.checked;
-    elements.ticketPricing.style.display = isChecked ? 'block' : 'none';
-    
-    if (!isChecked) {
-      elements.ticketPrice.value = '';
-      elements.earlyBirdPrice.value = '';
-      elements.earlyBirdDeadline.value = '';
-    }
   }
 
   // Location Type Management
@@ -1074,99 +893,40 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvare...';
 
-      const isOwnLocation = elements.ownLocationRadio.checked;
-      
-      const eventData = {
-        name: elements.eventName.value.trim(),
+      const companyId = await resolveCompanyId();
+      const payload = {
+        title: elements.eventName.value.trim(),
         description: elements.eventDescription.value.trim(),
-        category: elements.eventCategory.value,
         eventDate: elements.eventDate.value,
-        eventTime: elements.eventTime.value,
-        duration: elements.eventDuration.value || '2',
-        capacity: elements.eventCapacity.value || '50',
-        isPaid: elements.hasPaidTickets.checked,
-        ticketPrice: elements.hasPaidTickets.checked ? parseFloat(elements.ticketPrice.value) : 0,
-        earlyBirdPrice: elements.earlyBirdPrice.value ? parseFloat(elements.earlyBirdPrice.value) : null,
-        earlyBirdDeadline: elements.earlyBirdDeadline.value || null,
-        tags: currentTags,
-        specialInstructions: elements.specialInstructions.value.trim(),
-        isPromoted: elements.isPromoted.checked,
+        startTime: elements.eventTime.value.length === 5 ? elements.eventTime.value + ':00' : elements.eventTime.value,
+        endTime: elements.eventEndTime.value.length === 5 ? elements.eventEndTime.value + ':00' : elements.eventEndTime.value,
+        address: elements.eventAddress.value.trim(),
+        city: elements.eventCity.value.trim(),
+        isActive: !!elements.isActive.checked,
+        companyId,
         imageFile: elements.eventImage.files[0] || null
       };
-
-      // Handle location based on type
-      if (isOwnLocation) {
-        // For own location, check multiple ways to get the location ID
-        let locationId = null;
-        let locationName = '';
-        
-        // Method 1: Check if we have a location display element
-        const locationDisplay = elements.ownLocationSelector.querySelector('.selected-location-display');
-        if (locationDisplay && locationDisplay.dataset.locationId) {
-          locationId = parseInt(locationDisplay.dataset.locationId);
-          locationName = locationDisplay.querySelector('.location-info span')?.textContent || '';
-        }
-        
-        // Method 2: If editing and we have the original event, use its location
-        if (!locationId && editingEvent && editingEvent.locationId) {
-          locationId = editingEvent.locationId;
-          const originalLocation = userLocations.find(l => l.id === editingEvent.locationId);
-          if (originalLocation) {
-            locationName = originalLocation.name || originalLocation.Name || '';
-          }
-        }
-        
-        // Method 3: If we still don't have a location, check if there's only one user location
-        if (!locationId && userLocations.length === 1) {
-          locationId = userLocations[0].id;
-          locationName = userLocations[0].name || userLocations[0].Name || '';
-        }
-        
-        if (!locationId) {
-          throw new Error('Te rugăm să selectezi o locație sau să adaugi o locație în secțiunea Locații');
-        }
-        
-        eventData.locationId = locationId;
-        eventData.locationName = locationName;
-        eventData.isCustomLocation = false;
-        
-        console.log('Using own location:', locationId, locationName);
-      } else {
-        // Custom location
-        eventData.customLocationName = elements.customLocationName.value.trim();
-        eventData.customLocationAddress = elements.customLocationAddress.value.trim();
-        eventData.locationName = eventData.customLocationName;
-        eventData.locationId = null; // No existing location ID for custom locations
-        eventData.isCustomLocation = true;
-        
-        console.log('Using custom location:', eventData.customLocationName);
-      }
-
-      // Determine status based on date
-      eventData.status = determineEventStatus(eventData.eventDate, eventData.eventTime);
-
-      console.log('Event data prepared:', eventData);
 
       let result;
       if (editingEvent) {
         console.log('Updating existing event:', editingEvent.id);
-        result = await updateEvent(editingEvent.id, eventData);
+        result = await updateEvent(editingEvent.id, payload);
         // Update the event in local array
         const eventIndex = allEvents.findIndex(e => e.id === editingEvent.id);
         if (eventIndex !== -1) {
-          allEvents[eventIndex] = { ...allEvents[eventIndex], ...eventData, ...result };
+          allEvents[eventIndex] = { ...allEvents[eventIndex], ...payload, ...result };
         }
         showNotification('Eveniment actualizat cu succes!', 'success');
       } else {
         console.log('Creating new event');
-        result = await createEvent(eventData);
+        result = await createEvent(payload);
         // Add new event to local array
         const newEvent = { 
-          ...eventData, 
+          ...payload, 
           ...result, 
           id: result.id || Date.now(),
           ticketsSold: 0,
-          locationName: eventData.locationName
+          locationName: payload.address
         };
         allEvents.unshift(newEvent);
         showNotification('Eveniment creat cu succes!', 'success');

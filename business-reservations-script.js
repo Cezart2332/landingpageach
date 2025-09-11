@@ -182,18 +182,46 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateStatus(resId, status, reason) {
+    const statusMap = { pending: 'Pending', confirmed: 'Confirmed', completed: 'Completed', canceled: 'Canceled' };
+    const backendStatus = statusMap[status] || 'Pending';
+    const cleanedReason = (reason || '').trim();
+    const jsonPayload = { status: backendStatus };
+    if (cleanedReason) { jsonPayload.reason = cleanedReason; jsonPayload.notes = cleanedReason; }
+    if (status === 'canceled') { jsonPayload.cancellationReason = cleanedReason || 'Anulat de restaurant'; }
+
     try {
-      // Try nested endpoint first
-      let resp = await window.SecureApiService.post(`/locations/${locationId}/reservations/${resId}/status`, { status, reason });
-      if (!(resp && resp.success)) {
-        // Fallback generic endpoint
-        resp = await window.SecureApiService.post(`/reservations/${resId}/status`, { status, reason, locationId });
-      }
+      // 1) Preferred nested endpoint (JSON)
+      let resp = await window.SecureApiService.post(`/locations/${locationId}/reservations/${resId}/status`, jsonPayload);
       if (resp && resp.success) {
-        await loadReservations();
-        render();
-        return;
+        await loadReservations(); render(); return;
       }
+
+      // 2) Fallback global endpoint (JSON)
+      resp = await window.SecureApiService.post(`/reservations/${resId}/status`, { ...jsonPayload, locationId });
+      if (resp && resp.success) {
+        await loadReservations(); render(); return;
+      }
+
+      // 3) Legacy form endpoint (urlencoded) via direct request
+      const formParams = new URLSearchParams();
+      formParams.append('status', backendStatus);
+      if (cleanedReason) { formParams.append('notes', cleanedReason); formParams.append('reason', cleanedReason); }
+      if (status === 'canceled') { formParams.append('cancellationReason', cleanedReason || 'Anulat de restaurant'); }
+      let direct = await window.SecureApiService.makeSecureRequest(`/reservation/${resId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formParams.toString()
+      });
+      if (direct && direct.success) { await loadReservations(); render(); return; }
+
+      // 4) Last resort: POST same legacy endpoint
+      direct = await window.SecureApiService.makeSecureRequest(`/reservation/${resId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formParams.toString()
+      });
+      if (direct && direct.success) { await loadReservations(); render(); return; }
+
       alert('Actualizarea statusului a eșuat');
     } catch (err) {
       console.error('Status update failed', err);
@@ -214,4 +242,4 @@ document.addEventListener('DOMContentLoaded', () => {
   function render() { renderStats(); renderFilters(); renderList(); if (locNameEl) locNameEl.textContent = state.locationName; }
 });
 
-function escapeHtml(str) { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+function escapeHtml(str) { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s])); }

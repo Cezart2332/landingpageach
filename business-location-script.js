@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadHours(locationId) {
     try {
       const resp = await (window.SecureApiService?.get(`/locations/${locationId}/hours`) || {});
-      const list = resp && resp.success ? resp.data : resp;
+      const list = extractHoursList(resp);
       const mapped = Array.isArray(list) ? list.map(mapBackendHour).filter(Boolean) : [];
       // ensure 7 days
       const DAYS = [0,1,2,3,4,5,6];
@@ -195,16 +195,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const hour = parseInt(h, 10) || 0; const ampm = hour >= 12 ? 'PM' : 'AM'; const disp = hour % 12 || 12; return `${disp}:${m ?? '00'} ${ampm}`;
   }
 
+  function extractHoursList(resp) {
+    if (!resp) return [];
+    // Envelope { success, data }
+    if (resp && typeof resp === 'object' && 'success' in resp && 'data' in resp) {
+      const d = resp.data;
+      if (Array.isArray(d)) return d;
+      if (d && Array.isArray(d.items)) return d.items;
+      if (d && Array.isArray(d.hours)) return d.hours;
+      if (d && Array.isArray(d.Hours)) return d.Hours;
+      return [];
+    }
+    // Raw array
+    if (Array.isArray(resp)) return resp;
+    // Raw object with common props
+    if (resp && Array.isArray(resp.items)) return resp.items;
+    if (resp && Array.isArray(resp.hours)) return resp.hours;
+    if (resp && Array.isArray(resp.Hours)) return resp.Hours;
+    return [];
+  }
+
   function mapBackendHour(item) {
     if (!item) return null;
     // Determine day index
     let day = 0;
     if (typeof item.DayOfWeek === 'number') day = item.DayOfWeek;
+    else if (typeof item.dayOfWeek === 'number') day = item.dayOfWeek;
     else if (typeof item.DayOfWeek === 'string') {
       const parsed = parseInt(item.DayOfWeek, 10);
       if (!isNaN(parsed)) day = parsed; else {
         const labels = ['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'];
         const idx = labels.findIndex(x => x.toLowerCase() === item.DayOfWeek.toLowerCase());
+        day = idx >= 0 ? idx : 0;
+      }
+    } else if (typeof item.dayOfWeek === 'string') {
+      const parsed = parseInt(item.dayOfWeek, 10);
+      if (!isNaN(parsed)) day = parsed; else {
+        const labels = ['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'];
+        const idx = labels.findIndex(x => x.toLowerCase() === item.dayOfWeek.toLowerCase());
         day = idx >= 0 ? idx : 0;
       }
     } else if (typeof item.day === 'number') { day = item.day; }

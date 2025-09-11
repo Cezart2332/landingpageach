@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tags = Array.isArray(tagsArr) ? tagsArr : (typeof tagsArr === 'string' ? tagsArr.split(',') : []);
     const tagsHtml = tags.map(t => `<span class="tag">${escapeHtml(String(t).trim())}</span>`).join('');
     // Placeholder photo or existing field
-    const photo = l.photo || l.imageUrl || l.ImageUrl || 'https://picsum.photos/seed/acoomh-loc/600/400';
+    const photo = l.photoUrl || l.photo || l.imageUrl || l.ImageUrl || 'https://picsum.photos/seed/acoomh-loc/600/400';
     return `<div class="location-card" data-view="${id}">
       <div class="card-actions">
         <button class="icon-btn" data-edit="${id}" title="Editează"><i class="fas fa-pen"></i></button>
@@ -192,7 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Fetching locations from:', url);
       const res = await window.SecureApiService.get(url);
       if (res === undefined || res === null) return [];
-      return res;
+      const list = (res && res.success && Array.isArray(res.data)) ? res.data : (Array.isArray(res) ? res : []);
+      return list;
     } catch (err) {
       // If 401, SecureApiService should handle refresh; we surface empty list
       console.error('Error fetching locations:', err);
@@ -202,7 +203,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function safeProfile() {
     try {
-      return await window.SecureApiService.getProfile();
+      const res = await window.SecureApiService.getProfile();
+      // Unwrap common { success, data } shape
+      if (res && typeof res === 'object' && 'success' in res && 'data' in res) {
+        return res.data;
+      }
+      return res;
     } catch (e) {
       console.warn('getProfile failed:', e);
       return null;

@@ -947,20 +947,20 @@ document.addEventListener("DOMContentLoaded", function () {
     // Navigation link scrolling with dynamic mobile detection
     navLinks.forEach((link) => {
       link.addEventListener("click", function (e) {
-        e.preventDefault();
-        const targetId = this.getAttribute("href");
-        const targetSection = document.querySelector(targetId);
-
-        if (targetSection) {
-          const isCurrentlyMobile = detectMobileMode();
-          
-          const sectionIndex = Array.from(sections).indexOf(targetSection);
-          
-          if (sectionIndex !== -1) {
-            if (isCurrentlyMobile) {
-              scrollToSectionMobile(sectionIndex);
-            } else {
-              scrollToSection(sectionIndex);
+        const href = this.getAttribute("href") || '';
+        // Only intercept in-page anchors; allow .html links (e.g., Business) to navigate
+        if (href.startsWith('#')) {
+          e.preventDefault();
+          const targetSection = document.querySelector(href);
+          if (targetSection) {
+            const isCurrentlyMobile = detectMobileMode();
+            const sectionIndex = Array.from(sections).indexOf(targetSection);
+            if (sectionIndex !== -1) {
+              if (isCurrentlyMobile) {
+                scrollToSectionMobile(sectionIndex);
+              } else {
+                scrollToSection(sectionIndex);
+              }
             }
           }
         }
@@ -1258,9 +1258,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
-    // Updated popup functions to use countdown modal
+    // Updated popup functions: use simple Coming Soon, no date
     function showDownloadPopup() {
-      createCountdownModal();
+      createComingSoonModal('Download', 'fas fa-download');
     }
 
     function showEarlyAccessPopup() {
@@ -1268,71 +1268,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function showReservationPopup() {
-      // Similar structure with wrench icon
-      const existingPopups = document.querySelectorAll('.popup-overlay');
-      existingPopups.forEach(popup => popup.remove());
-      
-      const overlay = document.createElement('div');
-      overlay.className = 'popup-overlay';
-      overlay.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background-color: rgba(0, 0, 0, 0.8); z-index: 10000;
-        display: flex; align-items: center; justify-content: center;
-        backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s ease;
-      `;
-
-      const popup = document.createElement('div');
-      popup.className = 'popup-content';
-      popup.style.cssText = `
-        background: linear-gradient(145deg, #1a1a1a, rgba(26, 26, 26, 0.95));
-        border: 1px solid #6b46c1; border-radius: 25px; padding: 40px 30px;
-        text-align: center; max-width: 400px; width: 90%;
-        box-shadow: 0 20px 60px rgba(139, 92, 246, 0.4);
-        transform: scale(0.8) translateY(20px);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      `;
-
-      popup.innerHTML = `
-        <div style="margin-bottom: 25px;">
-          <i class="fas fa-wrench" style="font-size: 3rem; color: #6b46c1; margin-bottom: 20px; display: block;"></i>
-          <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.5rem; font-weight: 600;">Funcționalitate în dezvoltare</h3>
-          <p style="color: #b3b3b3; font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;">Această funcționalitate este încă în dezvoltare</p>
-        </div>
-        <button class="popup-close-btn" style="
-          background: linear-gradient(135deg, #6b46c1, #7c3aed); color: white; border: none;
-          border-radius: 15px; padding: 12px 30px; font-size: 1rem; font-weight: 600;
-          cursor: pointer; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
-        ">
-          <i class="fas fa-check" style="margin-right: 8px;"></i>
-          Înțeles!
-        </button>
-      `;
-
-      function closePopup() {
-        overlay.style.opacity = '0';
-        popup.style.transform = 'scale(0.8) translateY(20px)';
-        setTimeout(() => document.body.removeChild(overlay), 300);
-      }
-
-      popup.querySelector('.popup-close-btn').addEventListener('click', closePopup);
-      overlay.addEventListener('click', (e) => e.target === overlay && closePopup());
-      document.addEventListener('keydown', function escHandler(e) {
-        if (e.key === 'Escape') {
-          closePopup();
-          document.removeEventListener('keydown', escHandler);
-        }
-      });
-
-      overlay.appendChild(popup);
-      document.body.appendChild(overlay);
-      setTimeout(() => {
-        overlay.style.opacity = '1';
-        popup.style.transform = 'scale(1) translateY(0)';
-      }, 10);
+      createComingSoonModal('Rezervări', 'fas fa-calendar-check');
     }
 
     // Coming Soon Modal Functions for unreleased features
-    function createComingSoonModal(featureName, featureIcon) {
+  function createComingSoonModal(featureName, featureIcon) {
       const overlay = document.createElement('div');
       overlay.className = 'coming-soon-modal-overlay';
       overlay.style.cssText = `
@@ -1368,13 +1308,7 @@ document.addEventListener("DOMContentLoaded", function () {
           <p style="color: #d1d5db; font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;">
             Această funcționalitate va fi disponibilă în curând! Lucrăm din greu pentru a vă oferi cea mai bună experiență.
           </p>
-          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); 
-                      border-radius: 15px; padding: 15px; margin: 20px 0;">
-            <p style="color: #fbbf24; font-size: 0.95rem; margin: 0;">
-              <i class="fas fa-clock" style="margin-right: 8px;"></i>
-              Funcționalitatea se lansează pe 1 septembrie 2025
-            </p>
-          </div>
+          <!-- No date shown: simple coming soon message -->
         </div>
         <button class="coming-soon-close-btn" style="
           background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none;

@@ -194,6 +194,7 @@ async function processJS() {
   ,{ name: 'business-locations-script.js', output: 'business-locations-script.min.js', label: 'Business Locations JavaScript' }
   ,{ name: 'business-add-location-script.js', output: 'business-add-location-script.min.js', label: 'Business Add Location JavaScript' }
   ,{ name: 'business-location-script.js', output: 'business-location-script.min.js', label: 'Business Location JavaScript' }
+  ,{ name: 'secure-api.js', output: 'secure-api.min.js', label: 'Secure API JavaScript' }
   ,{ name: 'business-hours-script.js', output: 'business-hours-script.min.js', label: 'Business Hours JavaScript' }
   ,{ name: 'business-edit-location-script.js', output: 'business-edit-location-script.min.js', label: 'Business Edit Location JavaScript' }
   ,{ name: 'business-reservations-script.js', output: 'business-reservations-script.min.js', label: 'Business Reservations JavaScript' }
@@ -324,6 +325,11 @@ function updateHTML() {
         new RegExp(`${jsBase}(\\.min)?\\.js(\\?v=[^"]+)?`, 'g'),
         `${htmlFile.js}?v=${timestamp}`
       );
+      // Also update secure-api script if present
+      htmlContent = htmlContent.replace(
+        new RegExp(`secure-api(\\.min)?\\.js(\\?v=[^"\\']+)?`, 'g'),
+        `${useMinified ? 'secure-api.min.js' : 'secure-api.js'}?v=${timestamp}`
+      );
       
       fs.writeFileSync(htmlPath, htmlContent);
     }
@@ -368,6 +374,7 @@ function updateHTML() {
   businessAddLocationJs: useMinified ? 'business-add-location-script.min.js' : 'business-add-location-script.js',
   businessLocationCss: useMinified ? 'business-location-style.min.css' : 'business-location-style.css',
   businessLocationJs: useMinified ? 'business-location-script.min.js' : 'business-location-script.js',
+  secureApiJs: useMinified ? 'secure-api.min.js' : 'secure-api.js',
   businessHoursCss: useMinified ? 'business-hours-style.min.css' : 'business-hours-style.css',
   businessHoursJs: useMinified ? 'business-hours-script.min.js' : 'business-hours-script.js',
   businessEditLocationCss: useMinified ? 'business-edit-location-style.min.css' : 'business-edit-location-style.css',

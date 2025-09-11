@@ -1,5 +1,6 @@
 // Business Auth Script: handles tab switching, validation, password strength & mock submission
 document.addEventListener('DOMContentLoaded', () => {
+  // Uses global SecureApiService loaded from secure-api.js
   const tabButtons = document.querySelectorAll('.tab-btn');
   const forms = document.querySelectorAll('.form-view');
   const passwordInput = document.getElementById('signupPassword');
@@ -92,7 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
     successBox.textContent = msg; successBox.style.display='block'; errorBox.style.display='none';
   }
 
-  signupForm.addEventListener('submit', e => {
+  // Requests are handled by SecureApiService (timeouts & refresh)
+
+  // Clear errors on input
+  document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', ()=>{ errorBox.style.display='none'; }));
+
+  signupForm.addEventListener('submit', async e => {
     e.preventDefault();
     const nameEl = document.getElementById('companyName');
     const emailEl = document.getElementById('signupEmail');
@@ -102,7 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const category = categoryEl ? categoryEl.value : '';
     const pwd = passwordInput.value.trim();
     const confirmPwd = confirmInput.value.trim();
-    if(!name || !email || !category || !pwd || !confirmPwd || !fileInput.files?.length){
+    const cert = fileInput && fileInput.files && fileInput.files[0];
+
+    if(!name || !email || !category || !pwd || !confirmPwd || !cert){
       showError('Completează toate câmpurile și încarcă certificatul.');
       return;
     }
@@ -110,33 +118,61 @@ document.addEventListener('DOMContentLoaded', () => {
       showError('Parolele nu se potrivesc.');
       return;
     }
+    if(pwd.length < 8){
+      showError('Parola trebuie să aibă cel puțin 8 caractere.');
+      return;
+    }
     if(evaluatePassword(pwd) < 3){
       showError('Parola este prea slabă.');
       return;
     }
-    // Build FormData similar cu aplicația mobilă
-    const fd = new FormData();
-    fd.append('Name', name);
-    fd.append('Email', email);
-    fd.append('Password', pwd);
-    fd.append('Category', category);
-    fd.append('IsActive','0');
-    fd.append('Certificate', fileInput.files[0]);
-    // Placeholder request (adjust backend endpoint când disponibil)
-  // Simplu: doar redirecționare (fără localStorage) conform cerinței
-  showSuccess('Înregistrare reușită! Redirecționăm...');
-  setTimeout(()=> { window.location.href='business-dashboard.html'; }, 600);
+
+    const submitBtn = signupForm.querySelector('.submit-btn');
+    const prevHtml = submitBtn.innerHTML; submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Trimitere...';
+
+    try{
+      const fd = new FormData();
+      fd.append('Name', name);
+      fd.append('Email', email);
+      fd.append('Password', pwd);
+      fd.append('Category', category);
+      fd.append('IsActive','0');
+      fd.append('Certificate', cert);
+
+  const resp = await (window.SecureApiService ? window.SecureApiService.registerWithFile(fd) : Promise.resolve({ success:false, status:0, error:'Secure API indisponibil' }));
+  if(!resp.success){ showError(resp.error || `Înregistrarea a eșuat (cod ${resp.status}).`); return; }
+      showSuccess('Înregistrare reușită! Redirecționăm...');
+      setTimeout(()=> { window.location.href='business-dashboard.html'; }, 900);
+    } catch(err){
+  showError('Eroare de rețea. Încearcă din nou.');
+    } finally {
+      submitBtn.disabled = false; submitBtn.innerHTML = prevHtml;
+    }
   });
 
-  loginForm.addEventListener('submit', e => {
+  loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     const loginEmailEl = document.getElementById('loginEmail');
     const loginPwdEl = document.getElementById('loginPassword');
-    const email = loginEmailEl ? loginEmailEl.value.trim() : '';
+    const username = loginEmailEl ? loginEmailEl.value.trim() : '';
     const pwd = loginPwdEl ? loginPwdEl.value.trim() : '';
-    if(!email || !pwd){ showError('Introdu email și parolă.'); return; }
-  // Doar redirect fără persistență
-  showSuccess('Autentificat! Redirecționăm...');
-  setTimeout(()=> { window.location.href='business-dashboard.html'; }, 500);
+    if(!username){ showError('Te rog să introduci email-ul sau username-ul.'); return; }
+    if(!pwd){ showError('Te rog să introduci parola.'); return; }
+    if(pwd.length < 6){ showError('Parola trebuie să conțină cel puțin 6 caractere.'); return; }
+
+    const btn = loginForm.querySelector('.submit-btn');
+    const prev = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Autentificare...';
+
+    try{
+  const res = await (window.SecureApiService ? window.SecureApiService.login({ username, password: pwd }) : Promise.resolve({ success:false, status:0, error:'Secure API indisponibil' }));
+  if(res.status === 401 || (!res.success && res.status === 401)){ showError('Email sau parolă incorectă. Verifică datele.'); return; }
+  if(!res.success){ showError(res.error || `Eroare la autentificare (cod ${res.status}).`); return; }
+      showSuccess('Autentificat! Redirecționăm...');
+      setTimeout(()=> { window.location.href='business-dashboard.html'; }, 700);
+    } catch(err){
+  showError('Eroare de rețea. Încearcă din nou.');
+    } finally {
+      btn.disabled = false; btn.innerHTML = prev;
+    }
   });
 });

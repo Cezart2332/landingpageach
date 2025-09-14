@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     imagePreview: document.getElementById('imagePreview'),
     previewImg: document.getElementById('previewImg'),
   removeImage: document.getElementById('removeImage'),
-  // Optional/legacy fields (may not exist in simplified modal)
+  // Optional/legacy fields
   eventTags: document.getElementById('eventTags'),
   tagsPreview: document.getElementById('tagsPreview'),
   ownLocationRadio: document.getElementById('ownLocationRadio') || document.getElementById('ownLocation'),
@@ -493,7 +493,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const locationId = ev.locationId || ev.LocationId || ev.location?.id || ev.Location?.Id || null;
     const locationName = ev.locationName || ev.LocationName || ev.location?.name || ev.Location?.Name || ev.Location || 'Locație necunoscută';
     const rawDate = ev.eventDate || ev.EventDate || ev.date || ev.Date || '';
-    const rawTime = ev.eventTime || ev.EventTime || ev.time || ev.Time || '';
+    // IMPORTANT: accept startTime as a source for event time
+    const rawTime = ev.eventTime || ev.EventTime || ev.time || ev.Time || ev.startTime || ev.StartTime || '';
     const eventDate = (typeof rawDate === 'string' && rawDate.includes('-')) ? rawDate : (rawDate ? new Date(rawDate).toISOString().slice(0,10) : '');
     const eventTime = (typeof rawTime === 'string' && rawTime.includes(':')) ? rawTime : (rawTime ? String(rawTime).padStart(4,'0').replace(/(\d{2})(\d{2})/,'$1:$2') : '');
     const duration = ev.duration || ev.Duration || '';
@@ -614,43 +615,51 @@ document.addEventListener('DOMContentLoaded', () => {
     editingEvent = event;
     
     if (event) {
-      elements.modalTitle.textContent = 'Editează Eveniment';
+      if (elements.modalTitle) elements.modalTitle.textContent = 'Editează Eveniment';
       populateEventForm(event);
     } else {
-      elements.modalTitle.textContent = 'Adaugă Eveniment';
+      if (elements.modalTitle) elements.modalTitle.textContent = 'Adaugă Eveniment';
       resetEventForm();
     }
     
-    elements.eventModal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    if (elements.eventModal) {
+      elements.eventModal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    } else {
+      console.warn('Event modal element not found (id="eventModal")');
+    }
   }
 
   function closeEventModal() {
-    elements.eventModal.style.display = 'none';
+    if (elements.eventModal) elements.eventModal.style.display = 'none';
     document.body.style.overflow = 'auto';
     resetEventForm();
     editingEvent = null;
   }
 
   function resetEventForm() {
+    if (!elements.eventForm) return;
     elements.eventForm.reset();
-    elements.imageUploadArea.style.display = 'block';
-    elements.imagePreview.style.display = 'none';
-    elements.previewImg.src = '';
+    if (elements.imageUploadArea) elements.imageUploadArea.style.display = 'block';
+    if (elements.imagePreview) elements.imagePreview.style.display = 'none';
+    if (elements.previewImg) elements.previewImg.src = '';
     const today = new Date().toISOString().split('T')[0];
-    elements.eventDate.min = today;
+    if (elements.eventDate) elements.eventDate.min = today;
   }
 
   function populateEventForm(event) {
-    elements.eventName.value = event.title || event.name || '';
-    elements.eventDescription.value = event.description || '';
-    elements.eventDate.value = event.eventDate || event.date || '';
-    elements.eventTime.value = (event.startTime || event.time || '').toString().slice(0,5);
-    elements.eventEndTime.value = (event.endTime || '').toString().slice(0,5);
-    elements.eventAddress.value = event.address || '';
-    elements.eventCity.value = event.city || '';
-    elements.isActive.checked = !!(event.isActive || event.status === 'active');
-    if (event.imageUrl || event.photoUrl) {
+    if (elements.eventName) elements.eventName.value = event.title || event.name || '';
+    if (elements.eventDescription) elements.eventDescription.value = event.description || '';
+    if (elements.eventDate) elements.eventDate.value = event.eventDate || event.date || '';
+    // Prefer normalized eventTime, fall back to startTime/time
+    const start = (event.eventTime || event.startTime || event.time || '').toString().slice(0,5);
+    const end = (event.endTime || '').toString().slice(0,5);
+    if (elements.eventTime) elements.eventTime.value = start;
+    if (elements.eventEndTime) elements.eventEndTime.value = end;
+    if (elements.eventAddress) elements.eventAddress.value = event.address || '';
+    if (elements.eventCity) elements.eventCity.value = event.city || '';
+    if (elements.isActive) elements.isActive.checked = !!(event.isActive || event.status === 'active');
+    if ((event.imageUrl || event.photoUrl) && elements.previewImg && elements.imageUploadArea && elements.imagePreview) {
       elements.previewImg.src = event.imageUrl || event.photoUrl;
       elements.imageUploadArea.style.display = 'none';
       elements.imagePreview.style.display = 'block';
@@ -786,6 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateFilterTabs() {
+    if (!elements.filterTabs) return;
     elements.filterTabs.querySelectorAll('.filter-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.filter === currentFilter);
     });
@@ -887,15 +897,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showImagePreview(src) {
+    if (!elements.previewImg || !elements.imageUploadArea || !elements.imagePreview) return;
     elements.previewImg.src = src;
     elements.imageUploadArea.style.display = 'none';
     elements.imagePreview.style.display = 'block';
   }
 
   function hideImagePreview() {
+    if (!elements.imageUploadArea || !elements.imagePreview) return;
     elements.imageUploadArea.style.display = 'block';
     elements.imagePreview.style.display = 'none';
-    elements.eventImage.value = '';
+    if (elements.eventImage) elements.eventImage.value = '';
   }
 
   // Form Submission
@@ -910,48 +922,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const submitBtn = document.getElementById('saveEventBtn');
-    const originalText = submitBtn.innerHTML;
+    const originalText = submitBtn ? submitBtn.innerHTML : '';
     
     try {
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvare...';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvare...';
+      }
 
       const companyId = await resolveCompanyId();
       const payload = {
-        title: elements.eventName.value.trim(),
-        description: elements.eventDescription.value.trim(),
-        eventDate: elements.eventDate.value,
-        startTime: elements.eventTime.value.length === 5 ? elements.eventTime.value + ':00' : elements.eventTime.value,
-        endTime: elements.eventEndTime.value.length === 5 ? elements.eventEndTime.value + ':00' : elements.eventEndTime.value,
-        address: elements.eventAddress.value.trim(),
-        city: elements.eventCity.value.trim(),
-        isActive: !!elements.isActive.checked,
+        title: elements.eventName?.value.trim(),
+        description: elements.eventDescription?.value.trim(),
+        eventDate: elements.eventDate?.value,
+        startTime: elements.eventTime?.value?.length === 5 ? elements.eventTime.value + ':00' : elements.eventTime?.value,
+        endTime: elements.eventEndTime?.value?.length === 5 ? elements.eventEndTime.value + ':00' : elements.eventEndTime?.value,
+        address: elements.eventAddress?.value.trim(),
+        city: elements.eventCity?.value.trim(),
+        isActive: !!elements.isActive?.checked,
         companyId,
-        imageFile: elements.eventImage.files[0] || null
+        imageFile: elements.eventImage?.files?.[0] || null
       };
 
       let result;
       if (editingEvent) {
         console.log('Updating existing event:', editingEvent.id);
         result = await updateEvent(editingEvent.id, payload);
-        // Update the event in local array
-        const eventIndex = allEvents.findIndex(e => e.id === editingEvent.id);
-        if (eventIndex !== -1) {
-          allEvents[eventIndex] = { ...allEvents[eventIndex], ...payload, ...result };
+        // Replace in local array with normalized data to reflect schedule immediately
+        const idx = allEvents.findIndex(e => e.id.toString() === String(editingEvent.id));
+        if (idx !== -1) {
+          const normalized = normalizeEvent({ ...allEvents[idx], ...payload, ...result });
+          allEvents[idx] = normalized;
         }
         showNotification('Eveniment actualizat cu succes!', 'success');
       } else {
         console.log('Creating new event');
         result = await createEvent(payload);
-        // Add new event to local array
-        const newEvent = { 
-          ...payload, 
-          ...result, 
-          id: result.id || Date.now(),
-          ticketsSold: 0,
-          locationName: payload.address
-        };
-        allEvents.unshift(newEvent);
+        // Normalize server response; include startTime->eventTime mapping via normalizeEvent
+        const normalized = normalizeEvent({ ...payload, ...result });
+        // Ensure some UI-required fields exist
+        if (!normalized.id) normalized.id = result?.id || Date.now();
+        if (!normalized.locationName) normalized.locationName = payload.address;
+        allEvents.unshift(normalized);
         showNotification('Eveniment creat cu succes!', 'success');
       }
 
@@ -961,10 +973,12 @@ document.addEventListener('DOMContentLoaded', () => {
       
     } catch (error) {
       console.error('Error saving event:', error);
-      showNotification('Eroare la salvarea evenimentului: ' + error.message, 'error');
+      showNotification('Eroare la salvarea evenimentului: ' + (error?.message || 'Unknown error'), 'error');
     } finally {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalText;
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
     }
   }
 
@@ -1025,13 +1039,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const event = allEvents.find(e => e.id.toString() === eventId.toString());
     if (event) {
       openEventModal(event);
+    } else {
+      console.warn('Event not found for edit:', eventId);
     }
   };
 
   window.confirmDeleteEvent = function(eventId) {
     openDeleteModal(eventId);
   };
-
   window.removeTag = function(tag) {
     currentTags = currentTags.filter(t => t !== tag);
     updateTagsPreview();

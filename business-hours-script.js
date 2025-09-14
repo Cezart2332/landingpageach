@@ -199,8 +199,17 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append(`day_${index}_close`, closeTime);
           }
         });
-        const { success, error } = await (window.SecureApiService?.post(`/locations/${locationId}/hours`, formData) || {});
+        const { success, error, data } = await (window.SecureApiService?.post(`/locations/${locationId}/hours`, formData) || {});
         if (success) {
+          // If backend returns saved hours, remap from response; else keep our local hours
+          try {
+            const respList = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : []);
+            if (respList.length) {
+              const mapped = respList.map(mapBackendHour).filter(Boolean);
+              const DAYSIDX = [0,1,2,3,4,5,6];
+              hours = DAYSIDX.map(d => mapped.find(m => m.day === d) || hours.find(h => h.day === d) || { day: d, isOpen: true, is24: false, open: '09:00', close: '22:00' });
+            }
+          } catch {}
           dirty = false;
           saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Program Salvat</span>';
           setTimeout(() => { saveBtn.innerHTML = '<i class="fas fa-save"></i> <span>Salvează Program</span>'; saveBtn.disabled = true; }, 1400);
@@ -255,6 +264,10 @@ document.addEventListener('DOMContentLoaded', () => {
         day = found ? found.value : 0;
       }
     } else if (typeof item.day === 'number') { day = item.day; }
+
+    // Normalize possible backend 1..7 to 0..6
+    if (day >= 1 && day <= 7) day = day % 7;
+    if (day < 0 || day > 6) day = 0;
 
     const isClosed = !!(item.IsClosed || item.isClosed);
     const open = item.OpenTime || item.open || '';

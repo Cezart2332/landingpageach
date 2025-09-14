@@ -1264,7 +1264,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function showEarlyAccessPopup() {
-      createCountdownModal();
+      // Previously opened a countdown modal with a specific date; now just show a simple Coming Soon.
+      createComingSoonModal('Acces anticipat', 'fas fa-envelope');
     }
 
     function showReservationPopup() {

@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="actions-row">
         <button class="action-btn" id="hoursBtn"><i class="fas fa-clock"></i> Program</button>
+        <button class="action-btn" id="editBtn"><i class="fas fa-pen"></i> Editează</button>
         <button class="action-btn green" id="reservationsBtn"><i class="fas fa-calendar"></i> Rezervări</button>
       </div>
       <div class="stats-grid">
@@ -142,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     document.getElementById('hoursBtn')?.addEventListener('click', () => window.location.href = 'business-location-hours.html?id=' + idVal);
+    document.getElementById('editBtn')?.addEventListener('click', () => window.location.href = 'business-edit-location.html?id=' + idVal);
     document.getElementById('reservationsBtn')?.addEventListener('click', () => window.location.href = 'business-reservations.html?id=' + idVal);
     document.getElementById('allReservations')?.addEventListener('click', () => window.location.href = 'business-reservations.html?id=' + idVal);
     document.getElementById('deleteBtn')?.addEventListener('click', onDelete);
@@ -236,6 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
         day = idx >= 0 ? idx : 0;
       }
     } else if (typeof item.day === 'number') { day = item.day; }
+
+    // Normalize to 0-6 where 0=Sunday
+    if (day >= 1 && day <= 7) day = day % 7;
+    if (day < 0 || day > 6) day = 0;
 
     const isClosed = !!(item.IsClosed || item.isClosed);
     const open = item.OpenTime || item.open || '';

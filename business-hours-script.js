@@ -39,6 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let dirty = false;
   let companyId = null;
   let lastEndpointUsed = null;
+  // Debug capture of last payloads
+  let lastRawResponse = null;         // raw response object from API
+  let lastExtractedList = null;       // extracted list array
+  let lastMappedList = null;          // mapped list to UI shape
 
   // Storage dump for visibility
   (function dumpStorages(){
@@ -248,8 +252,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = `/locations/${locationId}/hours`;
       inf('load:GET', { url });
       const resp = await (window.SecureApiService?.get(url) || {});
-      dbg('load:resp', resp);
+      lastRawResponse = resp;
+      inf('load:resp', lastRawResponse);
       const list = extractList(resp);
+      lastExtractedList = list;
+      inf('load:extracted:list', Array.isArray(list) ? list : []);
       inf('load:extracted', { count: list.length });
       if (list.length > 0 || resp?.success){ lastEndpointUsed = url; return list; }
     }catch(e){ dbg('load:primary:error', e); }
@@ -260,8 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const url2 = `/companies/${cid}/locations/${locationId}/hours`;
       inf('load:GET:fallback', { url: url2 });
       const resp2 = await (window.SecureApiService?.get(url2) || {});
-      dbg('load:resp:fallback', resp2);
+      lastRawResponse = resp2;
+      inf('load:resp:fallback', lastRawResponse);
       const list2 = extractList(resp2);
+      lastExtractedList = list2;
+      inf('load:extracted:fallback:list', Array.isArray(list2) ? list2 : []);
       inf('load:extracted:fallback', { count: list2.length });
       if (list2.length > 0 || resp2?.success){ lastEndpointUsed = url2; return list2; }
     }catch(e){ dbg('load:fallback:error', e); }
@@ -325,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const payloadPreview = formDataToObject(formData);
         inf('save:payloadPreview', payloadPreview);
         let response = await saveHours(formData);
+        inf('save:resp', response);
         let { success, error, data } = response || {};
         if (success) {
           // If backend returns saved hours, remap from response; else keep our local hours
@@ -334,6 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (respList && respList.length) {
               const mapped = respList.map(mapBackendHour).filter(Boolean);
               dbg('save:respMapped', mapped);
+              lastMappedList = mapped;
+              inf('save:respMapped', mapped);
               const DAYSIDX = [0,1,2,3,4,5,6];
               hours = DAYSIDX.map(d => mapped.find(m => m.day === d) || hours.find(h => h.day === d) || { day: d, isOpen: true, is24: false, open: '09:00', close: '22:00' });
             }
@@ -343,8 +356,11 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             const refList = await fetchHours();
             const list2 = Array.isArray(refList) ? refList : [];
+            inf('save:refetch:list', list2);
             if (list2.length) {
               const mapped2 = list2.map(mapBackendHour).filter(Boolean);
+              lastMappedList = mapped2;
+              inf('save:refetch:mapped', mapped2);
               hours = DAYS.map(d => mapped2.find(m => m.day === d.value) || { day: d.value, isOpen: true, is24: false, open: '09:00', close: '22:00' });
               dbg('save:refetch:mapped', hours);
               inf('save:refetch:mappedCount', hours.length);
@@ -379,9 +395,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const list = await fetchHours();
       dbg('load:extracted', list);
+      inf('load:list', Array.isArray(list) ? list : []);
       inf('load:listCount', { count: list.length, endpoint: lastEndpointUsed });
       const mapped = list.map(mapBackendHour).filter(Boolean);
       dbg('load:mapped', mapped);
+      inf('load:mapped', mapped);
       inf('load:mappedCount', mapped.length);
       // Ensure 7 days
       hours = DAYS.map(d => {
@@ -436,6 +454,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.hoursDebug = {
     get hours() { return hours; },
     get endpoint() { return lastEndpointUsed; },
+    get lastRaw() { return lastRawResponse; },
+    get lastExtracted() { return lastExtractedList; },
+    get lastMapped() { return lastMappedList; },
     render,
     markDirty,
     async company() { return await resolveCompanyId(); },
@@ -451,6 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
         dbg('debug:refetch');
         const list = await fetchHours();
         const mapped = list.map(mapBackendHour).filter(Boolean);
+        inf('debug:refetch:list', Array.isArray(list) ? list : []);
+        inf('debug:refetch:mapped', mapped);
         hours = DAYS.map(d => mapped.find(m => m.day === d.value) || { day: d.value, isOpen: true, is24: false, open: '09:00', close: '22:00' });
         render();
       } catch (e) { console.error('debug:refetch error', e); }

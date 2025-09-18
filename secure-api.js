@@ -19,6 +19,19 @@
     };
   })();
 
+  // Persistent storage (localStorage) for keeping users logged-in between visits
+  const P = (function(){
+    try { if (window.localStorage) return window.localStorage; } catch {}
+    // No persistent storage available; degrade to same in-memory store
+    return {
+      getItem: (k) => memoryStore[`p_${k}`] ?? null,
+      setItem: (k, v) => { memoryStore[`p_${k}`] = String(v); },
+      removeItem: (k) => { delete memoryStore[`p_${k}`]; },
+      key: (i) => Object.keys(memoryStore)[i] ?? null,
+      get length() { return Object.keys(memoryStore).length; }
+    };
+  })();
+
   const Storage = {
     get(key){ try { return S.getItem(key); } catch { return null; } },
     set(key,val){ try { S.setItem(key,val); } catch{} },
@@ -34,6 +47,21 @@
     }
   };
 
+  const Persist = {
+    get(key){ try { return P.getItem(key); } catch { return null; } },
+    set(key,val){ try { P.setItem(key,val); } catch{} },
+    remove(key){ try { P.removeItem(key); } catch{} },
+    multiSet(pairs){ try { pairs.forEach(([k,v])=>P.setItem(k,v)); } catch{} },
+    multiRemove(keys){ try { keys.forEach(k=>P.removeItem(k)); } catch{} },
+    getAllKeys(){
+      try {
+        const keys = [];
+        for (let i=0; i < P.length; i++) { const k = P.key(i); if (k) keys.push(k); }
+        return keys;
+      } catch { return []; }
+    }
+  };
+
   function fetchWithTimeout(resource, options={}){
     const { timeout = API_CONFIG.TIMEOUT, ...rest } = options;
     const controller = new AbortController();
@@ -43,17 +71,36 @@
 
   const SecureStorageService = {
     async storeTokens(accessToken, refreshToken){
+      // Session-scoped
       Storage.multiSet([
         ['access_token', accessToken],
         ['refresh_token', refreshToken],
         ['token_stored_at', String(Date.now())]
       ]);
+      // Persist across sessions
+      Persist.multiSet([
+        ['access_token', accessToken],
+        ['refresh_token', refreshToken],
+        ['token_stored_at', String(Date.now())]
+      ]);
     },
-    async getAccessToken(){ return Storage.get('access_token'); },
-    async getRefreshToken(){ return Storage.get('refresh_token'); },
-    async clearTokens(){ Storage.multiRemove(['access_token','refresh_token','token_stored_at','company','user','loggedIn']); },
+    async getAccessToken(){ return Storage.get('access_token') || Persist.get('access_token'); },
+    async getRefreshToken(){ return Storage.get('refresh_token') || Persist.get('refresh_token'); },
+    async clearTokens(){
+      Storage.multiRemove(['access_token','refresh_token','token_stored_at','company','user','loggedIn']);
+      Persist.multiRemove(['access_token','refresh_token','token_stored_at','company','user','loggedIn']);
+    },
     async areTokensExpired(){
-      const ts = Storage.get('token_stored_at'); if(!ts) return true; return (Date.now()-parseInt(ts,10)) > 15*60*1000; }
+      const ts = Storage.get('token_stored_at') || Persist.get('token_stored_at'); if(!ts) return true; return (Date.now()-parseInt(ts,10)) > 15*60*1000; },
+    async rehydrateSessionFromPersist(){
+      try{
+        const a = Persist.get('access_token'); const r = Persist.get('refresh_token'); const t = Persist.get('token_stored_at');
+        if(a && r){ Storage.multiSet([['access_token',a],['refresh_token',r]]); if(t) Storage.set('token_stored_at', t); }
+        const c = Persist.get('company'); const u = Persist.get('user'); const li = Persist.get('loggedIn');
+        if(c) Storage.set('company', c); if(u) Storage.set('user', u); if(li) Storage.set('loggedIn', li);
+        return !!(a && r);
+      }catch{ return false; }
+    }
   };
 
   const SecureApiService = {
@@ -65,6 +112,13 @@
     async initialize(){
       this.accessToken = await SecureStorageService.getAccessToken();
       this.refreshToken = await SecureStorageService.getRefreshToken();
+      if(!this.accessToken || !this.refreshToken){
+        const ok = await SecureStorageService.rehydrateSessionFromPersist();
+        if(ok){
+          this.accessToken = await SecureStorageService.getAccessToken();
+          this.refreshToken = await SecureStorageService.getRefreshToken();
+        }
+      }
     },
 
     async makeSecureRequest(endpoint, options={}){
@@ -117,7 +171,12 @@
         if(accessToken && refreshToken){ await SecureStorageService.storeTokens(accessToken, refreshToken); this.accessToken=accessToken; this.refreshToken=refreshToken; }
         // Store identity snapshot in session for navigation continuity
         const userData = resp.data.company ? { type:'Company', ...resp.data.company } : (resp.data.user ? { type:'User', ...resp.data.user } : null);
-        if(userData){ Storage.set(userData.type==='Company'?'company':'user', JSON.stringify(userData)); Storage.set('loggedIn','true'); }
+        if(userData){
+          const key = userData.type==='Company'?'company':'user';
+          const val = JSON.stringify(userData);
+          Storage.set(key, val); Storage.set('loggedIn','true');
+          Persist.set(key, val); Persist.set('loggedIn','true');
+        }
       }
       return resp;
     },

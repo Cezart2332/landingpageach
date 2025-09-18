@@ -1,5 +1,7 @@
 // Business page interactions
 document.addEventListener('DOMContentLoaded', () => {
+  const DEBUG = (()=>{ try{ const v = localStorage.getItem('ac_debug'); return v===null?true:(v==='1'||v==='true'||v==='on'); }catch{return true;} })();
+  const dbg = (...a)=>{ if(DEBUG) console.debug('[BusinessPage]', ...a); };
   // FAQ accordion
   document.querySelectorAll('.faq-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -67,4 +69,30 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!el.classList.contains('reveal-visible')) showEl(el);
     });
   }, 3000);
+
+  // Keep logged-in users logged in: intercept "Alătură-te" button
+  try {
+    const joinBtn = document.querySelector('.biz-menu a[href="business-auth.html"], .biz-menu a.biz-cta-btn');
+    if (joinBtn) {
+      joinBtn.addEventListener('click', async (e) => {
+        try {
+          if (!window.SecureApiService) return; // no client, allow default
+          // Print storage snapshot for debugging
+          const ss = {}; const ls = {};
+          try { for(let i=0;i<sessionStorage.length;i++){ const k=sessionStorage.key(i); if(k) ss[k]=sessionStorage.getItem(k); } } catch{}
+          try { for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) ls[k]=localStorage.getItem(k); } } catch{}
+          dbg('join:storageSnapshot', { sessionStorage: ss, localStorage: ls });
+
+          const authed = await window.SecureApiService.isAuthenticated();
+          dbg('join:isAuthenticated', authed);
+          if (authed) {
+            e.preventDefault();
+            window.location.href = 'business-dashboard.html';
+          }
+        } catch (err) {
+          dbg('join:error', err);
+        }
+      }, { capture: true });
+    }
+  } catch (e) { dbg('join:initError', e); }
 });

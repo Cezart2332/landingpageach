@@ -2,6 +2,8 @@
 // Uses SecureApiService to POST a new location for the authenticated company.
 
 document.addEventListener('DOMContentLoaded', () => {
+  const DEBUG = (()=>{ try{ const v = localStorage.getItem('ac_debug'); return v===null?true:(v==='1'||v==='true'||v==='on'); }catch{return true;} })();
+  const dbg = (...a)=>{ if(DEBUG) console.debug('[AddLocation]', ...a); };
   // Elements
   const form = document.getElementById('addLocationForm');
   const nameEl = document.getElementById('name');
@@ -137,16 +139,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // API helpers
   async function safeProfile() {
-    try { return await window.SecureApiService.getProfile(); } catch (e) { return null; }
+    try {
+      const resp = await window.SecureApiService.getProfile();
+      dbg('getProfile:resp', resp);
+      // Unwrap envelope if needed
+      if (resp && typeof resp === 'object' && 'success' in resp && 'data' in resp) return resp.data;
+      return resp;
+    } catch (e) { dbg('getProfile:error', e); return null; }
   }
   function extractCompanyId(profile) {
     if (!profile) return null;
-    return (
+    const cid = (
       profile.id || profile.Id ||
       profile.companyId || profile.CompanyId ||
       (profile.company && (profile.company.id || profile.company.Id)) ||
       null
     );
+    dbg('extractCompanyId', { profile, cid });
+    return cid;
   }
   async function checkLocationNameExists(companyId, name) {
     try {
@@ -166,6 +176,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setSubmit('<i class="fas fa-spinner fa-spin"></i> Creare...', true);
 
     try {
+      // Log storage snapshot
+      try{
+        const ss = {}; for(let i=0;i<sessionStorage.length;i++){ const k=sessionStorage.key(i); if(k) ss[k]=sessionStorage.getItem(k); }
+        const ls = {}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) ls[k]=localStorage.getItem(k); }
+        dbg('storageSnapshot', { sessionStorage: ss, localStorage: ls });
+      }catch{}
       // Ensure companyId
       if (!companyId) {
         const profile = await safeProfile();
@@ -226,6 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setSubmit('<i class="fas fa-plus-circle"></i> Creează Locație', false);
     } catch (err) {
       console.error('Create location error:', err);
+      dbg('submit:error', err);
       alert('Eroare: adăugarea locației a eșuat');
       setSubmit('<i class="fas fa-plus-circle"></i> Creează Locație', false);
     }
@@ -234,8 +251,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Bootstrap: get company id ASAP for later use
   (async function initCompany() {
     try {
-      const profile = await safeProfile();
-      companyId = extractCompanyId(profile);
+      // Attempt to find companyId from storage even before network
+      try{
+        const ssCompany = sessionStorage.getItem('company');
+        const lsCompany = localStorage.getItem('company');
+        const snap = ssCompany || lsCompany;
+        if(snap){
+          try{ const obj = JSON.parse(snap); const cid = obj?.id || obj?.Id; if(cid) companyId = cid; dbg('initCompany:fromStorage', { cid }); }catch{}
+        }
+      }catch{}
+      if(!companyId){
+        const profile = await safeProfile();
+        companyId = extractCompanyId(profile);
+      }
+      dbg('initCompany:resolved', { companyId });
     } catch { /* no-op */ }
   })();
 

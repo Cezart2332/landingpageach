@@ -2,6 +2,15 @@
 // Loads existing hours, allows editing (open/close, 24h), and saves to backend.
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Debug toggle via localStorage.ac_debug = '1' to enable
+  const DEBUG = (() => {
+    try {
+      const v = localStorage.getItem('ac_debug');
+      if (v === null) return true; // default ON while investigating
+      return v === '1' || v === 'true' || v === 'on';
+    } catch { return true; }
+  })();
+  const dbg = (...args) => { if (DEBUG) console.debug('[HoursEditor]', ...args); };
   const daysWrap = document.getElementById('daysWrap');
   const saveBtn = document.getElementById('saveHoursBtn');
   const params = new URLSearchParams(location.search);
@@ -11,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Subtitle fallback if not provided by the page
   const locationName = locationId ? `Locație #${locationId}` : 'Locație';
+  dbg('init', { locationId, href: location.href });
   if (locNameSub) locNameSub.textContent = locationName;
 
   const DAYS = [
@@ -29,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function markDirty() {
     dirty = true;
     if (saveBtn) saveBtn.disabled = false;
+    dbg('markDirty', { dirty });
   }
 
   function formatDisp(t) {
@@ -67,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function render() {
     if (!daysWrap) return;
+    dbg('render', { hours });
     daysWrap.innerHTML = hours.map(h => dayCard(h)).join('');
     attachEvents();
   }
@@ -81,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const obj = hours.find(x => x.day === day);
         if (!obj) return;
         obj.isOpen = (e.target instanceof HTMLInputElement) ? !!e.target.checked : !obj.isOpen;
+        dbg('toggleOpen', { day, isOpen: obj.isOpen });
         if (!obj.isOpen) obj.is24 = false;
         markDirty();
         render();
@@ -94,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const obj = hours.find(x => x.day === day);
         if (!obj) return;
         obj.is24 = !obj.is24;
+        dbg('toggle24', { day, is24: obj.is24 });
         if (obj.is24) { obj.open = '00:00'; obj.close = '23:59'; }
         markDirty();
         render();
@@ -106,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const day = Number(card?.getAttribute('data-day'));
         const field = btn.getAttribute('data-time');
         if (!field) return;
+        dbg('openTimePicker', { day, field });
         openTimePicker(day, field);
       });
     });
@@ -121,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (act === 'closeall') hours = hours.map(h => ({ ...h, isOpen: false, is24: false }));
         else if (act === 'weekdays') hours = hours.map(h => ({ ...h, isOpen: (h.day >= 1 && h.day <= 5), is24: false, open: '09:00', close: '18:00' }));
         else if (act === 'weekend') hours = hours.map(h => ({ ...h, isOpen: (h.day === 0 || h.day === 6), is24: false, open: '10:00', close: '23:00' }));
+        dbg('quickAction', { action: act, hours });
         markDirty();
         render();
       });
@@ -141,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pickerState.value = null;
     buildSlots();
     titleEl.textContent = `Selectează ora de ${field === 'open' ? 'deschidere' : 'închidere'}`;
+    dbg('timePicker:open', { day, field });
     modal.style.display = 'flex';
   }
 
@@ -161,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pickerState.value = val;
         listEl.querySelectorAll('.tm-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-val') === val));
         item.classList.add('active');
+        dbg('timePicker:select', { val });
       });
       listEl.appendChild(item);
     }
@@ -172,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const obj = hours.find(x => x.day === pickerState.day);
       if (!obj) { modal.style.display = 'none'; return; }
       if (pickerState.field === 'open') obj.open = pickerState.value; else obj.close = pickerState.value;
+      dbg('timePicker:confirm', { day: pickerState.day, field: pickerState.field, value: pickerState.value });
       markDirty();
       modal.style.display = 'none';
       render();
@@ -180,6 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Save
+  function formDataToObject(fd) {
+    const o = {};
+    for (const [k, v] of fd.entries()) { o[k] = v; }
+    return o;
+  }
+
   if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
       if (saveBtn.disabled) return;
@@ -199,27 +224,56 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append(`day_${index}_close`, closeTime);
           }
         });
-        const { success, error, data } = await (window.SecureApiService?.post(`/locations/${locationId}/hours`, formData) || {});
+        const payloadPreview = formDataToObject(formData);
+        dbg('save:POST', { url: `/locations/${locationId}/hours`, payload: payloadPreview });
+        let response = await (window.SecureApiService?.post(`/locations/${locationId}/hours`, formData) || {});
+        dbg('save:respPOST', response);
+        let { success, error, data } = response;
+        // Fallback to PUT if POST not supported
+        if (!success) {
+          dbg('save:POST failed, trying PUT');
+          response = await (window.SecureApiService?.put(`/locations/${locationId}/hours`, formData) || {});
+          dbg('save:respPUT', response);
+          success = response?.success; error = response?.error; data = response?.data;
+        }
         if (success) {
           // If backend returns saved hours, remap from response; else keep our local hours
           try {
             const respList = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : []);
-            if (respList.length) {
+            dbg('save:respDataExtracted', { count: Array.isArray(respList) ? respList.length : 0 });
+            if (respList && respList.length) {
               const mapped = respList.map(mapBackendHour).filter(Boolean);
+              dbg('save:respMapped', mapped);
               const DAYSIDX = [0,1,2,3,4,5,6];
               hours = DAYSIDX.map(d => mapped.find(m => m.day === d) || hours.find(h => h.day === d) || { day: d, isOpen: true, is24: false, open: '09:00', close: '22:00' });
             }
-          } catch {}
+          } catch (e) { dbg('save:mapResponseError', e); }
+
+          // Force re-fetch to confirm what backend persisted
+          try {
+            dbg('save:refetch:GET', { url: `/locations/${locationId}/hours` });
+            const ref = await (window.SecureApiService?.get(`/locations/${locationId}/hours`) || {});
+            dbg('save:refetch:resp', ref);
+            const list2 = (ref && ref.success && Array.isArray(ref.data)) ? ref.data : [];
+            if (list2.length) {
+              const mapped2 = list2.map(mapBackendHour).filter(Boolean);
+              hours = DAYS.map(d => mapped2.find(m => m.day === d.value) || { day: d.value, isOpen: true, is24: false, open: '09:00', close: '22:00' });
+              dbg('save:refetch:mapped', hours);
+            }
+          } catch (e) { dbg('save:refetch:error', e); }
+
           dirty = false;
           saveBtn.innerHTML = '<i class="fas fa-check"></i> <span>Program Salvat</span>';
           setTimeout(() => { saveBtn.innerHTML = '<i class="fas fa-save"></i> <span>Salvează Program</span>'; saveBtn.disabled = true; }, 1400);
         } else {
           console.error('Save hours error:', error);
+          dbg('save:error', error);
           alert('Eroare: salvarea programului a eșuat');
           saveBtn.disabled = false; if (span) span.textContent = 'Salvează Program';
         }
       } catch (err) {
         console.error('Error saving hours:', err);
+        dbg('save:exception', err);
         alert('Eroare: salvarea programului a eșuat');
         saveBtn.disabled = false; const span2 = saveBtn.querySelector('span'); if (span2) span2.textContent = 'Salvează Program';
       }
@@ -234,9 +288,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Se încarcă programul...
         </div>`;
       }
+      dbg('load:GET', { url: `/locations/${locationId}/hours` });
       const resp = await (window.SecureApiService?.get(`/locations/${locationId}/hours`) || {});
+      dbg('load:resp', resp);
       const list = (resp && resp.success && Array.isArray(resp.data)) ? resp.data : [];
+      dbg('load:extracted', list);
       const mapped = list.map(mapBackendHour).filter(Boolean);
+      dbg('load:mapped', mapped);
       // Ensure 7 days
       hours = DAYS.map(d => {
         const ex = mapped.find(m => m.day === d.value);
@@ -244,6 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (err) {
       console.warn('Failed to load hours, using defaults', err);
+      dbg('load:errorDefaults', err);
       hours = DAYS.map(d => ({ day: d.value, isOpen: true, is24: false, open: '09:00', close: '22:00' }));
     } finally {
       dirty = false;
@@ -274,12 +333,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const close = item.CloseTime || item.close || '';
     const is24 = !isClosed && (item.Is24Hours === true || item.is24 === true || (open === '00:00' && (close === '23:59' || close === '24:00')));
 
-    return {
+    const normalized = {
       day,
       isOpen: !isClosed,
       is24: is24,
       open: is24 ? '00:00' : (open || '09:00'),
       close: is24 ? '23:59' : (close || '22:00')
     };
+    dbg('mapBackendHour', { original: item, normalized });
+    return normalized;
   }
+
+  // Expose small debug helper
+  window.hoursDebug = {
+    get hours() { return hours; },
+    render,
+    markDirty,
+    async refetch() {
+      try {
+        dbg('debug:refetch');
+        const resp = await (window.SecureApiService?.get(`/locations/${locationId}/hours`) || {});
+        const list = (resp && resp.success && Array.isArray(resp.data)) ? resp.data : [];
+        const mapped = list.map(mapBackendHour).filter(Boolean);
+        hours = DAYS.map(d => mapped.find(m => m.day === d.value) || { day: d.value, isOpen: true, is24: false, open: '09:00', close: '22:00' });
+        render();
+      } catch (e) { console.error('debug:refetch error', e); }
+    }
+  };
 });

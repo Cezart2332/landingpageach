@@ -2,9 +2,21 @@
 // Loads location details, weekly hours, and recent reservations via SecureApiService.
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Debug toggle: set localStorage.ac_debug = '1' to enable, '0' to disable (defaults to enabled)
+  const DEBUG = (() => {
+    try {
+      const v = localStorage.getItem('ac_debug');
+      if (v === null) return true; // default ON while investigating
+      return v === '1' || v === 'true' || v === 'on';
+    } catch { return true; }
+  })();
+  const dbg = (...args) => { if (DEBUG) console.debug('[LocationProfile]', ...args); };
+
   const root = document.getElementById('locationContent');
   const params = new URLSearchParams(location.search);
   const id = params.get('id');
+  const idNum = Number(id);
+  dbg('DOMContentLoaded', { id, idNum, href: location.href });
 
   if (!id) {
     if (root) root.innerHTML = `<p style="color:#ef4444;font-weight:600;">ID locație lipsă.</p>`;
@@ -22,22 +34,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function init() {
     try {
+      dbg('init:start', { hasApi: !!window.SecureApiService, isAuth: !!window.SecureApiService?.isAuthenticated?.() });
       if (!window.SecureApiService || !window.SecureApiService.isAuthenticated()) {
+        dbg('auth:missing -> redirect to business-auth.html');
         window.location.href = 'business-auth.html';
         return;
       }
       showLoading();
       await Promise.all([
-        loadLocation(Number(id)),
-        loadHours(Number(id)),
-        loadRecentReservations(Number(id))
+        loadLocation(idNum),
+        loadHours(idNum),
+        loadRecentReservations(idNum)
       ]);
+      dbg('init:data-loaded', { hasLocation: !!state.location, hours: state.hours.length, reservations: state.reservations.length });
       render();
     } catch (err) {
       console.error('Location init error:', err);
       showError('A apărut o eroare la încărcarea locației.');
     } finally {
       state.loading = false;
+      dbg('init:done');
     }
   }
 
@@ -67,10 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadLocation(locationId) {
     try {
+      dbg('loadLocation:GET', { url: `/locations/${locationId}` });
       const resp = await (window.SecureApiService?.get(`/locations/${locationId}`) || {});
+      dbg('loadLocation:resp', resp);
       const data = resp && resp.success ? resp.data : resp; // service may return raw
       if (!data) throw new Error('Nu s-au putut încărca detaliile locației');
       state.location = data;
+      dbg('loadLocation:resolved', { id: data?.id ?? data?.Id ?? data?.ID, name: data?.name ?? data?.Name });
     } catch (err) {
       console.error('Load location error', err);
       state.location = null;
@@ -79,35 +98,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadHours(locationId) {
     try {
+      dbg('loadHours:GET', { url: `/locations/${locationId}/hours` });
       const resp = await (window.SecureApiService?.get(`/locations/${locationId}/hours`) || {});
+      dbg('loadHours:resp', resp);
       const list = extractHoursList(resp);
+      dbg('loadHours:extracted', list);
       const mapped = Array.isArray(list) ? list.map(mapBackendHour).filter(Boolean) : [];
+      dbg('loadHours:mapped', mapped);
       // ensure 7 days
       const DAYS = [0,1,2,3,4,5,6];
       state.hours = DAYS.map(d => mapped.find(m => m.day === d) || { day: d, isOpen: true, is24: false, open: '09:00', close: '22:00' });
+      dbg('loadHours:finalNormalized7', state.hours);
     } catch (err) {
       console.warn('Hours load failed, using defaults', err);
       state.hours = Array.from({ length: 7 }, (_, i) => ({ day: i, isOpen: true, is24: false, open: '09:00', close: '22:00' }));
+      dbg('loadHours:defaultsUsed', state.hours);
     }
   }
 
   async function loadRecentReservations(locationId) {
     try {
       // Prefer /locations/{id}/reservations; fallback to /reservations?locationId=
+      dbg('loadRecentReservations:GET', { url: `/locations/${locationId}/reservations?limit=3` });
       let resp = await (window.SecureApiService?.get(`/locations/${locationId}/reservations?limit=3`) || {});
+      dbg('loadRecentReservations:resp1', resp);
       let list = resp && resp.success ? resp.data : resp;
       if (!Array.isArray(list)) {
+        dbg('loadRecentReservations:fallbackGET', { url: `/reservations?locationId=${encodeURIComponent(locationId)}&limit=3` });
         resp = await (window.SecureApiService?.get(`/reservations?locationId=${encodeURIComponent(locationId)}&limit=3`) || {});
+        dbg('loadRecentReservations:resp2', resp);
         list = resp && resp.success ? resp.data : resp;
       }
       state.reservations = Array.isArray(list) ? list : [];
+      dbg('loadRecentReservations:final', { count: state.reservations.length });
     } catch (err) {
       console.warn('Reservations load failed', err);
       state.reservations = [];
+      dbg('loadRecentReservations:errorEmpty');
     }
   }
 
   function render() {
+    dbg('render:start', { hasRoot: !!root, hasLocation: !!state.location, hours: state.hours.length, reservations: state.reservations.length });
     if (!root || !state.location) { showError('Detaliile locației nu sunt disponibile.'); return; }
     const l = state.location;
 
@@ -118,7 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tags = Array.isArray(tagsArr) ? tagsArr : (typeof tagsArr === 'string' ? tagsArr.split(',') : []);
     const photo = l.photoUrl || l.photo || l.imageUrl || l.ImageUrl || 'https://picsum.photos/seed/lprof'+id+'/1200/800';
 
-    const todayText = todayHoursText(state.hours);
+  const todayText = todayHoursText(state.hours);
+  dbg('render:todayText', todayText);
 
     root.innerHTML = `
       <div class="hero-card">
@@ -142,22 +175,26 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="danger-bar"><div><strong style="color:#ef4444;">Atenție!</strong><div style="font-size:.7rem;color:#b8b8b8;margin-top:4px;">Ștergerea locației este permanentă și nu poate fi anulată.</div></div><button id="deleteBtn"><i class="fas fa-trash"></i> Șterge Locația</button></div>
     `;
 
-    document.getElementById('hoursBtn')?.addEventListener('click', () => window.location.href = 'business-location-hours.html?id=' + idVal);
-    document.getElementById('editBtn')?.addEventListener('click', () => window.location.href = 'business-edit-location.html?id=' + idVal);
-    document.getElementById('reservationsBtn')?.addEventListener('click', () => window.location.href = 'business-reservations.html?id=' + idVal);
-    document.getElementById('allReservations')?.addEventListener('click', () => window.location.href = 'business-reservations.html?id=' + idVal);
+    document.getElementById('hoursBtn')?.addEventListener('click', () => { dbg('nav:hours', { id: idVal }); window.location.href = 'business-location-hours.html?id=' + idVal; });
+    document.getElementById('editBtn')?.addEventListener('click', () => { dbg('nav:edit', { id: idVal }); window.location.href = 'business-edit-location.html?id=' + idVal; });
+    document.getElementById('reservationsBtn')?.addEventListener('click', () => { dbg('nav:reservations', { id: idVal }); window.location.href = 'business-reservations.html?id=' + idVal; });
+    document.getElementById('allReservations')?.addEventListener('click', () => { dbg('nav:reservationsAll', { id: idVal }); window.location.href = 'business-reservations.html?id=' + idVal; });
     document.getElementById('deleteBtn')?.addEventListener('click', onDelete);
+    dbg('render:done');
   }
 
   async function onDelete() {
     const confirmed = window.confirm('Sigur ștergi această locație?');
     if (!confirmed) return;
     try {
+      dbg('delete:call', { url: `/locations/${id}` });
       await window.SecureApiService.delete(`/locations/${id}`);
+      dbg('delete:success');
       alert('Locația a fost ștearsă.');
       window.location.href = 'business-locations.html';
     } catch (err) {
       console.error('Delete failed', err);
+      dbg('delete:error', err);
       alert('Ștergerea locației a eșuat.');
     }
   }
@@ -187,7 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const today = new Date().getDay();
       const h = hours.find(x => x.day === today);
-      return h && h.isOpen ? `${formatTime12(h.open)} - ${formatTime12(h.close)}` : 'Închis azi';
+      const txt = h && h.isOpen ? `${formatTime12(h.open)} - ${formatTime12(h.close)}` : 'Închis azi';
+      dbg('todayHoursText', { today, h, txt });
+      return txt;
     } catch { return 'Închis azi'; }
   }
 
@@ -219,6 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function mapBackendHour(item) {
     if (!item) return null;
+    const original = { ...item };
     // Determine day index
     let day = 0;
     if (typeof item.DayOfWeek === 'number') day = item.DayOfWeek;
@@ -248,14 +288,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const close = item.CloseTime || item.close || '';
     const is24 = !isClosed && (item.Is24Hours === true || item.is24 === true || (open === '00:00' && (close === '23:59' || close === '24:00')));
 
-    return {
+    const normalized = {
       day,
       isOpen: !isClosed,
       is24: is24,
       open: is24 ? '00:00' : (open || '09:00'),
       close: is24 ? '23:59' : (close || '22:00')
     };
+    dbg('mapBackendHour', { original, normalized });
+    return normalized;
   }
 
   function escapeHtml(str) { return String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+
+  // Expose debug helpers for manual triggers in the console
+  window.locationProfileDebug = {
+    get state() { return state; },
+    reload: async () => {
+      try {
+        dbg('manualReload:start');
+        showLoading();
+        await Promise.all([
+          loadLocation(idNum),
+          loadHours(idNum),
+          loadRecentReservations(idNum)
+        ]);
+        render();
+        dbg('manualReload:done');
+      } catch (e) {
+        console.error('manualReload:error', e);
+      }
+    },
+    goHours: () => { const lId = state.location?.id ?? state.location?.Id ?? idNum; dbg('debugNav:hours', { id: lId }); window.location.href = 'business-location-hours.html?id=' + lId; },
+    goEdit: () => { const lId = state.location?.id ?? state.location?.Id ?? idNum; dbg('debugNav:edit', { id: lId }); window.location.href = 'business-edit-location.html?id=' + lId; },
+    goReservations: () => { const lId = state.location?.id ?? state.location?.Id ?? idNum; dbg('debugNav:reservations', { id: lId }); window.location.href = 'business-reservations.html?id=' + lId; }
+  };
 });

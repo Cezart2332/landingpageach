@@ -182,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('deleteBtn')?.addEventListener('click', onDelete);
     dbg('render:done');
   }
+  console.log("test")
 
   async function onDelete() {
     const confirmed = window.confirm('Sigur ștergi această locație?');

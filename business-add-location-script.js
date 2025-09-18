@@ -268,9 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       // Attempt to find companyId from storage even before network
       try{
-        const ssCompany = sessionStorage.getItem('company');
-        const lsCompany = localStorage.getItem('company');
-        const snap = ssCompany || lsCompany;
+        const snap = localStorage.getItem('company');
         if(snap){
           try{ const obj = JSON.parse(snap); const cid = obj?.id || obj?.Id; if(cid) companyId = cid; dbg('initCompany:fromStorage', { cid }); }catch{}
         }

@@ -1,5 +1,5 @@
 // SecureApiService (browser port) for AcoomH business site
-// Uses sessionStorage (not localStorage) to avoid persistent storage across tabs
+// Uses localStorage to persist login across page reloads and visits
 (function(){
   const API_CONFIG = {
     BASE_URL: 'https://api.acoomh.ro',
@@ -7,18 +7,6 @@
   };
 
   const memoryStore = {};
-  const S = (function(){
-    try { if (window.sessionStorage) return window.sessionStorage; } catch {}
-    // Fallback in-memory store (lost on navigation)
-    return {
-      getItem: (k) => memoryStore[k] ?? null,
-      setItem: (k, v) => { memoryStore[k] = String(v); },
-      removeItem: (k) => { delete memoryStore[k]; },
-      key: (i) => Object.keys(memoryStore)[i] ?? null,
-      get length() { return Object.keys(memoryStore).length; }
-    };
-  })();
-
   // Persistent storage (localStorage) for keeping users logged-in between visits
   const P = (function(){
     try { if (window.localStorage) return window.localStorage; } catch {}
@@ -31,21 +19,6 @@
       get length() { return Object.keys(memoryStore).length; }
     };
   })();
-
-  const Storage = {
-    get(key){ try { return S.getItem(key); } catch { return null; } },
-    set(key,val){ try { S.setItem(key,val); } catch{} },
-    remove(key){ try { S.removeItem(key); } catch{} },
-    multiSet(pairs){ try { pairs.forEach(([k,v])=>S.setItem(k,v)); } catch{} },
-    multiRemove(keys){ try { keys.forEach(k=>S.removeItem(k)); } catch{} },
-    getAllKeys(){
-      try {
-        const keys = [];
-        for (let i=0; i < S.length; i++) { const k = S.key(i); if (k) keys.push(k); }
-        return keys;
-      } catch { return []; }
-    }
-  };
 
   const Persist = {
     get(key){ try { return P.getItem(key); } catch { return null; } },
@@ -71,36 +44,19 @@
 
   const SecureStorageService = {
     async storeTokens(accessToken, refreshToken){
-      // Session-scoped
-      Storage.multiSet([
-        ['access_token', accessToken],
-        ['refresh_token', refreshToken],
-        ['token_stored_at', String(Date.now())]
-      ]);
-      // Persist across sessions
       Persist.multiSet([
         ['access_token', accessToken],
         ['refresh_token', refreshToken],
         ['token_stored_at', String(Date.now())]
       ]);
     },
-    async getAccessToken(){ return Storage.get('access_token') || Persist.get('access_token'); },
-    async getRefreshToken(){ return Storage.get('refresh_token') || Persist.get('refresh_token'); },
+    async getAccessToken(){ return Persist.get('access_token'); },
+    async getRefreshToken(){ return Persist.get('refresh_token'); },
     async clearTokens(){
-      Storage.multiRemove(['access_token','refresh_token','token_stored_at','company','user','loggedIn']);
       Persist.multiRemove(['access_token','refresh_token','token_stored_at','company','user','loggedIn']);
     },
     async areTokensExpired(){
-      const ts = Storage.get('token_stored_at') || Persist.get('token_stored_at'); if(!ts) return true; return (Date.now()-parseInt(ts,10)) > 15*60*1000; },
-    async rehydrateSessionFromPersist(){
-      try{
-        const a = Persist.get('access_token'); const r = Persist.get('refresh_token'); const t = Persist.get('token_stored_at');
-        if(a && r){ Storage.multiSet([['access_token',a],['refresh_token',r]]); if(t) Storage.set('token_stored_at', t); }
-        const c = Persist.get('company'); const u = Persist.get('user'); const li = Persist.get('loggedIn');
-        if(c) Storage.set('company', c); if(u) Storage.set('user', u); if(li) Storage.set('loggedIn', li);
-        return !!(a && r);
-      }catch{ return false; }
-    }
+      const ts = Persist.get('token_stored_at'); if(!ts) return true; return (Date.now()-parseInt(ts,10)) > 15*60*1000; }
   };
 
   const SecureApiService = {
@@ -112,13 +68,6 @@
     async initialize(){
       this.accessToken = await SecureStorageService.getAccessToken();
       this.refreshToken = await SecureStorageService.getRefreshToken();
-      if(!this.accessToken || !this.refreshToken){
-        const ok = await SecureStorageService.rehydrateSessionFromPersist();
-        if(ok){
-          this.accessToken = await SecureStorageService.getAccessToken();
-          this.refreshToken = await SecureStorageService.getRefreshToken();
-        }
-      }
     },
 
     async makeSecureRequest(endpoint, options={}){
@@ -169,12 +118,11 @@
       if(resp.success && resp.data){
         const { accessToken, refreshToken } = resp.data;
         if(accessToken && refreshToken){ await SecureStorageService.storeTokens(accessToken, refreshToken); this.accessToken=accessToken; this.refreshToken=refreshToken; }
-        // Store identity snapshot in session for navigation continuity
+        // Store identity snapshot in persistent storage for navigation continuity
         const userData = resp.data.company ? { type:'Company', ...resp.data.company } : (resp.data.user ? { type:'User', ...resp.data.user } : null);
         if(userData){
           const key = userData.type==='Company'?'company':'user';
           const val = JSON.stringify(userData);
-          Storage.set(key, val); Storage.set('loggedIn','true');
           Persist.set(key, val); Persist.set('loggedIn','true');
         }
       }

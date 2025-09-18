@@ -81,11 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cid) return Number(cid);
       }
     } catch (e) { /* ignore */ }
-    // Fallback to sessionStorage snapshot
+    // Fallback to storage snapshot (localStorage only per policy)
     try {
-      const cRaw = sessionStorage.getItem('company');
+      const cRaw = localStorage.getItem('company');
       if (cRaw) { const c = JSON.parse(cRaw); if (c?.id || c?.Id) return Number(c.id || c.Id); }
-      const uRaw = sessionStorage.getItem('user');
+      const uRaw = localStorage.getItem('user');
       if (uRaw) { const u = JSON.parse(uRaw); if (u?.id || u?.Id) return Number(u.id || u.Id); }
     } catch(e){ console.warn('Failed to read company/user from storage:', e); }
     return null;
@@ -707,7 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch {}
     try {
-      const cRaw = sessionStorage.getItem('company');
+      const cRaw = localStorage.getItem('company');
       if (cRaw) { const c = JSON.parse(cRaw); return c?.id || c?.Id || null; }
     } catch {}
     return null;

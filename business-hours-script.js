@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function resolveCompanyId(){
     if (companyId) return companyId;
     try{
-      const snap = sessionStorage.getItem('company') || localStorage.getItem('company');
+      const snap = localStorage.getItem('company');
       if (snap){
         try{ const obj = JSON.parse(snap); const cid = obj?.id || obj?.Id; if (cid){ companyId = cid; inf('companyId:fromStorage', { companyId }); return companyId; } }catch{}
       }

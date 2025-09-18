@@ -4,6 +4,14 @@
 document.addEventListener('DOMContentLoaded', () => {
   const DEBUG = (()=>{ try{ const v = localStorage.getItem('ac_debug'); return v===null?true:(v==='1'||v==='true'||v==='on'); }catch{return true;} })();
   const dbg = (...a)=>{ if(DEBUG) console.debug('[AddLocation]', ...a); };
+  // Always-on storage snapshot logger (Info level)
+  function dumpStorages(where){
+    try{
+      const ss = {}; for(let i=0;i<sessionStorage.length;i++){ const k=sessionStorage.key(i); if(k) ss[k]=sessionStorage.getItem(k); }
+      const ls = {}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) ls[k]=localStorage.getItem(k); }
+      console.log('[AddLocation] storageSnapshot', { where, sessionStorage: ss, localStorage: ls });
+    }catch(err){ console.warn('[AddLocation] storageSnapshot:error', err); }
+  }
   // Elements
   const form = document.getElementById('addLocationForm');
   const nameEl = document.getElementById('name');
@@ -46,6 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  // Initial storage snapshot on page load
+  dumpStorages('DOMContentLoaded');
 
   // Tags input
   function renderTags() {
@@ -176,16 +187,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setSubmit('<i class="fas fa-spinner fa-spin"></i> Creare...', true);
 
     try {
-      // Log storage snapshot
-      try{
-        const ss = {}; for(let i=0;i<sessionStorage.length;i++){ const k=sessionStorage.key(i); if(k) ss[k]=sessionStorage.getItem(k); }
-        const ls = {}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) ls[k]=localStorage.getItem(k); }
-        dbg('storageSnapshot', { sessionStorage: ss, localStorage: ls });
-      }catch{}
+      // Log storage snapshot (Info level)
+      dumpStorages('submit');
       // Ensure companyId
       if (!companyId) {
         const profile = await safeProfile();
         companyId = extractCompanyId(profile);
+        console.log('[AddLocation] companyId:resolvedOnSubmit', { companyId });
       }
       if (!companyId) throw new Error('Nu s-a putut identifica compania.');
 
@@ -220,6 +228,13 @@ document.addEventListener('DOMContentLoaded', () => {
       fd.append('description', descEl.value || '');
       fd.append('reservationsEnabled', reservationsToggle.checked ? 'true' : 'false');
       if (photoFile) fd.append('photo', photoFile, photoFile.name || 'location_photo.jpg');
+
+      // Payload preview (Info level)
+      try{
+        const preview = {};
+        for (const [k,v] of fd.entries()) { preview[k] = v instanceof File ? { name: v.name, size: v.size, type: v.type } : v; }
+        console.log('[AddLocation] submit:payloadPreview', preview);
+      }catch{}
 
       const resp = await window.SecureApiService.post(`/companies/${companyId}/locations`, fd);
       if (resp && resp.success) {
@@ -264,10 +279,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const profile = await safeProfile();
         companyId = extractCompanyId(profile);
       }
-      dbg('initCompany:resolved', { companyId });
+      // Log resolution at Info level too
+      console.log('[AddLocation] initCompany:resolved', { companyId });
+      dumpStorages('initCompany');
     } catch { /* no-op */ }
   })();
 
   // Initial validate
   validate();
+
+  // Expose quick debug helpers
+  try {
+    window.addLocationDebug = {
+      dump: () => dumpStorages('manual'),
+      getCompanyId: () => companyId,
+      getGeo: () => ({ ...geoData }),
+      getFormState: () => ({
+        name: nameEl?.value,
+        address: addressEl?.value,
+        phone: phoneEl?.value,
+        category: selectedCategory,
+        tags: [...currentTags],
+        hasPhoto: !!photoFile
+      })
+    };
+    console.log('[AddLocation] debug helpers ready: window.addLocationDebug');
+  } catch {}
 });

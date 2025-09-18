@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch { return true; }
   })();
   const dbg = (...args) => { if (DEBUG) console.debug('[HoursEditor]', ...args); };
+  const inf = (...args) => console.log('[HoursEditor]', ...args);
   const daysWrap = document.getElementById('daysWrap');
   const saveBtn = document.getElementById('saveHoursBtn');
   const params = new URLSearchParams(location.search);
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Subtitle fallback if not provided by the page
   const locationName = locationId ? `Locație #${locationId}` : 'Locație';
   dbg('init', { locationId, href: location.href });
+  inf('init', { locationId, href: location.href });
   if (locNameSub) locNameSub.textContent = locationName;
 
   const DAYS = [
@@ -35,6 +37,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let hours = DAYS.map(d => ({ day: d.value, isOpen: true, is24: false, open: '09:00', close: '22:00' }));
   let dirty = false;
+  let companyId = null;
+  let lastEndpointUsed = null;
+
+  // Storage dump for visibility
+  (function dumpStorages(){
+    try{
+      const ss = {}; for(let i=0;i<sessionStorage.length;i++){ const k=sessionStorage.key(i); if(k) ss[k]=sessionStorage.getItem(k); }
+      const ls = {}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) ls[k]=localStorage.getItem(k); }
+      inf('storageSnapshot', { sessionStorage: ss, localStorage: ls });
+    }catch(e){ console.warn('[HoursEditor] storageSnapshot:error', e); }
+  })();
 
   function markDirty() {
     dirty = true;
@@ -79,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function render() {
     if (!daysWrap) return;
     dbg('render', { hours });
+    inf('render', { count: hours.length });
     daysWrap.innerHTML = hours.map(h => dayCard(h)).join('');
     attachEvents();
   }
@@ -198,6 +212,90 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => { modal.style.display = 'none'; }));
   }
 
+  // Common helpers
+  function extractList(resp){
+    try{
+      if (!resp) return [];
+      if (Array.isArray(resp)) return resp;
+      if (resp.success){
+        if (Array.isArray(resp.data)) return resp.data;
+        if (resp.data && Array.isArray(resp.data.items)) return resp.data.items;
+      }
+      return [];
+    }catch{ return []; }
+  }
+
+  async function resolveCompanyId(){
+    if (companyId) return companyId;
+    try{
+      const snap = sessionStorage.getItem('company') || localStorage.getItem('company');
+      if (snap){
+        try{ const obj = JSON.parse(snap); const cid = obj?.id || obj?.Id; if (cid){ companyId = cid; inf('companyId:fromStorage', { companyId }); return companyId; } }catch{}
+      }
+    }catch{}
+    try{
+      const me = await (window.SecureApiService?.getProfile() || {});
+      const payload = me && me.success ? me.data : me;
+      const cid = payload?.id || payload?.Id || payload?.companyId || payload?.CompanyId || payload?.company?.id || payload?.company?.Id;
+      if (cid){ companyId = cid; inf('companyId:fromProfile', { companyId }); return companyId; }
+    }catch(e){ dbg('companyId:error', e); }
+    return null;
+  }
+
+  async function fetchHours(){
+    // Try primary endpoint
+    try{
+      const url = `/locations/${locationId}/hours`;
+      inf('load:GET', { url });
+      const resp = await (window.SecureApiService?.get(url) || {});
+      dbg('load:resp', resp);
+      const list = extractList(resp);
+      inf('load:extracted', { count: list.length });
+      if (list.length > 0 || resp?.success){ lastEndpointUsed = url; return list; }
+    }catch(e){ dbg('load:primary:error', e); }
+    // Fallback to company-scoped endpoint if available
+    try{
+      const cid = await resolveCompanyId();
+      if (!cid) return [];
+      const url2 = `/companies/${cid}/locations/${locationId}/hours`;
+      inf('load:GET:fallback', { url: url2 });
+      const resp2 = await (window.SecureApiService?.get(url2) || {});
+      dbg('load:resp:fallback', resp2);
+      const list2 = extractList(resp2);
+      inf('load:extracted:fallback', { count: list2.length });
+      if (list2.length > 0 || resp2?.success){ lastEndpointUsed = url2; return list2; }
+    }catch(e){ dbg('load:fallback:error', e); }
+    return [];
+  }
+
+  async function saveHours(formData){
+    // Try primary
+    const primary = `/locations/${locationId}/hours`;
+    inf('save:POST', { url: primary });
+    let response = await (window.SecureApiService?.post(primary, formData) || {});
+    dbg('save:respPOST', response);
+    if (!response?.success){
+      dbg('save:POST failed, trying PUT');
+      response = await (window.SecureApiService?.put(primary, formData) || {});
+      dbg('save:respPUT', response);
+    }
+    if (response?.success) { lastEndpointUsed = primary; return response; }
+    // Fallback to company-scoped
+    const cid = await resolveCompanyId();
+    if (!cid) return response;
+    const fallback = `/companies/${cid}/locations/${locationId}/hours`;
+    inf('save:POST:fallback', { url: fallback });
+    response = await (window.SecureApiService?.post(fallback, formData) || {});
+    dbg('save:respPOST:fallback', response);
+    if (!response?.success){
+      dbg('save:POST fallback failed, trying PUT');
+      response = await (window.SecureApiService?.put(fallback, formData) || {});
+      dbg('save:respPUT:fallback', response);
+    }
+    if (response?.success) lastEndpointUsed = fallback;
+    return response;
+  }
+
   // Save
   function formDataToObject(fd) {
     const o = {};
@@ -225,17 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
         const payloadPreview = formDataToObject(formData);
-        dbg('save:POST', { url: `/locations/${locationId}/hours`, payload: payloadPreview });
-        let response = await (window.SecureApiService?.post(`/locations/${locationId}/hours`, formData) || {});
-        dbg('save:respPOST', response);
-        let { success, error, data } = response;
-        // Fallback to PUT if POST not supported
-        if (!success) {
-          dbg('save:POST failed, trying PUT');
-          response = await (window.SecureApiService?.put(`/locations/${locationId}/hours`, formData) || {});
-          dbg('save:respPUT', response);
-          success = response?.success; error = response?.error; data = response?.data;
-        }
+        inf('save:payloadPreview', payloadPreview);
+        let response = await saveHours(formData);
+        let { success, error, data } = response || {};
         if (success) {
           // If backend returns saved hours, remap from response; else keep our local hours
           try {
@@ -251,14 +341,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Force re-fetch to confirm what backend persisted
           try {
-            dbg('save:refetch:GET', { url: `/locations/${locationId}/hours` });
-            const ref = await (window.SecureApiService?.get(`/locations/${locationId}/hours`) || {});
-            dbg('save:refetch:resp', ref);
-            const list2 = (ref && ref.success && Array.isArray(ref.data)) ? ref.data : [];
+            const refList = await fetchHours();
+            const list2 = Array.isArray(refList) ? refList : [];
             if (list2.length) {
               const mapped2 = list2.map(mapBackendHour).filter(Boolean);
               hours = DAYS.map(d => mapped2.find(m => m.day === d.value) || { day: d.value, isOpen: true, is24: false, open: '09:00', close: '22:00' });
               dbg('save:refetch:mapped', hours);
+              inf('save:refetch:mappedCount', hours.length);
             }
           } catch (e) { dbg('save:refetch:error', e); }
 
@@ -288,13 +377,12 @@ document.addEventListener('DOMContentLoaded', () => {
           <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Se încarcă programul...
         </div>`;
       }
-      dbg('load:GET', { url: `/locations/${locationId}/hours` });
-      const resp = await (window.SecureApiService?.get(`/locations/${locationId}/hours`) || {});
-      dbg('load:resp', resp);
-      const list = (resp && resp.success && Array.isArray(resp.data)) ? resp.data : [];
+      const list = await fetchHours();
       dbg('load:extracted', list);
+      inf('load:listCount', { count: list.length, endpoint: lastEndpointUsed });
       const mapped = list.map(mapBackendHour).filter(Boolean);
       dbg('load:mapped', mapped);
+      inf('load:mappedCount', mapped.length);
       // Ensure 7 days
       hours = DAYS.map(d => {
         const ex = mapped.find(m => m.day === d.value);
@@ -347,13 +435,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Expose small debug helper
   window.hoursDebug = {
     get hours() { return hours; },
+    get endpoint() { return lastEndpointUsed; },
     render,
     markDirty,
+    async company() { return await resolveCompanyId(); },
+    dumpStorages(){
+      try{
+        const ss = {}; for(let i=0;i<sessionStorage.length;i++){ const k=sessionStorage.key(i); if(k) ss[k]=sessionStorage.getItem(k); }
+        const ls = {}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k) ls[k]=localStorage.getItem(k); }
+        return { sessionStorage: ss, localStorage: ls };
+      }catch{ return {}; }
+    },
     async refetch() {
       try {
         dbg('debug:refetch');
-        const resp = await (window.SecureApiService?.get(`/locations/${locationId}/hours`) || {});
-        const list = (resp && resp.success && Array.isArray(resp.data)) ? resp.data : [];
+        const list = await fetchHours();
         const mapped = list.map(mapBackendHour).filter(Boolean);
         hours = DAYS.map(d => mapped.find(m => m.day === d.value) || { day: d.value, isOpen: true, is24: false, open: '09:00', close: '22:00' });
         render();

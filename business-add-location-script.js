@@ -306,3 +306,5 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[AddLocation] debug helpers ready: window.addLocationDebug');
   } catch {}
 });
+
+console.log("test")

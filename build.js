@@ -111,9 +111,8 @@ async function minifyJS(jsContent) {
   try {
     const result = await minify(jsContent, {
       compress: {
-        drop_console: false, // Keep console.log for debugging
-        drop_debugger: true,
-        pure_funcs: ['console.debug']
+        drop_console: false, // Keep console output for debugging
+        drop_debugger: true
       },
       mangle: {
         keep_fnames: true // Keep function names for debugging

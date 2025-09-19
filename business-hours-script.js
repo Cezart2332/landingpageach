@@ -419,24 +419,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function mapBackendHour(item) {
     if (!item) return null;
-    // DayOfWeek can be number, string index, or day label
-    let day = 0;
-    if (typeof item.DayOfWeek === 'number') day = item.DayOfWeek;
-    else if (typeof item.DayOfWeek === 'string') {
-      const parsed = parseInt(item.DayOfWeek, 10);
-      if (!isNaN(parsed)) day = parsed; else {
-        const found = DAYS.find(d => d.label.toLowerCase() === item.DayOfWeek.toLowerCase());
-        day = found ? found.value : 0;
-      }
-    } else if (typeof item.day === 'number') { day = item.day; }
 
+    // Map various day representations to 0..6 (0 = Sunday)
+    function normalizeDay(val){
+      try{
+        if (typeof val === 'number') return val; // assume 0..6 or 1..7 handled below
+        if (typeof val === 'string'){
+          const s = val.trim();
+          // numeric string
+          const n = parseInt(s, 10);
+          if (!isNaN(n)) return n;
+          const k = s.toLowerCase();
+          // English full names
+          const en = { sunday:0, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6 };
+          if (k in en) return en[k];
+          // English short names
+          const ens = { sun:0, mon:1, tue:2, tues:2, wed:3, thu:4, thur:4, thurs:4, fri:5, sat:6 };
+          if (k in ens) return ens[k];
+          // Romanian with/without diacritics
+          const ro = { 'duminică':0, 'duminica':0, 'luni':1, 'marți':2, 'marti':2, 'miercuri':3, 'joi':4, 'vineri':5, 'sâmbătă':6, 'sambata':6 };
+          if (k in ro) return ro[k];
+          // Match labels defined in DAYS (Romanian labels)
+          const found = DAYS.find(d => d.label.toLowerCase() === k);
+          if (found) return found.value;
+        }
+      }catch{}
+      return 0;
+    }
+
+    // Support multiple key casings from backend
+    const dayRaw = (item.DayOfWeek ?? item.dayOfWeek ?? item.day ?? item.day_name ?? item.dayName);
+    let day = normalizeDay(dayRaw);
     // Normalize possible backend 1..7 to 0..6
-    if (day >= 1 && day <= 7) day = day % 7;
+    if (day >= 1 && day <= 7) day = (day % 7);
     if (day < 0 || day > 6) day = 0;
 
-    const isClosed = !!(item.IsClosed || item.isClosed);
-    const open = item.OpenTime || item.open || '';
-    const close = item.CloseTime || item.close || '';
+    const isClosed = !!(item.IsClosed ?? item.isClosed ?? item.closed);
+    const open = (item.OpenTime ?? item.openTime ?? item.open ?? '');
+    const close = (item.CloseTime ?? item.closeTime ?? item.close ?? '');
     const is24 = !isClosed && (item.Is24Hours === true || item.is24 === true || (open === '00:00' && (close === '23:59' || close === '24:00')));
 
     const normalized = {
